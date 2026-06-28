@@ -1,0 +1,398 @@
+<!DOCTYPE html><html lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Tokopedia - Jual Beli Online Aman &amp; Nyaman</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed": "#76ff64",
+                    "secondary-container": "#ff5722",
+                    "on-primary-container": "#003501",
+                    "surface-dim": "#dcd9d9",
+                    "tertiary-fixed-dim": "#ffba35",
+                    "surface-container-highest": "#e5e2e1",
+                    "inverse-on-surface": "#f3f0ef",
+                    "on-tertiary-fixed": "#281900",
+                    "secondary": "#b02f00",
+                    "surface-container": "#f0eded",
+                    "tertiary": "#7e5700",
+                    "on-primary-fixed-variant": "#005302",
+                    "on-secondary-fixed-variant": "#862200",
+                    "surface-bright": "#fcf9f8",
+                    "surface-container-low": "#f6f3f2",
+                    "on-error-container": "#93000a",
+                    "tertiary-container": "#c38900",
+                    "surface": "#fcf9f8",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#541100",
+                    "on-tertiary-container": "#3e2900",
+                    "primary-fixed-dim": "#55e248",
+                    "on-surface-variant": "#3e4a39",
+                    "on-surface": "#1b1c1c",
+                    "outline-variant": "#bccbb4",
+                    "surface-variant": "#e5e2e1",
+                    "inverse-surface": "#303030",
+                    "on-primary-fixed": "#002200",
+                    "on-background": "#1b1c1c",
+                    "secondary-fixed-dim": "#ffb5a0",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#03ac0e",
+                    "surface-container-high": "#eae7e7",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed": "#ffdeac",
+                    "surface-tint": "#006e04",
+                    "outline": "#6d7b67",
+                    "inverse-primary": "#55e248",
+                    "background": "#fcf9f8",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#3b0900",
+                    "on-tertiary-fixed-variant": "#5f4100",
+                    "on-primary": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#ffdbd1",
+                    "primary": "#006e04"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-max": "1200px",
+                    "gutter": "16px",
+                    "stack-md": "8px",
+                    "margin-desktop": "24px",
+                    "stack-lg": "16px",
+                    "stack-sm": "4px"
+            },
+            "fontFamily": {
+                    "price-lg": ["Open Sans"],
+                    "label-bold": ["Open Sans"],
+                    "body-lg": ["Open Sans"],
+                    "headline-md": ["Open Sans"],
+                    "body-sm": ["Open Sans"],
+                    "headline-lg": ["Open Sans"],
+                    "body-md": ["Open Sans"]
+            },
+            "fontSize": {
+                    "price-lg": ["16px", {"lineHeight": "20px", "fontWeight": "700"}],
+                    "label-bold": ["12px", {"lineHeight": "16px", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["18px", {"lineHeight": "24px", "fontWeight": "700"}],
+                    "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bccbb4;
+            border-radius: 4px;
+        }
+        .custom-shadow {
+            box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-surface border-b border-outline-variant shadow-sm">
+<div class="flex items-center justify-between px-margin-desktop py-stack-md w-full max-w-container-max mx-auto h-20">
+<!-- Brand Logo -->
+<div class="flex items-center gap-6">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">Tokopedia</span>
+<span class="text-on-surface-variant font-body-md cursor-pointer hover:text-primary transition-colors">Kategori</span>
+</div>
+<!-- Search Bar -->
+<div class="flex-grow mx-8 relative">
+<div class="flex items-center bg-surface border border-outline-variant rounded-lg px-4 py-2 focus-within:border-primary transition-all group">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-body-md" placeholder="Cari di Tokopedia" type="text" value="Laptop Gaming">
+</div>
+</div>
+<!-- Header Actions -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:bg-surface-container-low p-2 rounded-lg transition-colors">shopping_cart</span>
+<span class="material-symbols-outlined cursor-pointer hover:bg-surface-container-low p-2 rounded-lg transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:bg-surface-container-low p-2 rounded-lg transition-colors">mail</span>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-1.5 border border-primary text-primary font-label-bold rounded-lg hover:bg-surface-container-low transition-all active:scale-95">Masuk</button>
+<button class="px-4 py-1.5 bg-primary text-on-primary font-label-bold rounded-lg hover:brightness-110 transition-all active:scale-95">Daftar</button>
+</div>
+</div>
+</div>
+<!-- Location Bar -->
+<div class="bg-surface py-1 border-t border-outline-variant/30">
+<div class="max-w-container-max mx-auto px-margin-desktop flex items-center gap-2 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span>Dikirim ke <strong class="text-on-surface">Jakarta Pusat</strong></span>
+<span class="material-symbols-outlined text-[16px] cursor-pointer">expand_more</span>
+</div>
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-margin-desktop py-stack-lg">
+<div class="flex gap-gutter">
+<!-- Sidebar Filters -->
+<aside class="w-64 flex-shrink-0 hidden md:block">
+<div class="bg-surface rounded-lg p-stack-lg sticky top-32">
+<h3 class="font-label-bold text-headline-md mb-4">Filter</h3>
+<!-- Filter Section: Lokasi -->
+<div class="border-b border-outline-variant pb-4 mb-4">
+<div class="flex items-center justify-between cursor-pointer mb-3">
+<span class="font-label-bold">Lokasi</span>
+<span class="material-symbols-outlined text-sm">expand_less</span>
+</div>
+<div class="space-y-3">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary h-4 w-4 border-outline" type="checkbox">
+<span class="text-body-md group-hover:text-primary transition-colors">DKI Jakarta</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="rounded text-primary focus:ring-primary h-4 w-4 border-outline" type="checkbox">
+<span class="text-body-md group-hover:text-primary transition-colors">Jabodetabek</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary h-4 w-4 border-outline" type="checkbox">
+<span class="text-body-md group-hover:text-primary transition-colors">Bandung</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary h-4 w-4 border-outline" type="checkbox">
+<span class="text-body-md group-hover:text-primary transition-colors">Surabaya</span>
+</label>
+<button class="text-primary font-label-bold text-body-sm mt-1 hover:underline">Lihat Selengkapnya</button>
+</div>
+</div>
+<!-- Filter Section: Pengiriman -->
+<div class="border-b border-outline-variant pb-4 mb-4">
+<div class="flex items-center justify-between cursor-pointer mb-3">
+<span class="font-label-bold">Pengiriman</span>
+<span class="material-symbols-outlined text-sm">expand_less</span>
+</div>
+<div class="space-y-3">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary h-4 w-4 border-outline" type="checkbox">
+<span class="text-body-md group-hover:text-primary transition-colors">Instan (3 Jam)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded text-primary focus:ring-primary h-4 w-4 border-outline" type="checkbox">
+<span class="text-body-md group-hover:text-primary transition-colors">Same Day</span>
+</label>
+</div>
+</div>
+<!-- Filter Section: Harga -->
+<div class="pb-4">
+<div class="flex items-center justify-between cursor-pointer mb-3">
+<span class="font-label-bold">Harga</span>
+<span class="material-symbols-outlined text-sm">expand_less</span>
+</div>
+<div class="space-y-3">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xs">Rp</span>
+<input class="w-full pl-8 pr-3 py-1.5 border border-outline-variant rounded-lg text-body-sm focus:ring-primary focus:border-primary" placeholder="Harga Minimum" type="text">
+</div>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xs">Rp</span>
+<input class="w-full pl-8 pr-3 py-1.5 border border-outline-variant rounded-lg text-body-sm focus:ring-primary focus:border-primary" placeholder="Harga Maksimum" type="text">
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Product Content -->
+<div class="flex-grow">
+<!-- Sorting & Tabs -->
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-6 bg-surface p-4 rounded-lg border border-outline-variant/30">
+<div class="flex items-center gap-6 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+<button class="whitespace-nowrap text-primary font-bold border-b-2 border-primary pb-1">Semua</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary transition-colors">Official Store</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary transition-colors">Power Merchant</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary transition-colors">Diskon</button>
+</div>
+<div class="flex items-center gap-2 mt-4 md:mt-0">
+<span class="text-body-sm text-on-surface-variant whitespace-nowrap">Urutkan:</span>
+<select class="bg-transparent border-none focus:ring-0 font-label-bold text-body-sm cursor-pointer text-on-surface">
+Paling Sesuai
+<option>Ulasan Terbanyak</option>
+<option>Harga Terendah</option>
+<option>Harga Tertinggi</option>
+<option>Terbaru</option>
+</select>
+</div>
+</div>
+<!-- Search Results Grid -->
+<div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+<!-- Product Card Template (Repeated) -->
+<script>
+                        const products = [
+                            { title: "ASUS ROG Zephyrus G14 GA401 - Ryzen 7 16GB 512GB RTX3050", price: "18.499.000", discount: "12%", original: "21.000.000", location: "Jakarta Barat", rating: "4.9", sold: "250+", img: "A sleek silver gaming laptop with glowing RGB keyboard on a minimalist white desk, clean professional studio lighting with high contrast." },
+                            { title: "MacBook Air M2 2023 Chip 13 inch 8GB 256GB - Midnight", price: "15.999.000", discount: "5%", original: "16.800.000", location: "Jakarta Pusat", rating: "5.0", sold: "1rb+", img: "A midnight black MacBook Air M2 open on a clean wooden surface, elegant professional product photography, bright airy atmosphere." },
+                            { title: "Lenovo Legion 5 Pro i7 12700H 16GB 1TB RTX3060 W11", price: "22.150.000", discount: "8%", original: "24.000.000", location: "Jakarta Utara", rating: "4.8", sold: "100+", img: "A powerful dark grey gaming laptop showing a high-performance cooling system, sleek industrial design, professional product shot on white background." },
+                            { title: "Acer Nitro V 15 Intel Core i5-13420H 8GB 512GB RTX2050", price: "10.899.000", discount: "15%", original: "12.500.000", location: "Tangerang", rating: "4.7", sold: "500+", img: "A budget gaming laptop with subtle blue accents, clean studio shot, vibrant green and blue color palette, modern tech aesthetic." },
+                            { title: "MSI Katana GF66 i7-12700H 16GB 512GB RTX3050Ti", price: "14.200.000", discount: "10%", original: "15.700.000", location: "Bekasi", rating: "4.9", sold: "75+", img: "A sharp black MSI Katana laptop with red backlit keys, aggressive gaming design, professional product photography with soft shadows." },
+                            { title: "HP Victus 15 Ryzen 5 5600H 8GB 512GB RX6500M", price: "9.499.000", discount: "20%", original: "11.870.000", location: "Depok", rating: "4.6", sold: "1.2rb+", img: "A ceramic white HP Victus laptop, minimalist lifestyle photography, soft natural lighting in a bright modern workspace." },
+                            { title: "Dell G15 5520 i5-12500H 16GB 512GB RTX3050", price: "13.750.000", discount: null, original: null, location: "Jakarta Selatan", rating: "4.8", sold: "30+", img: "A robust dark grey Dell gaming laptop, professional studio shot with sharp focus on the textured finish, clean white background." },
+                            { title: "Razer Blade 14 QHD 165Hz Ryzen 9 5900HX RTX3070", price: "34.500.000", discount: "5%", original: "36.300.000", location: "Jakarta Pusat", rating: "5.0", sold: "15", img: "An ultra-premium thin black Razer Blade laptop with vibrant green logo, luxury tech aesthetic, dark moody lighting with high-end product finish." },
+                            { title: "Axioo Pongo 725 Intel Core i7-12650H RTX2050 16GB", price: "9.999.000", discount: "15%", original: "11.750.000", location: "Bandung", rating: "4.7", sold: "100+", img: "A locally branded high-performance laptop, modern casing design, clean product photography on a neutral tech-focused background." },
+                            { title: "Infinix INBook X2 Intel Core i3-1115G4 8GB 256GB", price: "5.299.000", discount: "25%", original: "7.000.000", location: "Medan", rating: "4.5", sold: "2.1rb+", img: "A slim aluminum colorful laptop in vibrant red, studio lighting showing its thin profile, clean and modern visual style." }
+                        ];
+
+                        document.write(products.map(p => `
+                            <div class="bg-surface rounded-lg overflow-hidden border border-outline-variant hover:custom-shadow hover:border-primary transition-all group cursor-pointer h-full flex flex-col">
+                                <div class="aspect-square bg-surface-container-low overflow-hidden">
+                                    <img src="placeholder" data-alt="${p.img} The image features the product in a premium, clean Tokopedia-style commercial shot, with bright lighting and soft shadows." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                </div>
+                                <div class="p-3 flex flex-col flex-grow">
+                                    <h4 class="text-body-md line-clamp-2 mb-2 group-hover:text-primary transition-colors">${p.title}</h4>
+                                    <div class="mb-1">
+                                        <p class="font-price-lg text-price-lg text-on-surface">Rp${p.price}</p>
+                                        ${p.discount ? `
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span class="bg-error-container text-error text-[10px] font-bold px-1 rounded-sm">${p.discount}</span>
+                                                <span class="text-body-sm text-on-surface-variant line-through">Rp${p.original}</span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <div class="mt-auto pt-2">
+                                        <div class="flex items-center gap-1 text-on-surface-variant mb-1">
+                                            <span class="material-symbols-outlined text-[14px] text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+                                            <span class="text-body-sm">${p.location}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-[14px] text-tertiary-container" style="font-variation-settings: 'FILL' 1;">star</span>
+                                            <span class="text-body-sm font-label-bold">${p.rating}</span>
+                                            <span class="text-body-sm text-on-surface-variant">| Terjual ${p.sold}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join(''));
+                    </script>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-center gap-2 mt-12">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:border-primary text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-on-primary font-bold">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-low transition-all">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-low transition-all">3</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-low transition-all">4</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-low transition-all">5</button>
+<span class="text-on-surface-variant">...</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:border-primary text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container mt-20">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-desktop py-32 max-w-container-max mx-auto">
+<div>
+<span class="font-headline-md text-headline-md font-bold text-on-surface block mb-6">Tokopedia</span>
+<ul class="space-y-3">
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Tentang Tokopedia</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Hak Kekayaan Intelektual</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Karir</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Blog</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface mb-6">Beli</h4>
+<ul class="space-y-3">
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Tagihan &amp; Top Up</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Tukar Tambah HP</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Tokopedia COD</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface mb-6">Bantuan dan Panduan</h4>
+<ul class="space-y-3">
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Tokopedia Care</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Syarat &amp; Ketentuan</a></li>
+<li><a class="text-on-surface-variant font-body-sm hover:text-primary underline" href="#">Kebijakan Privasi</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface mb-6">Ikuti Kami</h4>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">face_nod</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">share</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">language</span>
+</div>
+</div>
+</div>
+<div class="border-t border-outline-variant py-8 text-center">
+<p class="text-body-sm text-on-surface-variant">© 2009-2024, PT Tokopedia.</p>
+</div>
+</footer>
+<!-- Bottom Mobile Nav -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant px-6 py-2 flex justify-between items-center z-50">
+<div class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[10px] font-label-bold">Beranda</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">explore</span>
+<span class="text-[10px] font-label-bold">Explore</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-[10px] font-label-bold">Notifikasi</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-label-bold">Akun</span>
+</div>
+</div>
+<script>
+        // Micro-interactions
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                this.parentElement.classList.toggle('text-primary', this.checked);
+            });
+        });
+
+        // Sticky Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 0) {
+                header.classList.add('shadow-md');
+            } else {
+                header.classList.remove('shadow-md');
+            }
+        });
+    </script>
+</body></html>

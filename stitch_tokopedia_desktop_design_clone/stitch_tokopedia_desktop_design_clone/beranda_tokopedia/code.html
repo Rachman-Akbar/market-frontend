@@ -1,0 +1,422 @@
+<!DOCTYPE html><html class="light" lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Tokopedia | Jual Beli Online Aman &amp; Nyaman</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#76ff64",
+                        "secondary-container": "#ff5722",
+                        "on-primary-container": "#003501",
+                        "surface-dim": "#dcd9d9",
+                        "tertiary-fixed-dim": "#ffba35",
+                        "surface-container-highest": "#e5e2e1",
+                        "inverse-on-surface": "#f3f0ef",
+                        "on-tertiary-fixed": "#281900",
+                        "secondary": "#b02f00",
+                        "surface-container": "#f0eded",
+                        "tertiary": "#7e5700",
+                        "on-primary-fixed-variant": "#005302",
+                        "on-secondary-fixed-variant": "#862200",
+                        "surface-bright": "#fcf9f8",
+                        "surface-container-low": "#f6f3f2",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#c38900",
+                        "surface": "#fcf9f8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#541100",
+                        "on-tertiary-container": "#3e2900",
+                        "primary-fixed-dim": "#55e248",
+                        "on-surface-variant": "#3e4a39",
+                        "on-surface": "#1b1c1c",
+                        "outline-variant": "#bccbb4",
+                        "surface-variant": "#e5e2e1",
+                        "inverse-surface": "#303030",
+                        "on-primary-fixed": "#002200",
+                        "on-background": "#1b1c1c",
+                        "secondary-fixed-dim": "#ffb5a0",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#03ac0e",
+                        "surface-container-high": "#eae7e7",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#ffdeac",
+                        "surface-tint": "#006e04",
+                        "outline": "#6d7b67",
+                        "inverse-primary": "#55e248",
+                        "background": "#fcf9f8",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#3b0900",
+                        "on-tertiary-fixed-variant": "#5f4100",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#ffdbd1",
+                        "primary": "#006e04"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1200px",
+                        "gutter": "16px",
+                        "stack-md": "8px",
+                        "margin-desktop": "24px",
+                        "stack-lg": "16px",
+                        "stack-sm": "4px"
+                    },
+                    "fontFamily": {
+                        "price-lg": ["Open Sans"],
+                        "label-bold": ["Open Sans"],
+                        "body-lg": ["Open Sans"],
+                        "headline-md": ["Open Sans"],
+                        "body-sm": ["Open Sans"],
+                        "headline-lg": ["Open Sans"],
+                        "body-md": ["Open Sans"]
+                    },
+                    "fontSize": {
+                        "price-lg": ["16px", {"lineHeight": "20px", "fontWeight": "700"}],
+                        "label-bold": ["12px", {"lineHeight": "16px", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-md": ["18px", {"lineHeight": "24px", "fontWeight": "700"}],
+                        "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Open Sans', sans-serif; background-color: #fcf9f8; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-surface dark:bg-on-background shadow-sm border-b border-outline-variant dark:border-outline">
+<div class="flex items-center justify-between px-margin-desktop py-stack-md w-full max-w-container-max mx-auto h-20">
+<!-- Brand & Search -->
+<div class="flex items-center gap-6 flex-1">
+<a class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed" href="#">Tokopedia</a>
+<div class="hidden lg:block text-on-surface-variant font-body-md hover:bg-surface-container-low transition-colors px-2 py-1 rounded cursor-pointer">
+                    Kategori
+                </div>
+<div class="relative flex-1 max-w-2xl group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-outline-variant rounded-lg bg-surface focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-body-md" placeholder="Cari di Tokopedia" type="text">
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4 ml-6">
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant mx-2"></div>
+<button class="px-4 py-1.5 border border-primary text-primary font-bold rounded-lg hover:bg-primary-container/10 transition-all text-body-md">Masuk</button>
+<button class="px-4 py-1.5 bg-primary-container text-on-primary font-bold rounded-lg hover:brightness-95 transition-all text-body-md">Daftar</button>
+</div>
+</div>
+<!-- Location Sub-header -->
+<div class="max-w-container-max mx-auto px-margin-desktop py-1 flex items-center justify-end text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm mr-1">location_on</span>
+<span>Dikirim ke <strong class="text-on-surface">Jakarta Pusat</strong></span>
+<span class="material-symbols-outlined text-sm ml-1">expand_more</span>
+</div>
+</header>
+<main class="w-full max-w-container-max mx-auto px-margin-desktop py-stack-lg space-y-10">
+<!-- Promotional Hero Banner -->
+<section class="relative w-full aspect-[12/3] rounded-xl overflow-hidden shadow-sm">
+<div class="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 flex items-center px-16">
+<div class="max-w-md text-white space-y-4 z-10">
+<h2 class="font-headline-lg text-headline-lg leading-tight">Mau transaksi lebih hemat?</h2>
+<p class="font-body-lg text-body-lg opacity-90">Cek promo asyik Tokopedia!</p>
+<button class="px-8 py-3 bg-white/20 backdrop-blur-md border border-white/40 text-white font-bold rounded-lg hover:bg-white/30 transition-all">Cek Sekarang</button>
+</div>
+<!-- Dynamic Illustration Container -->
+<div class="absolute right-0 top-0 bottom-0 w-2/3 pointer-events-none flex items-center justify-center overflow-hidden">
+<div class="w-[120%] h-[120%] rotate-12 opacity-80" data-alt="A vibrant, 3D style isometric illustration of a modern Indonesian city scene featuring friendly owl mascots carrying shopping bags and colorful gift boxes. The background has soft teal and green gradients with playful abstract shapes, evoking a joyful and reliable e-commerce shopping experience. High quality digital render, clean lighting, modern corporate aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuClSUqqTCy3aeamjJO5o5nvT_XQNTUaA4j13uz0MCTSvucvDzF4E1eJjlXlAn4wcoXk0Qml-66-pmBkZ0c0YwWE5LvmDq-7HnABqy7Mh8tr6I0ID8352sYYzmevioiOWzIOwQ_WIWksYhmMWgh_ecWf0kfmGRGpYo3lqXOPwFthjBDyffgwVLbOJ5IbjkacJKK2Vclenoe9QKrMGTyfeiabQE6VLg3gqxBxZDmtmWSreEy4rZA7Y2MZM8HfLDllPma5FKV0Ej5SVySe')"></div>
+</div>
+</div>
+<!-- Carousel Nav -->
+<div class="absolute bottom-4 left-16 flex gap-1.5">
+<div class="w-2 h-2 rounded-full bg-white"></div>
+<div class="w-2 h-2 rounded-full bg-white/40"></div>
+<div class="w-2 h-2 rounded-full bg-white/40"></div>
+</div>
+</section>
+<!-- Category & Bill Section -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Popular Categories -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline-md text-headline-md">Kategori Populer</h3>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="group relative overflow-hidden rounded-xl h-32 bg-primary/5 cursor-pointer">
+<div class="absolute inset-0 p-4 z-10">
+<p class="font-body-md font-bold text-on-surface">Handphone &amp; Tablet</p>
+<button class="mt-2 text-primary font-bold text-body-sm hover:underline">Lihat Semua</button>
+</div>
+<div class="absolute bottom-[-10px] right-[-10px] w-24 h-24 rotate-[-15deg] group-hover:scale-110 transition-transform" data-alt="A sleek modern smartphone and a high-end tablet placed artfully together with glossy surfaces and clean edges. The devices are rendered in a minimalist 3D style against a soft green background, highlighting technology and connectivity. The lighting is crisp and professional, matching a modern corporate UI aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCS1uAHnJ1mn8Xa6CmVcKwhPD314BAiIYlNXIDWmJyuv0ibX6vpg61HIFDFwrvGiAJDJjEaExCCdMAsrpypFkQoTIrrABycMzA0WPbgTJr_djIYwc9vXNVPaOdhooOm0vrpBe4wDnK98ThtxSngJrUaFtrFjDW3pB49_DTxDy6aJsBFcLClil1x3kQnDTExT9QKxamj3ph_6Qyr997iKRhkehCha6sS9-FX2WWXzzFWwsrAy059_97BmhpGbY_wO4jbR3F1fXkVI75_')"></div>
+</div>
+<div class="group relative overflow-hidden rounded-xl h-32 bg-secondary-container/5 cursor-pointer">
+<div class="absolute inset-0 p-4 z-10">
+<p class="font-body-md font-bold text-on-surface">Top Up &amp; Tagihan</p>
+<button class="mt-2 text-secondary font-bold text-body-sm hover:underline">Lihat Semua</button>
+</div>
+<div class="absolute bottom-[-10px] right-[-10px] w-24 h-24 group-hover:scale-110 transition-transform" data-alt="A stylized 3D credit card and floating golden coins symbolizing digital payments and financial transactions. The design is clean and friendly, using a vibrant orange and yellow palette to suggest energy and reliability. The composition is dynamic, suitable for an e-commerce dashboard menu." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCwfnmTm7BMxW2ydkbmyV4lY2rvI38Yijr2wPQly0l9cAfmv0M7TI8HLC8k7Wlvk1xtrVLng_5mxMplD9xHVlCcUtQZ6rgJs_gd9InEZuH7auLmoZVaIN7JIk7H3TYoM5bqdgqIampanDEsrHV7fbNO4ulVV3hIQI1w06qE77g54FjBobiEV05HUcH4za3sgOs9E2w7qMegSvkUYf-eBJAu5uMT8-Mgrjo03Rg86kMcIM6C15_2RVN2TuiCc0WpmjLyDVsjoHVbvGz0')"></div>
+</div>
+</div>
+<!-- Quick Access Links -->
+<div class="flex gap-2 overflow-x-auto hide-scrollbar mt-6 pt-4 border-t border-outline-variant">
+<div class="flex-none px-4 py-2 border border-outline-variant rounded-full flex items-center gap-2 hover:bg-surface-container-low transition-all cursor-pointer">
+<span class="material-symbols-outlined text-primary" data-icon="category">category</span>
+<span class="text-body-sm">Kategori</span>
+</div>
+<div class="flex-none px-4 py-2 border border-outline-variant rounded-full flex items-center gap-2 hover:bg-surface-container-low transition-all cursor-pointer">
+<span class="material-symbols-outlined text-primary" data-icon="smartphone">smartphone</span>
+<span class="text-body-sm">Handphone</span>
+</div>
+<div class="flex-none px-4 py-2 border border-outline-variant rounded-full flex items-center gap-2 hover:bg-surface-container-low transition-all cursor-pointer">
+<span class="material-symbols-outlined text-primary" data-icon="receipt_long">receipt_long</span>
+<span class="text-body-sm">Tagihan</span>
+</div>
+<div class="flex-none px-4 py-2 border border-outline-variant rounded-full flex items-center gap-2 hover:bg-surface-container-low transition-all cursor-pointer">
+<span class="material-symbols-outlined text-primary" data-icon="laptop_mac">laptop_mac</span>
+<span class="text-body-sm">Komputer</span>
+</div>
+</div>
+</div>
+<!-- Top Up & Billing Form -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-headline-md">Top Up &amp; Tagihan</h3>
+<a class="text-primary font-bold text-body-sm hover:underline" href="#">Lihat Semua</a>
+</div>
+<!-- Form Tabs -->
+<div class="flex border-b border-outline-variant mb-6">
+<button class="px-6 py-2 border-b-2 border-primary text-primary font-bold text-body-md transition-colors">Pulsa</button>
+<button class="px-6 py-2 text-on-surface-variant font-body-md hover:text-primary transition-colors">Paket Data</button>
+<button class="px-6 py-2 text-on-surface-variant font-body-md hover:text-primary transition-colors">Listrik PLN</button>
+<button class="px-6 py-2 text-on-surface-variant font-body-md hover:text-primary transition-colors">Roaming</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
+<div class="md:col-span-3 space-y-2">
+<label class="block text-label-bold text-on-surface-variant">Nomor Telepon</label>
+<input class="w-full px-3 py-2 border border-outline-variant rounded-lg text-body-md focus:ring-1 focus:ring-primary outline-none" placeholder="Contoh: 08123456789" type="text">
+</div>
+<div class="md:col-span-3 space-y-2">
+<label class="block text-label-bold text-on-surface-variant">Nominal</label>
+<select class="w-full px-3 py-2 border border-outline-variant rounded-lg text-body-md focus:ring-1 focus:ring-primary outline-none appearance-none bg-surface">
+<option>Pilih Nominal</option>
+<option>Rp 25.000</option>
+<option>Rp 50.000</option>
+<option>Rp 100.000</option>
+</select>
+</div>
+<div class="md:col-span-1">
+<button class="w-full py-2 bg-primary-container/20 text-primary font-bold rounded-lg border border-primary/20 cursor-not-allowed text-body-md transition-all active:scale-95">Beli</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Product Feed 'For You' -->
+<section class="space-y-6">
+<!-- Feed Tabs -->
+<div class="flex items-center gap-8 overflow-x-auto hide-scrollbar border-b border-outline-variant pb-2">
+<button class="whitespace-nowrap font-bold text-primary border-b-2 border-primary pb-2 text-body-lg">For You</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary pb-2 text-body-lg">Elektronik</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary pb-2 text-body-lg">Fashion</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary pb-2 text-body-lg">Otomotif</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary pb-2 text-body-lg">Kebutuhan Harian</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary pb-2 text-body-lg">Olahraga</button>
+<button class="whitespace-nowrap text-on-surface-variant hover:text-primary pb-2 text-body-lg">Kecantikan</button>
+</div>
+<!-- Product Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-gutter">
+<!-- Product Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative aspect-square">
+<div class="w-full h-full bg-cover bg-center" data-alt="A clear professional product photograph of a premium skincare serum bottle in elegant glass packaging. The lighting is soft and diffused, highlighting the product's premium quality. Set against a minimalist white background to make the details pop. Modern, clean e-commerce visual style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjOnxalT0nkYQ4vIUl6slQ63O07AEyQUZHjgLcjgQIXJIc2y08TQ2CKcUjxldsZI7BhA8ZV2smAWKwKJ4jD0XXXtSEXt_7CPdD-U7q3P-MPSye9CbnpjYaGlrvmFFM_UmbQkHecMF7bp36jjC80sUnQz4rMrafPb8At-xwFWjgHXLkHDixkGAOUjaQshFHxXvjbsXUsl_K0qxnsAqP9BEk8ew29KIC9zFv_kuPCluN9NiVhOA5tBmF3_k_S0tPB3fdmjgMhQrEKsyh')"></div>
+<div class="absolute top-0 left-0 bg-secondary text-white px-2 py-0.5 font-label-bold text-[10px] rounded-br-lg">OFFICIAL</div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="text-body-md line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">Scarlett Whitening Facial Wash 100ml Original</h4>
+<div class="font-price-lg text-price-lg">Rp65.000</div>
+<div class="flex items-center gap-1">
+<span class="bg-error-container text-error px-1 rounded text-[10px] font-bold">15%</span>
+<span class="text-body-sm text-on-surface-variant line-through">Rp75.000</span>
+</div>
+<div class="flex items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-[14px] text-yellow-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-body-sm text-on-surface-variant">4.9 | 100+ terjual</span>
+</div>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative aspect-square">
+<div class="w-full h-full bg-cover bg-center" data-alt="A high-end ergonomic mechanical keyboard with RGB backlighting, featuring premium PBT keycaps and a sleek aluminum frame. The image is shot from a slight overhead angle with dramatic studio lighting that accentuates the textures and colors. Clean corporate technology product photography." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBlOWmULJdLITIf7GX2zt9YKS14uIG5RgpUzTshzs4kCOQJELvC-dj9u8BKYH76xoH_BbPKrs5A5LzQqHIMIz2G-IhyzgpVGP4__YyQQFFfs-5l8PCCJ258lnMKjm_sT746AnGBVWeBMuAfwOyyfuOkMBVbLD3N7kU4KlZxa6AohRemjeS6wxpzF1e7I-kBmxHR_GxOcUKlkUR2JQLzSnRUkIT3DIFQP9qchvuNWyy4d4XWoN7ezE8GfkbZFFUOjTNXdTc11UxYbTjG')"></div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="text-body-md line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">Mechanical Keyboard 60% Layout Wired Gaming</h4>
+<div class="font-price-lg text-price-lg">Rp450.000</div>
+<div class="flex items-center gap-1 pt-2">
+<span class="material-symbols-outlined text-[14px] text-yellow-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-body-sm text-on-surface-variant">4.8 | 50+ terjual</span>
+</div>
+<div class="text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span> Jakarta Utara
+                        </div>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative aspect-square">
+<div class="w-full h-full bg-cover bg-center" data-alt="A pair of crisp white designer lifestyle sneakers featuring subtle leather accents and a modern minimalist silhouette. The shoes are presented in a dynamic, slightly levitating pose against a neutral grey background with professional studio lighting. Clean and fashionable e-commerce presentation." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAiV_217qUqrYxzibo8VH0snSl3Sr0a9tHSzUTa3lGhXVzzb81W3z5W9l7p9qrVMPpfvYeDB4lwv_U3Mm3BOZbfuyXY1t3u9xq_26YKuAAJLUhH7hivt5p2QJz92adb23aNxBxcfWy7tTpTyvpnCgit_LCDIJ8Kzi0kBatBbXQfmcbOxkI7DIReENVNJsKT0QaNzFmM5iRSFHSmEOxIsnTE6mHWs0W9D1GSkP7t5u2uTLVAHNp3H76NzQJ1gsyDa9-Jfx2YQDvZizMH')"></div>
+<div class="absolute top-0 left-0 bg-primary-container text-on-primary px-2 py-0.5 font-label-bold text-[10px] rounded-br-lg">FLASH SALE</div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="text-body-md line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">Lifestyle White Sneakers - Limited Edition</h4>
+<div class="font-price-lg text-price-lg">Rp299.000</div>
+<div class="flex items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-[14px] text-yellow-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-body-sm text-on-surface-variant">5.0 | 20+ terjual</span>
+</div>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative aspect-square">
+<div class="w-full h-full bg-cover bg-center" data-alt="A premium wireless noise-canceling headphone in matte black finish. The product is shown with a close-up focus on the ear cups and headband textures, set against a soft bokeh background. Luxurious and high-tech product presentation for e-commerce." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD9g8TAueZpOG52DaWTa5PvX-Ney2daHFw4JOCr5IFGvCcio3lV5GhzCpRzIs42uO32WWHdV2YmYa1-Vz1qJEWOucWVIaBgVgg16S2YOTu0gYmyId3UmeOr16E6sP82iEKmATAyna5rI-V9-ytYQloLYKD4yTcSErd2DTXnFPgJyIOteI6XQzi3BwaDUWJTvOuzT7B17httykmbSdkogdvz98QUa2lxKeuF9pBIMOQTaR7EupV9fN5pFibNexF0NkHZI14-r4o3k38t')"></div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="text-body-md line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">Wireless Over-Ear ANC Headphones Matte Black</h4>
+<div class="font-price-lg text-price-lg">Rp1.250.000</div>
+<div class="flex items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-[14px] text-yellow-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-body-sm text-on-surface-variant">4.7 | 10+ terjual</span>
+</div>
+</div>
+</div>
+<!-- Product Card 5 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative aspect-square">
+<div class="w-full h-full bg-cover bg-center" data-alt="An assortment of organic daily household goods including premium cooking oil, snacks, and grains, arranged in a tidy and appealing lifestyle composition. Bright, natural lighting that emphasizes freshness and quality. Modern grocery shopping aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA3SeGOng6SofW6LCc91SwbZo6OCM1T2J5bUQtdJwfZffqpCRbkA1sJswPyEBLW078fKf27D0MAWoO4zgKoxIVIxdSFrKD_0g5pKcfFi6JwBzfBb68_tpXknLiainNoQ9rx9Pc82Vp6EZ_OYE3S_SUd1huhSVAUtOjQqkLLFREJG8lbsxq8qpoQk63TQUBKCHSFIasyJ6sw0CEn8Hq2GT12VlDY0k-KdIhArs_0nCAHJyuj3C8lkH_Q8xy01zGt-wq9ybRcZytu6ouC')"></div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="text-body-md line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">Sunco Minyak Goreng Botol 1L Hemat Banget</h4>
+<div class="font-price-lg text-price-lg">Rp33.000</div>
+<div class="flex items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-[14px] text-yellow-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-body-sm text-on-surface-variant">4.9 | 5rb+ terjual</span>
+</div>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative aspect-square">
+<div class="w-full h-full bg-cover bg-center" data-alt="A modern kitchen appliance, a compact air fryer with a digital display, rendered in a sleek matte charcoal finish. The appliance is placed on a clean white countertop with minimal decor, highlighting its sophisticated design and utility. High quality e-commerce product photography." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbhYlGeSi9kXV-2ArftF996xK8bQ1FHoVnspTE6nts-NVd2TJ-MqvvMdgBSZEoV-u_NHkp8qDjynnFJ7Qsb2chJN04otWUTH3gibXM6ZhxbZKgogm5b2lfqROLvaGxHm8vcUPLXMH6TNFW3phCTZjtPSQM1h39T_ovp2MYLgxOKTNbbIofNqJmDcy_d3I7ze3k5pURFgCNOjIInu-IBn1ATXyVjSII_3WKN0zqmRm5TbobN-Y22sZy9jwg8b6Da2-xxRHkDB-YSnWT')"></div>
+<div class="absolute top-2 right-2 bg-white/80 backdrop-blur p-1 rounded-full border border-outline-variant">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">favorite</span>
+</div>
+</div>
+<div class="p-3 space-y-1">
+<h4 class="text-body-md line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors">Digital Air Fryer 4L Capacity 800W Eco Mode</h4>
+<div class="font-price-lg text-price-lg">Rp899.000</div>
+<div class="flex items-center gap-1 pt-1">
+<span class="material-symbols-outlined text-[14px] text-yellow-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-body-sm text-on-surface-variant">4.8 | 200+ terjual</span>
+</div>
+</div>
+</div>
+</div>
+<!-- View More Button -->
+<div class="flex justify-center py-4">
+<button class="px-12 py-2 border border-outline-variant text-on-surface font-bold rounded-lg hover:bg-surface-container-low transition-all">Lihat Selengkapnya</button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container dark:bg-surface-dim border-t border-outline-variant">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-gutter px-margin-desktop py-12 max-w-container-max mx-auto">
+<div class="space-y-4">
+<h4 class="font-label-bold text-label-bold text-on-surface">Tokopedia</h4>
+<ul class="space-y-2">
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Tentang Tokopedia</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Hak Kekayaan Intelektual</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Karir</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Blog</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h4 class="font-label-bold text-label-bold text-on-surface">Beli</h4>
+<ul class="space-y-2">
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Tagihan &amp; Top Up</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Tukar Tambah HP</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Tokopedia COD</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h4 class="font-label-bold text-label-bold text-on-surface">Bantuan &amp; Panduan</h4>
+<ul class="space-y-2">
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Tokopedia Care</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Syarat &amp; Ketentuan</a></li>
+<li><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-all" href="#">Kebijakan Privasi</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h4 class="font-label-bold text-label-bold text-on-surface">Ikuti Kami</h4>
+<div class="flex gap-4">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant">public</span>
+</div>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant">photo_camera</span>
+</div>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant">video_library</span>
+</div>
+</div>
+</div>
+</div>
+<div class="border-t border-outline-variant px-margin-desktop py-6 max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="font-headline-md text-headline-md font-bold text-on-surface">Tokopedia</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">© 2009-2024, PT Tokopedia.</p>
+</div>
+</footer>
+<script>
+        // Micro-interactions for tabs and active states
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if(this.classList.contains('active-tab')) return;
+                
+                // Simple feedback effect
+                this.classList.add('scale-95');
+                setTimeout(() => this.classList.remove('scale-95'), 150);
+            });
+        });
+    </script>
+</body></html>
