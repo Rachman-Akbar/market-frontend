@@ -101,3 +101,18 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.btn-kategori-trigger {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #31353b;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.btn-kategori-trigger:hover,
+.btn-kategori-trigger.is-active {
+  color: #000000;
+  background: #f3f4f53f;
+}

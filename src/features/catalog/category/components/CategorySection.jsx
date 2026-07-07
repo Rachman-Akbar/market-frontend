@@ -1,29 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getCategoriesMenu, getCategoryHref } from "@/features/catalog/category/services/categoryService";
 
 const TABS = ["Pulsa", "Paket Data", "Listrik PLN", "Roaming"];
 
-const QUICK_LINKS = [
-  { icon: "category", label: "Kategori" },
-  { icon: "smartphone", label: "Handphone & Tablet" },
-  { icon: "receipt_long", label: "Top-Up & Tagihan" },
-  { icon: "headphones", label: "Elektronik" },
-  { icon: "pets", label: "Perawatan Hewan" },
-  { icon: "account_balance_wallet", label: "Keuangan" },
-  { icon: "laptop_mac", label: "Komputer & Laptop" },
-];
+function flattenCategories(categories = []) {
+  return categories.flatMap((category) => [category, ...flattenCategories(category.children || [])]);
+}
 
 export function CategorySection() {
   const [activeTab, setActiveTab] = useState(0);
+  const [quickLinks, setQuickLinks] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getCategoriesMenu()
+      .then((result) => {
+        if (!mounted) return;
+        setQuickLinks(flattenCategories(result.data).slice(0, 7));
+      })
+      .catch(() => {
+        if (mounted) setQuickLinks([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="bg-white border border-gray-100 p-4" style={{ borderRadius: 5 }}>
-      
       <div className="grid grid-cols-2 divide-x divide-gray-100" style={{ borderRadius: 5 }}>
-        
         <div className="p-5">
           <h3 className="text-base font-bold mb-3">Kategori Populer</h3>
-          
+
           <div
             className="relative overflow-hidden flex items-center justify-between px-6 py-4 mb-0"
             style={{ borderRadius: 5, background: "linear-gradient(135deg, #03ac0e 0%, #028a0b 100%)", minHeight: 96 }}
@@ -38,21 +49,19 @@ export function CategorySection() {
                 Cek Sekarang
               </button>
             </div>
-            
+
             <div className="absolute right-4 bottom-0 opacity-90">
               <span className="text-5xl">🦉</span>
             </div>
           </div>
         </div>
 
-        
         <div className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <h3 className="text-base font-bold">Top Up &amp; Tagihan</h3>
             <a href="#" className="text-[#03ac0e] text-xs font-semibold hover:underline">Lihat Semua</a>
           </div>
 
-          
           <div className="flex items-center border-b border-gray-100 mb-4">
             {TABS.map((tab, i) => (
               <button
@@ -72,7 +81,6 @@ export function CategorySection() {
             </button>
           </div>
 
-          
           <div className="grid grid-cols-3 gap-2 items-end">
             <div>
               <p className="text-xs text-gray-500 mb-1">Jenis Produk Listrik</p>
@@ -119,16 +127,16 @@ export function CategorySection() {
         </div>
       </div>
 
-      
       <div className="mt-3 flex items-center gap-2 overflow-x-auto hide-scrollbar">
-        {QUICK_LINKS.map((item) => (
+        {quickLinks.map((item) => (
           <Link
-            key={item.label} to={`/category/${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+            key={item.id || item.slug}
+            to={getCategoryHref(item)}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs text-gray-700 hover:border-[#03ac0e] hover:text-[#03ac0e] transition-colors whitespace-nowrap flex-shrink-0"
             style={{ borderRadius: 20 }}
           >
-            <span className="material-symbols-outlined text-[14px] text-[#03ac0e]">{item.icon}</span>
-            {item.label}
+            <span className="material-symbols-outlined text-[14px] text-[#03ac0e]">category</span>
+            {item.name}
           </Link>
         ))}
       </div>

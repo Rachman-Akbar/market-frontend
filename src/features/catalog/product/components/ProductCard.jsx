@@ -1,13 +1,16 @@
 import { Link } from "react-router-dom";
-
+import { formatPrice } from "@/shared/utils/utils";
 
 export function ProductCard({
   slug = "#",
   image,
+  thumbnail,
   badge,
   badgeVariant = "official",
   title,
+  name,
   price,
+  price_label,
   discountPct,
   originalPrice,
   rating,
@@ -17,16 +20,20 @@ export function ProductCard({
 }) {
   const badgeClass =
     badgeVariant === "flash" ? "bg-[#03ac0e] text-white" : "bg-[#b02f00] text-white";
+  const displayTitle = title || name || "Produk";
+  const displayPrice = price_label || (typeof price === "string" && price.startsWith("Rp") ? price : formatPrice(price));
+  const displayImage = image || thumbnail;
 
   return (
-    <Link to={`/products/${slug}`}
+    <Link
+      to={`/products/${slug}`}
       className="bg-white overflow-hidden transition-all group cursor-pointer flex flex-col h-full border border-gray-100 hover:border-gray-300"
       style={{ borderRadius: 5 }}
     >
       <div className="relative aspect-square overflow-hidden">
         <img
-          src={image}
-          alt={title}
+          src={displayImage}
+          alt={displayTitle}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         {badge && (
@@ -41,8 +48,8 @@ export function ProductCard({
         )}
       </div>
       <div className="p-2 space-y-1 flex flex-col flex-grow">
-        <h4 className="text-sm line-clamp-2 min-h-[40px] group-hover:text-[#006e04] transition-colors leading-tight">{title}</h4>
-        <div className="text-sm font-bold leading-5">{price}</div>
+        <h4 className="text-sm line-clamp-2 min-h-[40px] group-hover:text-[#006e04] transition-colors leading-tight">{displayTitle}</h4>
+        <div className="text-sm font-bold leading-5">{displayPrice}</div>
         {discountPct && (
           <div className="flex items-center gap-1">
             <span className="bg-[#ffdad6] text-[#ba1a1a] px-1 text-[10px] font-bold">{discountPct}</span>

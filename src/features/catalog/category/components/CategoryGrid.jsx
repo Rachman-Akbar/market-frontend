@@ -1,23 +1,63 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { catalogGroups } from "@/shared/data/mockData";
+import { getCategoryHref, getCategoryNavigation } from "@/features/catalog/category/services/categoryService";
 
 export function CategoryGrid() {
+  const [groups, setGroups] = useState([]);
+  const [categoriesByGroup, setCategoriesByGroup] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    getCategoryNavigation()
+      .then((result) => {
+        if (!mounted) return;
+        setGroups(result.groups);
+        setCategoriesByGroup(result.categoriesByGroup);
+      })
+      .catch((err) => {
+        if (mounted) setError(err.message || "Gagal memuat kategori populer");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    return groups.flatMap((group) => categoriesByGroup[group.key] || []).slice(0, 8);
+  }, [categoriesByGroup, groups]);
+
   return (
     <div>
       <h2 className="text-lg font-bold text-gray-800 mb-4">Kategori Populer</h2>
-      <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-        {catalogGroups.map((g) => (
-          <Link
-            key={g.id} to={`/category/${g.slug}`}
-            className="flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 hover:shadow-sm transition-all group"
-          >
-            <span className="text-3xl">{g.icon}</span>
-            <span className="text-xs text-gray-700 text-center leading-tight group-hover:text-orange-500 transition-colors">
-              {g.name}
-            </span>
-          </Link>
-        ))}
-      </div>
+      {loading && <div className="text-sm text-gray-500">Memuat kategori...</div>}
+      {error && <div className="text-sm text-red-500">{error}</div>}
+      {!loading && !error && (
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          {categories.map((category) => (
+            <Link
+              key={category.id || category.slug}
+              to={getCategoryHref(category)}
+              className="flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-gray-200 hover:border-orange-300 hover:shadow-sm transition-all group"
+            >
+              {category.icon_url ? (
+                <img src={category.icon_url} alt={category.name} className="w-8 h-8 object-contain" />
+              ) : (
+                <span className="material-symbols-outlined text-3xl text-[#03ac0e]">category</span>
+              )}
+              <span className="text-xs text-gray-700 text-center leading-tight group-hover:text-orange-500 transition-colors">
+                {category.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
