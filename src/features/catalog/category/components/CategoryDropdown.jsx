@@ -7,9 +7,9 @@ import {
 import {
   VOUCHER_GROUP,
   VOUCHER_GROUP_KEY,
-} from "@/features/catalog/voucher/constants/voucherNavigation";
-import { getActiveVouchers } from "@/features/catalog/voucher/services/voucherService";
-import VoucherDropdownPage from "@/features/catalog/voucher/components/VoucherDropdownPage";
+} from "@/features/order/voucher/constants/voucherNavigation";
+import { getActiveVouchers } from "@/features/order/voucher/services/voucherService";
+import VoucherDropdownPage from "@/features/order/voucher/components/VoucherDropdown";
 
 function sameCategory(a, b) {
   if (!a || !b) return false;

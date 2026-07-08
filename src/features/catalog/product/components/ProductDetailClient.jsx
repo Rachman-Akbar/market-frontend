@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImageGallery } from "@/features/catalog/product/components/ImageGallery";
 import { VariantSelector } from "./VariantSelector";
 import { ProductCheckoutPanel } from "@/features/catalog/product/components/ProductCheckoutPanel";
-import { ReviewSection } from "@/features/order/components/ReviewSection";
+import { ReviewSection } from "@/features/order/review/components/ReviewSection";
 import { formatPrice } from "@/shared/utils/utils";
 import { getProductBySlug, getProductVariants } from "@/features/catalog/product/services/productService";
 import { getCategoryHref } from "@/features/catalog/category/services/categoryService";

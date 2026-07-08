@@ -1,48 +1,75 @@
 import { Routes, Route } from "react-router-dom";
 
 import AppLayout from "@/shared/layout/AppLayout";
+import BuyerLayout from "@/shared/layout/BuyerLayout";
 import HomePage from "@/features/catalog/HomePage";
-
 import SearchPage from "@/features/catalog/product/pages/SearchPage";
 import ProductDetailPage from "@/features/catalog/product/pages/ProductDetailPage";
 import CategoryPage from "@/features/catalog/category/pages/CategoryPage";
+import PromotionPage from "@/features/catalog/promotion/pages/PromotionPage";
 
-import CartPage from "@/features/order/pages/CartPage";
-import CheckoutPage from "@/features/order/pages/CheckoutPage";
-import OrderDetailPage from "@/features/order/pages/OrderDetailPage";
-import WishlistPage from "@/features/order/pages/WishlistPage";
-import ProfileOrdersPage from "@/features/order/pages/ProfileOrdersPage";
+import CartPage from "@/features/order/cart/pages/CartPage";
+import CheckoutPage from "@/features/order/ordering/pages/CheckoutPage";
+import OrderDetailPage from "@/features/order/ordering/pages/OrderDetailPage";
+import ProfileOrdersPage from "@/features/order/ordering/pages/ProfileOrdersPage";
+import WishlistPage from "@/features/order/wishlist/pages/WishlistPage";
 
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
 
-import SellerDashboardPage from "@/features/seller/pages/SellerDashboardPage";
+import SellerLayout from "@/features/seller/SellerLayout";
+import SellerDashboardPage from "@/features/seller/dashboard/pages/SellerDashboardPage";
+import SellerProductsPage from "@/features/seller/product/pages/SellerProductsPage";
+import SellerBannerPage from "@/features/seller/banner/pages/SellerBannerPage";
+import SellerStorePage from "@/features/seller/store/pages/SellerStorePage";
 
-import AdminDashboardPage from "@/features/admin/pages/AdminDashboardPage";
+import AdminLayout from "@/features/admin/AdminLayout";
+import AdminDashboardPage from "@/features/admin/dashboard/pages/AdminDashboardPage";
+import AdminCatalogGroupPage from "@/features/admin/catalogGroup/pages/AdminCatalogGroupPage";
+import AdminCategoryPage from "@/features/admin/category/pages/AdminCategoryPage";
 
-import ProfileLayout from "@/features/user/components/ProfileLayout";
-import ProfilePage from "@/features/user/pages/ProfilePage";
-import AddressesPage from "@/features/user/pages/AddressesPage";
+import ProfileLayout from "@/features/profile/ProfileLayout";
+import ProfilePage from "@/features/profile/identity/pages/ProfilePage";
+import AddressesPage from "@/features/profile/address/pages/AddressesPage";
+import ProfileChatPage from "@/features/profile/chat/pages/ProfileChatPage";
 
 export default function App() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/category/*" element={<CategoryPage />} />
-        <Route path="/products/:slug" element={<ProductDetailPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/orders/:id" element={<OrderDetailPage />} />
-        <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/auth/register" element={<RegisterPage />} />
-        <Route path="/seller" element={<SellerDashboardPage />} />
-        <Route path="/admin" element={<AdminDashboardPage />} />
-        <Route path="/profile" element={<ProfileLayout><ProfilePage /></ProfileLayout>} />
-        <Route path="/profile/orders" element={<ProfileLayout><ProfileOrdersPage /></ProfileLayout>} />
-        <Route path="/profile/addresses" element={<ProfileLayout><AddressesPage /></ProfileLayout>} />
-        <Route path="/profile/wishlist" element={<ProfileLayout><WishlistPage /></ProfileLayout>} />
+        <Route element={<BuyerLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/category/*" element={<CategoryPage />} />
+          <Route path="/products/:slug" element={<ProductDetailPage />} />
+          <Route path="/promotions" element={<PromotionPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/orders/:id" element={<OrderDetailPage />} />
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/register" element={<RegisterPage />} />
+        </Route>
+
+        <Route element={<SellerLayout />}>
+          <Route path="/seller" element={<SellerDashboardPage />} />
+          <Route path="/seller/products" element={<SellerProductsPage />} />
+          <Route path="/seller/banners" element={<SellerBannerPage />} />
+          <Route path="/seller/store" element={<SellerStorePage />} />
+        </Route>
+
+        <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/catalog-groups" element={<AdminCatalogGroupPage />} />
+          <Route path="/admin/categories" element={<AdminCategoryPage />} />
+        </Route>
+
+        <Route element={<ProfileLayout />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/orders" element={<ProfileOrdersPage />} />
+          <Route path="/profile/addresses" element={<AddressesPage />} />
+          <Route path="/profile/wishlist" element={<WishlistPage />} />
+          <Route path="/profile/chat" element={<ProfileChatPage />} />
+        </Route>
       </Routes>
     </AppLayout>
   );
