@@ -2,6 +2,8 @@ export const chatThreads = [
   {
     id: "chat-1",
     store: "Saganext Official Store",
+    initials: "SO",
+    avatar: "from-orange-400 to-pink-500",
     status: "online",
     lastMessage: "Pesanan kamu sudah kami siapkan untuk pickup kurir hari ini.",
     unread: 2,
@@ -15,6 +17,8 @@ export const chatThreads = [
   {
     id: "chat-2",
     store: "Nusa Elektronik",
+    initials: "NE",
+    avatar: "from-blue-500 to-cyan-400",
     status: "offline",
     lastMessage: "Garansi resmi distributor 1 tahun ya Kak.",
     unread: 0,
@@ -27,12 +31,28 @@ export const chatThreads = [
   {
     id: "chat-3",
     store: "Rumah Cantik",
+    initials: "RC",
+    avatar: "from-rose-400 to-fuchsia-500",
     status: "online",
     lastMessage: "Untuk shade natural beige estimasi restock minggu depan.",
     unread: 0,
     time: "Senin",
     messages: [
       { id: "m1", sender: "store", text: "Untuk shade natural beige estimasi restock minggu depan.", time: "10:22" },
+    ],
+  },
+  {
+    id: "chat-4",
+    store: "CS Marketplace",
+    initials: "CS",
+    avatar: "from-emerald-500 to-green-600",
+    status: "online",
+    lastMessage: "Pengajuan komplain kamu sedang diproses oleh tim kami.",
+    unread: 1,
+    time: "Jumat",
+    messages: [
+      { id: "m1", sender: "store", text: "Pengajuan komplain kamu sedang diproses oleh tim kami.", time: "14:03" },
+      { id: "m2", sender: "me", text: "Baik, saya tunggu update berikutnya.", time: "14:05" },
     ],
   },
 ];

@@ -1,45 +1,70 @@
+import { Archive, Laptop, MoreVertical, Search, SquarePlus } from "lucide-react";
+import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import { cn } from "@/shared/utils/utils";
 
 export function ProfileChatList({ threads = [], activeId, onSelect }) {
   return (
-    <aside className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 p-4">
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-400">search</span>
-          <input placeholder="Cari chat" className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white" />
+    <aside className={profileLayout.sidebar} aria-label="Daftar chat pribadi">
+      <div className={profileLayout.sidebarHeader}>
+        <h1 className={profileLayout.sidebarTitle}>Chat</h1>
+        <div className="flex items-center gap-3 text-slate-500">
+          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Chat baru"><SquarePlus size={20} /></button>
+          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Menu"><MoreVertical size={20} /></button>
         </div>
       </div>
-      <div className="max-h-[620px] overflow-y-auto">
+
+      <div className={profileLayout.sidebarSearch}>
+        <label className="flex h-10 w-full items-center rounded-lg bg-[#f0f2f5] px-3">
+          <Search size={16} className="mr-3 shrink-0 text-slate-400" />
+          <input type="search" placeholder="Cari atau mulai obrolan baru" className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400" />
+        </label>
+      </div>
+
+      <div className={profileLayout.filterRow}>
+        <button type="button" className="shrink-0 rounded-full bg-[#fff1ec] px-3 py-1 font-semibold text-[#ee4d2d]">Semua</button>
+        <button type="button" className="shrink-0 rounded-full bg-[#f0f2f5] px-3 py-1 font-semibold text-slate-500 transition hover:bg-[#fff1ec] hover:text-[#ee4d2d]">Belum dibaca</button>
+        <button type="button" className="shrink-0 rounded-full bg-[#f0f2f5] px-3 py-1 font-semibold text-slate-500 transition hover:bg-[#fff1ec] hover:text-[#ee4d2d]">Favorit</button>
+      </div>
+
+      <button type="button" className="flex h-[52px] shrink-0 items-center px-4 text-left text-sm font-medium text-slate-800 transition hover:bg-[#f7f8fa]">
+        <Archive size={17} className="mr-6 text-[#ee4d2d]" />
+        <span className="flex-1">Diarsipkan</span>
+      </button>
+      <hr className={profileLayout.divider} />
+
+      <div className={profileLayout.listScroll}>
         {threads.map((thread) => {
           const active = thread.id === activeId;
+          const initials = thread.initials || thread.store.slice(0, 1);
 
           return (
             <button
               key={thread.id}
               type="button"
               onClick={() => onSelect(thread.id)}
-              className={cn(
-                "flex w-full items-start gap-3 border-b border-slate-100 p-4 text-left transition last:border-b-0",
-                active ? "bg-emerald-50" : "bg-white hover:bg-slate-50"
-              )}
+              className={cn(profileLayout.listItem, active ? "bg-[#fff7f3]" : "hover:bg-[#f7f8fa]")}
             >
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-extrabold text-emerald-700">
-                {thread.store.slice(0, 1)}
-                <span className={cn("absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white", thread.status === "online" ? "bg-emerald-500" : "bg-slate-300")} />
+              <div className={cn("relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white", thread.avatar || "from-orange-500 to-rose-500")}>
+                {initials}
+                <span className={cn("absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white", thread.status === "online" ? "bg-[#25d366]" : "bg-slate-300")} />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="truncate text-sm font-extrabold text-slate-900">{thread.store}</p>
-                  <span className="text-[11px] text-slate-400">{thread.time}</span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{thread.lastMessage}</p>
+              <div className="min-w-0 pt-0.5">
+                <p className="truncate text-sm font-semibold text-slate-950">{thread.store}</p>
+                <p className="mt-1 truncate text-xs text-slate-500">{thread.lastMessage}</p>
               </div>
-              {thread.unread > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white">{thread.unread}</span>
-              )}
+              <div className="flex flex-col items-end gap-2 pt-0.5">
+                <span className={cn("text-[11px] font-medium", thread.unread > 0 ? "text-[#ee4d2d]" : "text-slate-400")}>{thread.time}</span>
+                {thread.unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ee4d2d] px-1.5 text-[11px] font-bold text-white">{thread.unread}</span>}
+              </div>
+              <hr className={profileLayout.listDivider} />
             </button>
           );
         })}
+      </div>
+
+      <div className="flex h-14 shrink-0 items-center gap-3 border-t border-[#e5e7eb] bg-white px-4 text-xs font-medium text-[#ee4d2d]">
+        <Laptop size={16} />
+        <span className="cursor-pointer hover:underline">Gunakan chat marketplace versi desktop</span>
       </div>
     </aside>
   );

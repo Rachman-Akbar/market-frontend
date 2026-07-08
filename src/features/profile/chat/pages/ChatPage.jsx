@@ -3,7 +3,7 @@ import { ProfileChatList } from "@/features/profile/chat/components/ProfileChatL
 import { ProfileChatWindow } from "@/features/profile/chat/components/ProfileChatWindow";
 import { getProfileChatThreads } from "@/features/profile/chat/services/profileChatService";
 
-export default function ProfileChatPage() {
+export default function ChatPage() {
   const [threads, setThreads] = useState([]);
   const [activeId, setActiveId] = useState("");
 
@@ -17,15 +17,9 @@ export default function ProfileChatPage() {
   const activeThread = useMemo(() => threads.find((thread) => thread.id === activeId), [threads, activeId]);
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-lg font-extrabold text-slate-900">Chat Penjual</h2>
-        <p className="mt-1 text-sm text-slate-500">Percakapan pembeli dengan toko dibuat clean dan minimal seperti aplikasi chat modern.</p>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <ProfileChatList threads={threads} activeId={activeId} onSelect={setActiveId} />
-        <ProfileChatWindow thread={activeThread} />
-      </div>
+    <div className="flex h-full min-w-0 flex-1 overflow-hidden">
+      <ProfileChatList threads={threads} activeId={activeId} onSelect={setActiveId} />
+      <ProfileChatWindow thread={activeThread} />
     </div>
   );
 }

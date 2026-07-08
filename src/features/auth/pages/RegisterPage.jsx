@@ -1,73 +1,190 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 
 export default function RegisterPage() {
-  const { login } = useAuth();
+  const { registerWithPassword, loginWithGoogle, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
+  const [localError, setLocalError] = useState("");
+  const message = localError || error;
 
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (event) => {
+    setLocalError("");
+    clearError();
+    setForm((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.name) return setError("Nama wajib diisi");
-    if (form.password.length < 6) return setError("Password minimal 6 karakter");
-    if (form.password !== form.confirm) return setError("Konfirmasi password tidak cocok");
-    login("buyer", form.name);
-    navigate("/");
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!form.name.trim()) {
+      setLocalError("Nama wajib diisi");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      setLocalError("Email wajib diisi");
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setLocalError("Password minimal 8 karakter");
+      return;
+    }
+
+    if (form.password !== form.confirm) {
+      setLocalError("Konfirmasi password tidak cocok");
+      return;
+    }
+
+    try {
+      await registerWithPassword({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.confirm,
+      });
+      navigate("/", { replace: true });
+    } catch (submitError) {
+      setLocalError(submitError.message);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setLocalError("");
+    clearError();
+
+    try {
+      await loginWithGoogle();
+      navigate("/", { replace: true });
+    } catch (submitError) {
+      setLocalError(submitError.message);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-8">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-orange-500">MarketKu</h1>
-          <p className="text-gray-600 text-sm mt-1">Buat akun baru</p>
+    <div>
+      <div className="mb-8">
+        <Link to="/" className="hidden items-center gap-2 lg:inline-flex">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#03ac0e] text-lg font-black text-white">
+            M
+          </span>
+          <span className="text-xl font-black text-[#03ac0e]">MarketKu</span>
+        </Link>
+
+        <div className="mt-8">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">Daftar akun</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Buat akun baru</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Daftar sebagai pembeli untuk mulai belanja, menyimpan wishlist, dan melacak pesanan.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Nama lengkap</label>
+          <Input
+            name="name"
+            placeholder="Masukkan nama lengkap"
+            value={form.name}
+            onChange={handleChange}
+            autoComplete="name"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Nama Lengkap</label>
-            <Input name="name" placeholder="Nama Anda" value={form.name} onChange={handleChange} required />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
-            <Input name="email" type="email" placeholder="email@contoh.com" value={form.email} onChange={handleChange} required />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Password</label>
-            <Input name="password" type="password" placeholder="Min. 6 karakter" value={form.password} onChange={handleChange} required />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Konfirmasi Password</label>
-            <Input name="confirm" type="password" placeholder="Ulangi password" value={form.confirm} onChange={handleChange} required />
-          </div>
+        <div>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Email</label>
+          <Input
+            name="email"
+            type="email"
+            placeholder="email@contoh.com"
+            value={form.email}
+            onChange={handleChange}
+            autoComplete="email"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+          />
+        </div>
 
-          {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        <div>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Password</label>
+          <Input
+            name="password"
+            type="password"
+            placeholder="Minimal 8 karakter"
+            value={form.password}
+            onChange={handleChange}
+            autoComplete="new-password"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+          />
+        </div>
 
-          <Button type="submit" className="w-full" size="lg">Daftar Sekarang</Button>
+        <div>
+          <label className="mb-2 block text-sm font-bold text-slate-700">Konfirmasi password</label>
+          <Input
+            name="confirm"
+            type="password"
+            placeholder="Ulangi password"
+            value={form.confirm}
+            onChange={handleChange}
+            autoComplete="new-password"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+          />
+        </div>
 
-          <div className="relative my-2">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-            <div className="relative flex justify-center text-xs text-gray-400"><span className="bg-white px-2">atau</span></div>
+        {message && (
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {message}
           </div>
+        )}
 
-          <Button type="button" variant="outline" className="w-full">
-            <span className="mr-2">🔵</span> Daftar dengan Google (Demo)
-          </Button>
-        </form>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={loading}
+          className="h-12 w-full rounded-xl bg-[#03ac0e] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {loading ? "Memproses..." : "Daftar Sekarang"}
+        </Button>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Sudah punya akun?{" "}
-          <Link to="/auth/login" className="text-orange-500 font-medium hover:underline">Masuk</Link>
-        </p>
-      </div>
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs text-slate-400">
+            <span className="bg-white px-3 font-semibold">atau daftar dengan</span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={loading}
+          onClick={handleGoogleRegister}
+          className="h-12 w-full rounded-xl border-slate-200 font-bold text-slate-700 hover:border-[#03ac0e]/40 hover:bg-[#f4fff8] hover:text-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          Google
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-slate-500">
+        Sudah punya akun?{" "}
+        <Link to="/auth/login" className="font-black text-[#03ac0e] hover:underline">
+          Masuk
+        </Link>
+      </p>
     </div>
   );
 }

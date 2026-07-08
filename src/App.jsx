@@ -14,6 +14,7 @@ import OrderDetailPage from "@/features/order/ordering/pages/OrderDetailPage";
 import ProfileOrdersPage from "@/features/order/ordering/pages/ProfileOrdersPage";
 import WishlistPage from "@/features/order/wishlist/pages/WishlistPage";
 
+import AuthLayout from "@/features/auth/AuthLayout";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
 
@@ -31,7 +32,11 @@ import AdminCategoryPage from "@/features/admin/category/pages/AdminCategoryPage
 import ProfileLayout from "@/features/profile/ProfileLayout";
 import ProfilePage from "@/features/profile/identity/pages/ProfilePage";
 import AddressesPage from "@/features/profile/address/pages/AddressesPage";
-import ProfileChatPage from "@/features/profile/chat/pages/ProfileChatPage";
+import ChatPage from "@/features/profile/chat/pages/ChatPage";
+import GroupChatPage from "@/features/profile/chat/pages/GroupChatPage";
+import NotificationsPage from "@/features/profile/notifications/pages/NotificationsPage";
+import PaymentsPage from "@/features/profile/payments/pages/PaymentsPage";
+import VouchersPage from "@/features/profile/vouchers/pages/VouchersPage";
 
 export default function App() {
   return (
@@ -46,6 +51,9 @@ export default function App() {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />
+        </Route>
+
+        <Route element={<AuthLayout />}>
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
         </Route>
@@ -68,7 +76,11 @@ export default function App() {
           <Route path="/profile/orders" element={<ProfileOrdersPage />} />
           <Route path="/profile/addresses" element={<AddressesPage />} />
           <Route path="/profile/wishlist" element={<WishlistPage />} />
-          <Route path="/profile/chat" element={<ProfileChatPage />} />
+          <Route path="/profile/chat" element={<ChatPage />} />
+          <Route path="/profile/groups" element={<GroupChatPage />} />
+          <Route path="/profile/notifications" element={<NotificationsPage />} />
+          <Route path="/profile/payments" element={<PaymentsPage />} />
+          <Route path="/profile/vouchers" element={<VouchersPage />} />
         </Route>
       </Routes>
     </AppLayout>

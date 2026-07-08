@@ -1,4 +1,4 @@
-import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/services/catalogApi";
+import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 
 function slugify(value = "") {
   return String(value)

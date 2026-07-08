@@ -11,8 +11,10 @@
   "dependencies": {
     "@radix-ui/react-separator": "latest",
     "@radix-ui/react-slot": "latest",
+    "axios": "^1.18.1",
     "class-variance-authority": "latest",
     "clsx": "latest",
+    "firebase": "^12.15.0",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
