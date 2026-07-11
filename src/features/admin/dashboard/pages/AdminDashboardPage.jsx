@@ -1,18 +1,14 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/Button";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { AdminStatCard } from "@/features/admin/dashboard/components/AdminStatCard";
 import { AdminMiniChart } from "@/features/admin/dashboard/components/AdminMiniChart";
 import { AdminDataTable } from "@/features/admin/dashboard/components/AdminDataTable";
-import { getAdminDashboardData } from "@/features/admin/adminMockService";
+import { useAdminDashboard } from "@/features/admin/adminService";
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState({ stats: [], revenueSeries: [], recentOrders: [], moderationQueue: [] });
-
-  useEffect(() => {
-    getAdminDashboardData().then(setData);
-  }, []);
+  const dashboardQuery = useAdminDashboard();
+  const data = dashboardQuery.data || { stats: [], revenueSeries: [], recentOrders: [], moderationQueue: [] };
 
   return (
     <AdminShell
@@ -25,6 +21,9 @@ export default function AdminDashboardPage() {
         </>
       }
     >
+      {dashboardQuery.isLoading ? <p className="py-8 text-sm text-slate-500">Memuat dashboard...</p> : null}
+      {dashboardQuery.error ? <p className="py-8 text-sm text-red-600">{dashboardQuery.error.message}</p> : null}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {data.stats.map((item) => <AdminStatCard key={item.key} item={item} />)}
       </div>
@@ -35,7 +34,7 @@ export default function AdminDashboardPage() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-base font-extrabold text-slate-950">Antrean moderasi</h2>
-              <p className="text-sm text-slate-500">Prioritas hari ini</p>
+              <p className="text-sm text-slate-500">Toko yang memerlukan perhatian</p>
             </div>
             <span className="material-symbols-outlined text-slate-400">rule</span>
           </div>
@@ -53,6 +52,7 @@ export default function AdminDashboardPage() {
                 <p className="mt-3 text-xs font-semibold text-amber-700">{item.status}</p>
               </div>
             ))}
+            {!data.moderationQueue.length ? <p className="py-8 text-center text-sm text-slate-500">Tidak ada antrean moderasi.</p> : null}
           </div>
         </div>
       </div>

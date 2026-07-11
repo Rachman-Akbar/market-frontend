@@ -92,14 +92,21 @@ export default function VoucherDropdown({
           {visibleVouchers.map((voucher) => (
             <div
               key={voucher.id || voucher.code}
-              className="min-h-[118px] rounded-xl border border-gray-200 bg-white p-4 transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#03ac0e]"
+              className="min-h-[118px] overflow-hidden rounded-xl border border-gray-200 bg-white transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#03ac0e]"
             >
-              <div className="mb-3 inline-flex rounded-md border border-[#03ac0e]/30 px-3 py-1 text-sm font-bold tracking-wide text-[#03ac0e]">
-                {voucher.code}
-              </div>
+              <div className={voucher.imageUrl ? "grid min-h-[118px] grid-cols-[92px_minmax(0,1fr)]" : "min-h-[118px] p-4"}>
+                {voucher.imageUrl ? (
+                  <img src={voucher.imageUrl} alt={voucher.name || voucher.code} className="h-full min-h-[118px] w-full object-cover" />
+                ) : null}
+                <div className={voucher.imageUrl ? "p-4" : ""}>
+                  <div className="mb-3 inline-flex rounded-md border border-[#03ac0e]/30 px-3 py-1 text-sm font-bold tracking-wide text-[#03ac0e]">
+                    {voucher.code}
+                  </div>
 
-              <div className="line-clamp-3 text-sm leading-6 text-gray-600">
-                {getVoucherDescription(voucher)}
+                  <div className="line-clamp-3 text-sm leading-6 text-gray-600">
+                    {getVoucherDescription(voucher)}
+                  </div>
+                </div>
               </div>
             </div>
           ))}

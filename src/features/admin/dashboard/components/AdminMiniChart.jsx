@@ -8,7 +8,7 @@ export function AdminMiniChart({ values = [] }) {
           <h2 className="text-base font-extrabold text-slate-950">Tren pendapatan</h2>
           <p className="text-sm text-slate-500">12 bulan terakhir</p>
         </div>
-        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">Live dummy</span>
+        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">Data API</span>
       </div>
       <div className="flex h-64 items-end gap-3 rounded-2xl bg-slate-50 p-4">
         {values.map((value, index) => (

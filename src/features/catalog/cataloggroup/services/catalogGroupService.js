@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
 import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 
 function slugify(value = "") {
@@ -33,8 +35,12 @@ export function normalizeCatalogGroup(group = {}) {
   };
 }
 
-export async function getCatalogGroups() {
-  const payload = await catalogRequest("/catalog-groups");
+export async function getCatalogGroups(params = {}) {
+  const payload = await catalogRequest("/catalog-groups", {
+    params,
+    cacheTtl: CATALOG_CACHE_TTL.long,
+    persistCache: true,
+  });
   const { items, meta } = unwrapCollection(payload);
 
   return {
@@ -45,11 +51,31 @@ export async function getCatalogGroups() {
 }
 
 export async function getCatalogGroupById(id) {
-  const payload = await catalogRequest(`/catalog-groups/${id}`);
+  const payload = await catalogRequest(`/catalog-groups/${id}`, {
+    cacheTtl: CATALOG_CACHE_TTL.long,
+    persistCache: true,
+  });
   return normalizeCatalogGroup(unwrapData(payload));
 }
 
 export async function getCatalogGroupBySlug(slug) {
-  const payload = await catalogRequest(`/catalog-groups/slug/${encodeURIComponent(slug)}`);
+  const payload = await catalogRequest(`/catalog-groups/slug/${encodeURIComponent(slug)}`, {
+    cacheTtl: CATALOG_CACHE_TTL.long,
+    persistCache: true,
+  });
   return normalizeCatalogGroup(unwrapData(payload));
+}
+
+
+export const catalogGroupKeys = {
+  list: (params = {}) => ["catalog", "catalog-groups", params],
+};
+
+export function useCatalogGroups(params = {}, options = {}) {
+  return useQuery({
+    queryKey: catalogGroupKeys.list(params),
+    queryFn: () => getCatalogGroups(params),
+    staleTime: 300000,
+    ...options,
+  });
 }

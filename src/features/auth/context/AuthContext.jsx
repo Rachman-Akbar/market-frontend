@@ -1,56 +1,54 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   clearStoredSession,
   fetchCurrentAuthUser,
   getApiErrorMessage,
-  getFirebaseUid,
-  listenFirebaseAuth,
-  loginWithCurrentFirebaseUser,
+  getCurrentSessionScope,
   loginWithGoogle as loginWithGoogleRequest,
   loginWithPassword as loginWithPasswordRequest,
   logoutFromApi,
   readStoredSession,
   registerWithPassword as registerWithPasswordRequest,
   requestPasswordReset,
-  saveRealtimeUserProfile,
-  subscribeRealtimeUser,
   switchActiveRole,
 } from "@/features/auth/services/authService";
+import {
+  BASE_SESSION_KEY,
+  BASE_TOKEN_KEY,
+  WINDOW_SESSION_KEY,
+  WINDOW_TOKEN_KEY,
+} from "@/core/utils/apiClient";
 
 const AuthContext = createContext(null);
 
-function mergeUser(sessionUser, firebaseUser, realtimeProfile) {
-  const profile = realtimeProfile || {};
-  const firebase = firebaseUser || {};
-  const user = sessionUser || {};
-  const name = profile.name || profile.displayName || user.name || firebase.name || "User";
-  const email = profile.email || user.email || firebase.email || "";
-  const avatar = profile.avatar || profile.photoURL || user.avatar || firebase.avatar || name.slice(0, 1).toUpperCase();
+function normalizeRole(value) {
+  if (typeof value === "string") {
+    return value.toLowerCase().trim();
+  }
 
-  return {
-    ...user,
-    ...profile,
-    id: user.id || profile.id || firebase.uid || "",
-    firebase_uid: user.firebase_uid || profile.firebase_uid || firebase.uid || null,
-    name,
-    email,
-    avatar,
-  };
+  return String(value?.name || value?.role || value?.value || value?.slug || "")
+    .toLowerCase()
+    .trim();
 }
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => readStoredSession());
-  const [firebaseUser, setFirebaseUser] = useState(null);
-  const [realtimeProfile, setRealtimeProfile] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const authActionRef = useRef(false);
 
   const syncMe = useCallback(async () => {
     const currentSession = readStoredSession();
 
     if (!currentSession?.token) {
+      setSession(null);
       setInitializing(false);
       return null;
     }
@@ -61,9 +59,12 @@ export function AuthProvider({ children }) {
       return nextSession;
     } catch (apiError) {
       if (apiError?.response?.status === 401) {
-        clearStoredSession();
-        setSession(null);
-        return null;
+        clearStoredSession({
+          scope: currentSession.storageScope || getCurrentSessionScope(),
+        });
+        const fallbackSession = readStoredSession();
+        setSession(fallbackSession);
+        return fallbackSession;
       }
 
       setSession(currentSession);
@@ -74,62 +75,68 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    const unsubscribe = listenFirebaseAuth(async (nextFirebaseUser) => {
-      if (!active) return;
-
-      setFirebaseUser(nextFirebaseUser);
-
-      if (nextFirebaseUser && !readStoredSession()?.token && !authActionRef.current) {
-        try {
-          const nextSession = await loginWithCurrentFirebaseUser();
-          if (active) setSession(nextSession);
-        } catch {
-          clearStoredSession();
-          if (active) setSession(null);
-        }
-      }
-    });
-
     syncMe();
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
   }, [syncMe]);
 
   useEffect(() => {
-    const uid = getFirebaseUid(session?.user, firebaseUser);
+    const handleUnauthorized = (event) => {
+      const scope = event?.detail?.scope || getCurrentSessionScope();
+      clearStoredSession({ scope });
+      const fallbackSession = readStoredSession();
+      setSession(fallbackSession);
+      setError(
+        fallbackSession
+          ? "Sesi portal telah berakhir. Anda kembali menggunakan sesi akun utama."
+          : "Sesi Anda telah berakhir. Silakan masuk kembali."
+      );
+    };
 
-    if (!uid) {
-      setRealtimeProfile(null);
-      return undefined;
-    }
+    const handleStorage = (event) => {
+      if (![BASE_TOKEN_KEY, BASE_SESSION_KEY].includes(event.key)) {
+        return;
+      }
 
-    return subscribeRealtimeUser(
-      uid,
-      (profile) => setRealtimeProfile(profile),
-      () => setRealtimeProfile(null)
-    );
-  }, [firebaseUser, session?.user]);
+      if (sessionStorage.getItem(WINDOW_TOKEN_KEY)) {
+        return;
+      }
+
+      setSession(readStoredSession());
+    };
+
+    const handleWindowSession = () => {
+      setSession(readStoredSession());
+    };
+
+    window.addEventListener("marketku:unauthorized", handleUnauthorized);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("marketku:session-changed", handleWindowSession);
+
+    return () => {
+      window.removeEventListener("marketku:unauthorized", handleUnauthorized);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("marketku:session-changed", handleWindowSession);
+    };
+  }, []);
 
   const runAuthAction = useCallback(async (action) => {
-    authActionRef.current = true;
     setLoading(true);
     setError("");
 
     try {
       const nextSession = await action();
-      setSession(nextSession || readStoredSession());
+
+      if (!nextSession?.token) {
+        throw new Error("Backend tidak mengembalikan token Sanctum.");
+      }
+
+      setSession(nextSession);
+      window.dispatchEvent(new CustomEvent("marketku:session-changed"));
       return nextSession;
     } catch (authError) {
       const message = getApiErrorMessage(authError);
       setError(message);
       throw new Error(message);
     } finally {
-      authActionRef.current = false;
       setLoading(false);
     }
   }, []);
@@ -145,27 +152,17 @@ export function AuthProvider({ children }) {
   );
 
   const loginWithGoogle = useCallback(
-    () => runAuthAction(() => loginWithGoogleRequest()),
+    (options = {}) => runAuthAction(() => loginWithGoogleRequest(options)),
     [runAuthAction]
   );
 
-  const forgotPassword = useCallback(
-    (email) =>
-      runAuthAction(async () => {
-        await requestPasswordReset(email);
-        return readStoredSession();
-      }),
-    [runAuthAction]
-  );
-
-  const logout = useCallback(async () => {
+  const forgotPassword = useCallback(async (email) => {
     setLoading(true);
     setError("");
 
     try {
-      await logoutFromApi();
-      setSession(null);
-      setRealtimeProfile(null);
+      await requestPasswordReset(email);
+      return true;
     } catch (authError) {
       const message = getApiErrorMessage(authError);
       setError(message);
@@ -175,37 +172,70 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const logout = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await logoutFromApi();
+    } catch (authError) {
+      const message = getApiErrorMessage(authError);
+      setError(message);
+    } finally {
+      const fallbackSession = readStoredSession();
+      setSession(fallbackSession);
+      window.dispatchEvent(new CustomEvent("marketku:session-changed"));
+      setLoading(false);
+    }
+  }, []);
+
   const switchRole = useCallback(
-    (role) => runAuthAction(() => switchActiveRole(role)),
+    (role, options = {}) =>
+      runAuthAction(() =>
+        switchActiveRole(role, {
+          ...options,
+          storageScope: options.storageScope || "window",
+        })
+      ),
     [runAuthAction]
   );
 
-  const updateRealtimeProfile = useCallback(
-    async (payload) => {
-      const uid = getFirebaseUid(session?.user, firebaseUser);
-      await saveRealtimeUserProfile(uid, payload);
-    },
-    [firebaseUser, session?.user]
-  );
-
-  const user = useMemo(
-    () => mergeUser(session?.user, firebaseUser, realtimeProfile),
-    [firebaseUser, realtimeProfile, session?.user]
-  );
+  const user = session?.user || null;
 
   const roles = useMemo(() => {
-    const source = realtimeProfile?.roles || session?.roles || user?.roles || [];
-    return Array.isArray(source) ? source.map((role) => String(role).toLowerCase()) : [];
-  }, [realtimeProfile?.roles, session?.roles, user?.roles]);
+    const source = session?.roles || user?.roles || [];
 
-  const activeRole = realtimeProfile?.active_role || session?.activeRole || user?.role || roles[0] || "buyer";
-  const isAuthenticated = Boolean(session?.token || firebaseUser?.uid);
+    if (!Array.isArray(source)) {
+      return [];
+    }
+
+    return [...new Set(source.map(normalizeRole).filter(Boolean))];
+  }, [session?.roles, user?.roles]);
+
+  const activeRole =
+    normalizeRole(
+      session?.activeRole ||
+        session?.active_role ||
+        user?.activeRole ||
+        user?.active_role ||
+        user?.role ||
+        roles[0] ||
+        "buyer"
+    ) || "buyer";
+
+  const isAuthenticated = Boolean(session?.token && user);
+
+  const hasRole = useCallback(
+    (role) => {
+      const normalizedRole = normalizeRole(role);
+      return activeRole === normalizedRole || roles.includes(normalizedRole);
+    },
+    [activeRole, roles]
+  );
 
   const value = useMemo(
     () => ({
       user: isAuthenticated ? user : null,
-      profile: realtimeProfile,
-      firebaseUser,
       token: session?.token || null,
       roles,
       activeRole,
@@ -214,6 +244,7 @@ export function AuthProvider({ children }) {
       initializing,
       error,
       isAuthenticated,
+      hasRole,
       login: loginWithPassword,
       loginWithPassword,
       registerWithPassword,
@@ -222,28 +253,25 @@ export function AuthProvider({ children }) {
       logout,
       switchRole,
       refreshMe: syncMe,
-      updateRealtimeProfile,
       clearError: () => setError(""),
     }),
     [
       activeRole,
       error,
-      firebaseUser,
       forgotPassword,
+      hasRole,
       initializing,
       isAuthenticated,
       loading,
       loginWithGoogle,
       loginWithPassword,
       logout,
-      realtimeProfile,
       registerWithPassword,
       roles,
       session?.store,
       session?.token,
       switchRole,
       syncMe,
-      updateRealtimeProfile,
       user,
     ]
   );
@@ -253,6 +281,10 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth harus digunakan di dalam AuthProvider");
+
+  if (!context) {
+    throw new Error("useAuth harus digunakan di dalam AuthProvider");
+  }
+
   return context;
 }

@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
 import { catalogRequest, safeArray, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 import { formatPrice } from "@/shared/utils/utils";
 
@@ -109,26 +111,40 @@ export function normalizeProduct(product = {}) {
 }
 
 export async function getProducts(params = {}) {
-  const payload = await catalogRequest("/products", { params });
+  const payload = await catalogRequest("/products", {
+    params: {
+      include: "summary",
+      per_page: params.per_page ?? params.limit ?? 20,
+      ...params,
+    },
+    cacheTtl: CATALOG_CACHE_TTL.short,
+  });
   const { items, meta } = unwrapCollection(payload);
   return {
     data: items.map(normalizeProduct),
     meta,
+    facets: payload?.facets || payload?.data?.facets || meta?.facets || {},
   };
 }
 
 export async function getProductById(id) {
-  const payload = await catalogRequest(`/products/${id}`);
+  const payload = await catalogRequest(`/products/${id}`, {
+    cacheTtl: CATALOG_CACHE_TTL.medium,
+  });
   return normalizeProduct(unwrapData(payload));
 }
 
 export async function getProductBySlug(slug) {
-  const payload = await catalogRequest(`/products/slug/${encodeURIComponent(slug)}`);
+  const payload = await catalogRequest(`/products/slug/${encodeURIComponent(slug)}`, {
+    cacheTtl: CATALOG_CACHE_TTL.medium,
+  });
   return normalizeProduct(unwrapData(payload));
 }
 
 export async function getProductVariants(productId) {
-  const payload = await catalogRequest(`/products/${productId}/variants`);
+  const payload = await catalogRequest(`/products/${productId}/variants`, {
+    cacheTtl: CATALOG_CACHE_TTL.medium,
+  });
   const { items, meta } = unwrapCollection(payload);
   return {
     data: items.map(normalizeVariant),
@@ -140,4 +156,51 @@ export async function getProductAttributes(params = {}) {
   const payload = await catalogRequest("/products/attributes", { params });
   const { items, meta } = unwrapCollection(payload);
   return { data: items, meta };
+}
+
+
+export const productKeys = {
+  list: (params = {}) => ["catalog", "products", params],
+  detail: (id) => ["catalog", "products", "detail", String(id || "")],
+  slug: (slug) => ["catalog", "products", "slug", String(slug || "")],
+  variants: (productId) => ["catalog", "products", "variants", String(productId || "")],
+};
+
+export function useProducts(params = {}, options = {}) {
+  return useQuery({
+    queryKey: productKeys.list(params),
+    queryFn: () => getProducts(params),
+    staleTime: 60000,
+    placeholderData: (previous) => previous,
+    ...options,
+  });
+}
+
+export function useProductById(id) {
+  return useQuery({
+    queryKey: productKeys.detail(id),
+    queryFn: () => getProductById(id),
+    enabled: Boolean(id),
+    staleTime: 120000,
+  });
+}
+
+export function useProductBySlug(slug) {
+  return useQuery({
+    queryKey: productKeys.slug(slug),
+    queryFn: () => getProductBySlug(slug),
+    enabled: Boolean(slug),
+    staleTime: 120000,
+  });
+}
+
+
+export function useProductVariants(productId, options = {}) {
+  return useQuery({
+    queryKey: productKeys.variants(productId),
+    queryFn: () => getProductVariants(productId),
+    enabled: Boolean(productId),
+    staleTime: 120000,
+    ...options,
+  });
 }

@@ -3,56 +3,60 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
-import { cn } from "@/shared/utils/utils";
 
-const ROLES = [
-  {
-    value: "buyer",
-    label: "Pembeli",
-    desc: "Belanja dan kelola pesanan",
+const PORTALS = {
+  buyer: {
+    role: "buyer",
     redirect: "/",
+    eyebrow: "Masuk akun",
+    title: "Selamat datang kembali",
+    description: "Masuk untuk melanjutkan belanja, mengelola pesanan, dan menggunakan seluruh fitur akun.",
+    submitLabel: "Masuk",
+    deviceName: "marketplace-web-buyer",
+    showRegister: true,
+    storageScope: "base",
   },
-  {
-    value: "seller",
-    label: "Penjual",
-    desc: "Kelola toko dan produk",
-    redirect: "/seller",
-  },
-  {
-    value: "admin",
-    label: "Admin",
-    desc: "Panel administrasi",
+  admin: {
+    role: "admin",
     redirect: "/admin",
+    eyebrow: "Masuk akun",
+    title: "Selamat datang kembali",
+    description: "Masuk menggunakan akun yang memiliki akses admin.",
+    submitLabel: "Masuk",
+    deviceName: "marketplace-web-admin",
+    showRegister: false,
+    storageScope: "window",
   },
-];
+  chat: {
+    role: "buyer",
+    redirect: "/chat",
+    eyebrow: "Chat portal",
+    title: "Masuk ke Chat",
+    description: "Masuk melalui halaman khusus agar sesi chat tidak bercampur dengan portal lain.",
+    submitLabel: "Masuk ke Chat",
+    deviceName: "marketplace-web-chat",
+    showRegister: false,
+    storageScope: "window",
+  },
+};
 
-export default function LoginPage() {
-  const { loginWithPassword, loginWithGoogle, switchRole, loading, error, clearError } = useAuth();
+export default function LoginPage({ portal = "buyer" }) {
+  const config = useMemo(() => PORTALS[portal] || PORTALS.buyer, [portal]);
+  const { loginWithPassword, loginWithGoogle, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [role, setRole] = useState("buyer");
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
   const [localError, setLocalError] = useState("");
-
-  const selectedRole = useMemo(() => ROLES.find((item) => item.value === role) ?? ROLES[0], [role]);
   const message = localError || error;
 
-  const redirectAfterLogin = async () => {
-    const fallback = location.state?.from?.pathname || selectedRole.redirect;
-
-    if (role !== "buyer") {
-      try {
-        await switchRole(role);
-      } catch {
-        navigate(fallback === selectedRole.redirect ? "/" : fallback, { replace: true });
-        return;
-      }
-    }
-
-    navigate(fallback, { replace: true });
+  const getRedirectPath = () => {
+    const query = new URLSearchParams(location.search);
+    const redirect = query.get("redirect");
+    const statePath = location.state?.from?.pathname;
+    return redirect || statePath || config.redirect;
   };
 
   const handleChange = (event) => {
@@ -78,8 +82,13 @@ export default function LoginPage() {
     }
 
     try {
-      await loginWithPassword(form);
-      await redirectAfterLogin();
+      await loginWithPassword({
+        ...form,
+        role: config.role,
+        deviceName: config.deviceName,
+        storageScope: config.storageScope,
+      });
+      navigate(getRedirectPath(), { replace: true });
     } catch (submitError) {
       setLocalError(submitError.message);
     }
@@ -90,8 +99,12 @@ export default function LoginPage() {
     clearError();
 
     try {
-      await loginWithGoogle();
-      await redirectAfterLogin();
+      await loginWithGoogle({
+        role: config.role,
+        deviceName: config.deviceName,
+        storageScope: config.storageScope,
+      });
+      navigate(getRedirectPath(), { replace: true });
     } catch (submitError) {
       setLocalError(submitError.message);
     }
@@ -108,11 +121,9 @@ export default function LoginPage() {
         </Link>
 
         <div className="mt-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">Masuk akun</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Selamat datang kembali</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Masuk untuk melanjutkan belanja, mengelola toko, atau membuka panel admin.
-          </p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">{config.eyebrow}</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">{config.title}</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{config.description}</p>
         </div>
       </div>
 
@@ -148,38 +159,6 @@ export default function LoginPage() {
           />
         </div>
 
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <label className="block text-sm font-bold text-slate-700">Masuk sebagai</label>
-            <span className="text-xs font-semibold text-slate-400">Role akun</span>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            {ROLES.map((item) => {
-              const active = role === item.value;
-
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => setRole(item.value)}
-                  className={cn(
-                    "rounded-2xl border p-3 text-left transition",
-                    active
-                      ? "border-[#03ac0e] bg-[#ecfff4] shadow-[0_12px_28px_rgba(3,172,14,0.12)]"
-                      : "border-slate-200 bg-white hover:border-[#03ac0e]/40 hover:bg-slate-50"
-                  )}
-                >
-                  <p className={cn("text-sm font-black", active ? "text-[#03ac0e]" : "text-slate-800")}>
-                    {item.label}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">{item.desc}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {message && (
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             {message}
@@ -192,7 +171,7 @@ export default function LoginPage() {
           disabled={loading}
           className="h-12 w-full rounded-xl bg-[#03ac0e] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Memproses..." : `Masuk sebagai ${selectedRole.label}`}
+          {loading ? "Memproses..." : config.submitLabel}
         </Button>
 
         <div className="relative py-1">
@@ -215,12 +194,20 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
-        Belum punya akun?{" "}
-        <Link to="/auth/register" className="font-black text-[#03ac0e] hover:underline">
-          Daftar sekarang
-        </Link>
-      </p>
+      {config.showRegister ? (
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Belum punya akun?{" "}
+          <Link to="/auth/register" className="font-black text-[#03ac0e] hover:underline">
+            Daftar sekarang
+          </Link>
+        </p>
+      ) : (
+        <p className="mt-6 text-center text-sm text-slate-500">
+          <Link to="/auth/login" className="font-black text-[#03ac0e] hover:underline">
+            Kembali ke login pengguna
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

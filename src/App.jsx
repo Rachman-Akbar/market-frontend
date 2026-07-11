@@ -1,88 +1,117 @@
-import { Routes, Route } from "react-router-dom";
-
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "@/shared/layout/AppLayout";
 import BuyerLayout from "@/shared/layout/BuyerLayout";
-import HomePage from "@/features/catalog/HomePage";
-import SearchPage from "@/features/catalog/product/pages/SearchPage";
-import ProductDetailPage from "@/features/catalog/product/pages/ProductDetailPage";
-import CategoryPage from "@/features/catalog/category/pages/CategoryPage";
-import PromotionPage from "@/features/catalog/promotion/pages/PromotionPage";
-
-import CartPage from "@/features/order/cart/pages/CartPage";
-import CheckoutPage from "@/features/order/ordering/pages/CheckoutPage";
-import OrderDetailPage from "@/features/order/ordering/pages/OrderDetailPage";
-import ProfileOrdersPage from "@/features/order/ordering/pages/ProfileOrdersPage";
-import WishlistPage from "@/features/order/wishlist/pages/WishlistPage";
-
 import AuthLayout from "@/features/auth/AuthLayout";
-import LoginPage from "@/features/auth/pages/LoginPage";
-import RegisterPage from "@/features/auth/pages/RegisterPage";
-
 import SellerLayout from "@/features/seller/SellerLayout";
-import SellerDashboardPage from "@/features/seller/dashboard/pages/SellerDashboardPage";
-import SellerProductsPage from "@/features/seller/product/pages/SellerProductsPage";
-import SellerBannerPage from "@/features/seller/banner/pages/SellerBannerPage";
-import SellerStorePage from "@/features/seller/store/pages/SellerStorePage";
-
 import AdminLayout from "@/features/admin/AdminLayout";
-import AdminDashboardPage from "@/features/admin/dashboard/pages/AdminDashboardPage";
-import AdminCatalogGroupPage from "@/features/admin/catalogGroup/pages/AdminCatalogGroupPage";
-import AdminCategoryPage from "@/features/admin/category/pages/AdminCategoryPage";
-
 import ProfileLayout from "@/features/profile/ProfileLayout";
-import ProfilePage from "@/features/profile/identity/pages/ProfilePage";
-import AddressesPage from "@/features/profile/address/pages/AddressesPage";
-import ChatPage from "@/features/profile/chat/pages/ChatPage";
-import GroupChatPage from "@/features/profile/chat/pages/GroupChatPage";
-import NotificationsPage from "@/features/profile/notifications/pages/NotificationsPage";
-import PaymentsPage from "@/features/profile/payments/pages/PaymentsPage";
-import VouchersPage from "@/features/profile/vouchers/pages/VouchersPage";
+import ProtectedRoute from "@/features/auth/routes/ProtectedRoute";
+import GuestRoute from "@/features/auth/routes/GuestRoute";
+
+const HomePage = lazy(() => import("@/features/catalog/HomePage"));
+const SearchPage = lazy(() => import("@/features/catalog/product/pages/SearchPage"));
+const ProductDetailPage = lazy(() => import("@/features/catalog/product/pages/ProductDetailPage"));
+const CategoryPage = lazy(() => import("@/features/catalog/category/pages/CategoryPage"));
+const PromotionPage = lazy(() => import("@/features/catalog/promotion/pages/PromotionPage"));
+const CartPage = lazy(() => import("@/features/order/cart/pages/CartPage"));
+const CheckoutPage = lazy(() => import("@/features/order/ordering/pages/CheckoutPage"));
+const OrderDetailPage = lazy(() => import("@/features/order/ordering/pages/OrderDetailPage"));
+const ProfileOrdersPage = lazy(() => import("@/features/order/ordering/pages/ProfileOrdersPage"));
+const WishlistPage = lazy(() => import("@/features/order/wishlist/pages/WishlistPage"));
+const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
+const RegisterPage = lazy(() => import("@/features/auth/pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("@/features/auth/pages/ForgotPasswordPage"));
+const RoleSwitchPage = lazy(() => import("@/features/auth/pages/RoleSwitchPage"));
+const SellerOnboardingPage = lazy(() => import("@/features/auth/pages/SellerOnboardingPage"));
+const SellerDashboardPage = lazy(() => import("@/features/seller/dashboard/pages/SellerDashboardPage"));
+const SellerProductsPage = lazy(() => import("@/features/seller/product/pages/SellerProductsPage"));
+const SellerBannerPage = lazy(() => import("@/features/seller/banner/pages/SellerBannerPage"));
+const SellerStorePage = lazy(() => import("@/features/seller/store/pages/SellerStorePage"));
+const AdminDashboardPage = lazy(() => import("@/features/admin/dashboard/pages/AdminDashboardPage"));
+const AdminCatalogGroupPage = lazy(() => import("@/features/admin/catalogGroup/pages/AdminCatalogGroupPage"));
+const AdminCategoryPage = lazy(() => import("@/features/admin/category/pages/AdminCategoryPage"));
+const ProfilePage = lazy(() => import("@/features/profile/identity/pages/ProfilePage"));
+const AddressesPage = lazy(() => import("@/features/profile/address/pages/AddressesPage"));
+const ChatPage = lazy(() => import("@/features/profile/chat/pages/ChatPage"));
+const GroupChatPage = lazy(() => import("@/features/profile/chat/pages/GroupChatPage"));
+const NotificationsPage = lazy(() => import("@/features/profile/notifications/pages/NotificationsPage"));
+const PaymentsPage = lazy(() => import("@/features/profile/payments/pages/PaymentsPage"));
+const VouchersPage = lazy(() => import("@/features/profile/vouchers/pages/VouchersPage"));
+
+function LoadingScreen() {
+  return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#03ac0e]" /></div>;
+}
 
 export default function App() {
   return (
     <AppLayout>
-      <Routes>
-        <Route element={<BuyerLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/category/*" element={<CategoryPage />} />
-          <Route path="/products/:slug" element={<ProductDetailPage />} />
-          <Route path="/promotions" element={<PromotionPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/orders/:id" element={<OrderDetailPage />} />
-        </Route>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route element={<BuyerLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/category/*" element={<CategoryPage />} />
+            <Route path="/products/:slug" element={<ProductDetailPage />} />
+            <Route path="/promotions" element={<PromotionPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/orders/:id" element={<OrderDetailPage />} />
+            </Route>
+          </Route>
 
-        <Route element={<AuthLayout />}>
-          <Route path="/auth/login" element={<LoginPage />} />
-          <Route path="/auth/register" element={<RegisterPage />} />
-        </Route>
+          <Route element={<GuestRoute />}>
+            <Route element={<AuthLayout />}>
+              <Route path="/auth/login" element={<LoginPage portal="buyer" />} />
+              <Route path="/auth/register" element={<RegisterPage />} />
+              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+            </Route>
+          </Route>
 
-        <Route element={<SellerLayout />}>
-          <Route path="/seller" element={<SellerDashboardPage />} />
-          <Route path="/seller/products" element={<SellerProductsPage />} />
-          <Route path="/seller/banners" element={<SellerBannerPage />} />
-          <Route path="/seller/store" element={<SellerStorePage />} />
-        </Route>
+          <Route element={<AuthLayout />}>
+            <Route path="/admin/login" element={<LoginPage portal="admin" />} />
+            <Route path="/chat/login" element={<LoginPage portal="chat" />} />
+          </Route>
 
-        <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/catalog-groups" element={<AdminCatalogGroupPage />} />
-          <Route path="/admin/categories" element={<AdminCategoryPage />} />
-        </Route>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/auth/role-switch" element={<RoleSwitchPage />} />
+            <Route path="/auth/seller/onboarding" element={<SellerOnboardingPage />} />
 
-        <Route element={<ProfileLayout />}>
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/profile/orders" element={<ProfileOrdersPage />} />
-          <Route path="/profile/addresses" element={<AddressesPage />} />
-          <Route path="/profile/wishlist" element={<WishlistPage />} />
-          <Route path="/profile/chat" element={<ChatPage />} />
-          <Route path="/profile/groups" element={<GroupChatPage />} />
-          <Route path="/profile/notifications" element={<NotificationsPage />} />
-          <Route path="/profile/payments" element={<PaymentsPage />} />
-          <Route path="/profile/vouchers" element={<VouchersPage />} />
-        </Route>
-      </Routes>
+            <Route element={<ProfileLayout />}>
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/orders" element={<ProfileOrdersPage />} />
+              <Route path="/profile/addresses" element={<AddressesPage />} />
+              <Route path="/profile/wishlist" element={<WishlistPage />} />
+              <Route path="/profile/notifications" element={<NotificationsPage />} />
+              <Route path="/profile/payments" element={<PaymentsPage />} />
+              <Route path="/profile/vouchers" element={<VouchersPage />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/chat/groups" element={<GroupChatPage />} />
+            </Route>
+
+            <Route path="/profile/chat" element={<Navigate to="/chat/login?redirect=/chat" replace />} />
+            <Route path="/profile/groups" element={<Navigate to="/chat/login?redirect=/chat/groups" replace />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["seller"]} />}>
+            <Route element={<SellerLayout />}>
+              <Route path="/seller" element={<SellerDashboardPage />} />
+              <Route path="/seller/products" element={<SellerProductsPage />} />
+              <Route path="/seller/banners" element={<SellerBannerPage />} />
+              <Route path="/seller/store" element={<SellerStorePage />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["admin"]} />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/catalog-groups" element={<AdminCatalogGroupPage />} />
+              <Route path="/admin/categories" element={<AdminCategoryPage />} />
+            </Route>
+          </Route>
+        </Routes>
+      </Suspense>
     </AppLayout>
   );
 }

@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  getCategoryHref,
-  getCategoryNavigation,
-} from "@/features/catalog/category/services/categoryService";
-import {
-  VOUCHER_GROUP,
-  VOUCHER_GROUP_KEY,
-} from "@/features/order/voucher/constants/voucherNavigation";
-import { getActiveVouchers } from "@/features/order/voucher/services/voucherService";
+import { getCategoryHref, useCategoryNavigation } from "@/features/catalog/category/services/categoryService";
+import { VOUCHER_GROUP, VOUCHER_GROUP_KEY } from "@/features/order/voucher/constants/voucherNavigation";
+import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
 import VoucherDropdownPage from "@/features/order/voucher/components/VoucherDropdown";
 
 function sameCategory(a, b) {
@@ -16,206 +10,77 @@ function sameCategory(a, b) {
   return String(a.key ?? a.id ?? a.slug) === String(b.key ?? b.id ?? b.slug);
 }
 
-export function CategoryDropdown({
-  open,
-  onClose = () => {},
-  selectedGroupKey = "",
-}) {
+export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = "" }) {
   const dropdownRef = useRef(null);
-  const mountedRef = useRef(true);
-  const voucherRequestSeqRef = useRef(0);
-
   const [rendered, setRendered] = useState(open);
   const [activeGroup, setActiveGroup] = useState("");
   const [activeL1, setActiveL1] = useState(null);
-  const [groups, setGroups] = useState([]);
-  const [categoriesByGroup, setCategoriesByGroup] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const [vouchers, setVouchers] = useState([]);
-  const [voucherLoading, setVoucherLoading] = useState(false);
-  const [voucherError, setVoucherError] = useState("");
-  const [voucherLoaded, setVoucherLoaded] = useState(false);
-
+  const navigationQuery = useCategoryNavigation({ enabled: open || rendered });
+  const groups = navigationQuery.data?.groups || [];
+  const categoriesByGroup = navigationQuery.data?.categoriesByGroup || {};
   const activeGroupKey = String(activeGroup || "");
   const isVoucherActive = activeGroupKey === VOUCHER_GROUP_KEY;
+  const vouchersQuery = useActiveVouchers({ enabled: open && isVoucherActive });
+  const vouchers = vouchersQuery.data || [];
+  const loading = navigationQuery.isLoading;
+  const error = navigationQuery.error?.message || "";
+  const voucherLoading = vouchersQuery.isLoading;
+  const voucherError = vouchersQuery.error?.message || "";
 
-  const navGroups = useMemo(() => {
-    return [...groups, VOUCHER_GROUP];
-  }, [groups]);
-
+  const navGroups = useMemo(() => [...groups, VOUCHER_GROUP], [groups]);
   const l1List = useMemo(() => {
     if (isVoucherActive) return [];
-
-    const list =
-      categoriesByGroup[activeGroupKey] ??
-      categoriesByGroup[Number(activeGroupKey)] ??
-      [];
-
+    const list = categoriesByGroup[activeGroupKey] ?? categoriesByGroup[Number(activeGroupKey)] ?? [];
     return Array.isArray(list) ? list : [];
-  }, [categoriesByGroup, activeGroupKey, isVoucherActive]);
-
+  }, [activeGroupKey, categoriesByGroup, isVoucherActive]);
   const current = useMemo(() => {
     if (isVoucherActive) return null;
-
-    if (activeL1 && l1List.some((item) => sameCategory(item, activeL1))) {
-      return activeL1;
-    }
-
+    if (activeL1 && l1List.some((item) => sameCategory(item, activeL1))) return activeL1;
     return l1List[0] ?? null;
-  }, [activeL1, l1List, isVoucherActive]);
+  }, [activeL1, isVoucherActive, l1List]);
 
-  const handleSetActiveGroup = useCallback(
-    (groupKey) => {
-      const nextKey = String(groupKey || "");
-
-      if (!nextKey || nextKey === activeGroupKey) return;
-
-      setActiveGroup(nextKey);
-    },
-    [activeGroupKey]
-  );
-
-  const handleClose = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const handleSetActiveGroup = useCallback((groupKey) => {
+    const nextKey = String(groupKey || "");
+    if (!nextKey || nextKey === activeGroupKey) return;
+    setActiveGroup(nextKey);
+  }, [activeGroupKey]);
+  const handleClose = useCallback(() => onClose(), [onClose]);
 
   useEffect(() => {
     if (open) {
       setRendered(true);
       return undefined;
     }
-
-    const timer = window.setTimeout(() => {
-      setRendered(false);
-    }, 720);
-
+    const timer = window.setTimeout(() => setRendered(false), 720);
     return () => window.clearTimeout(timer);
   }, [open]);
 
   useEffect(() => {
-    if (!open || groups.length) return undefined;
-
-    let mounted = true;
-
-    setLoading(true);
-    setError("");
-
-    getCategoryNavigation()
-      .then((result) => {
-        if (!mounted) return;
-
-        const nextGroups = Array.isArray(result?.groups) ? result.groups : [];
-        const nextCategoriesByGroup = result?.categoriesByGroup || {};
-        const firstGroup = String(
-          selectedGroupKey || nextGroups[0]?.key || nextGroups[0]?.id || ""
-        );
-        const firstList =
-          nextCategoriesByGroup[firstGroup] ??
-          nextCategoriesByGroup[Number(firstGroup)] ??
-          [];
-
-        setGroups(nextGroups);
-        setCategoriesByGroup(nextCategoriesByGroup);
-        setActiveGroup(firstGroup);
-        setActiveL1(Array.isArray(firstList) ? firstList[0] ?? null : null);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err?.message || "Gagal memuat kategori");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [open, groups.length, selectedGroupKey]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const nextGroupKey = String(selectedGroupKey || "");
-
-    if (!nextGroupKey) return;
-
-    const exists = groups.some((group) => {
-      return String(group.key ?? group.id ?? group.slug) === nextGroupKey;
-    });
-
-    if (exists && nextGroupKey !== activeGroupKey) {
-      setActiveGroup(nextGroupKey);
-    }
-  }, [open, selectedGroupKey, groups, activeGroupKey]);
+    if (!open || !groups.length) return;
+    const requested = String(selectedGroupKey || "");
+    const requestedExists = requested && groups.some((group) => String(group.key ?? group.id ?? group.slug) === requested);
+    const nextGroup = requestedExists ? requested : String(groups[0]?.key || groups[0]?.id || "");
+    if (!activeGroupKey || (requestedExists && requested !== activeGroupKey)) setActiveGroup(nextGroup);
+  }, [activeGroupKey, groups, open, selectedGroupKey]);
 
   useEffect(() => {
     if (!open) return undefined;
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        handleClose();
-      }
-    }
-
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") handleClose();
+    };
     document.addEventListener("keydown", handleKeyDown);
-
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open, handleClose]);
+  }, [handleClose, open]);
 
   useEffect(() => {
     if (!open || isVoucherActive || !activeGroupKey) return;
     setActiveL1(l1List[0] ?? null);
-  }, [open, activeGroupKey, l1List, isVoucherActive]);
-
-  useEffect(() => {
-    if (!open || !isVoucherActive || voucherLoaded) return undefined;
-
-    const requestId = voucherRequestSeqRef.current + 1;
-    voucherRequestSeqRef.current = requestId;
-
-    setVoucherLoading(true);
-    setVoucherError("");
-
-    getActiveVouchers()
-      .then((result) => {
-        if (!mountedRef.current) return;
-        if (voucherRequestSeqRef.current !== requestId) return;
-
-        setVouchers(Array.isArray(result) ? result : []);
-        setVoucherLoaded(true);
-      })
-      .catch((err) => {
-        if (!mountedRef.current) return;
-        if (voucherRequestSeqRef.current !== requestId) return;
-
-        setVoucherError(err?.message || "Gagal memuat voucher");
-        setVoucherLoaded(false);
-      })
-      .finally(() => {
-        if (!mountedRef.current) return;
-        if (voucherRequestSeqRef.current !== requestId) return;
-
-        setVoucherLoading(false);
-      });
-
-    return undefined;
-  }, [open, isVoucherActive, voucherLoaded]);
+  }, [activeGroupKey, isVoucherActive, l1List, open]);
 
   if (!rendered) return null;
 

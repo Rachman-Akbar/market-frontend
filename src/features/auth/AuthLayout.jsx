@@ -3,7 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 const BENEFITS = [
   "Belanja lebih cepat dengan voucher dan promo pilihan",
   "Pantau pesanan, wishlist, dan alamat dalam satu akun",
-  "Masuk sebagai pembeli, penjual, atau admin dari satu halaman",
+  "Sesi buyer, seller, chat, dan admin dipisahkan per jendela",
 ];
 
 export default function AuthLayout() {
@@ -34,7 +34,7 @@ export default function AuthLayout() {
                   Masuk dan lanjutkan belanja dengan pengalaman yang lebih mudah.
                 </h1>
                 <p className="mt-5 text-sm leading-7 text-white/78">
-                  Nikmati tampilan akun yang bersih, proses masuk yang cepat, dan akses role yang rapi untuk buyer, seller, serta admin.
+                  Nikmati tampilan akun yang bersih, proses masuk yang cepat, dan akses portal yang rapi tanpa mencampurkan sesi antarjendela.
                 </p>
               </div>
 

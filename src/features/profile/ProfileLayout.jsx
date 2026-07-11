@@ -5,8 +5,8 @@ import { profileLayout } from "@/features/profile/components/profileLayoutClasse
 import { cn } from "@/shared/utils/utils";
 
 const NAV_ITEMS = [
-  { href: "/profile/chat", label: "Chat", icon: MessageCircle },
-  { href: "/profile/groups", label: "Chat Group", icon: UsersRound },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/chat/groups", label: "Chat Group", icon: UsersRound },
   { href: "/profile/notifications", label: "Notifikasi", icon: BellRing },
   { href: "/profile/payments", label: "Pembayaran", icon: WalletCards },
   { href: "/profile/vouchers", label: "Voucher", icon: TicketPercent },

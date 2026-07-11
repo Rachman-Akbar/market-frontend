@@ -1,24 +1,21 @@
-import axios from "axios";
 import {
-  browserLocalPersistence,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
+  apiClient,
+  BASE_SESSION_KEY,
+  BASE_TOKEN_KEY,
+  WINDOW_SESSION_KEY,
+  WINDOW_TOKEN_KEY,
+} from "@/core/utils/apiClient";
+import {
+  browserSessionPersistence,
   setPersistence,
-  signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
-  updateProfile,
 } from "firebase/auth";
-import { off, onValue, ref, update } from "firebase/database";
-import { firebaseAuth, firebaseDatabase, googleProvider, hasFirebaseConfig } from "./firebaseClient";
+import { firebaseAuth, googleProvider, hasFirebaseConfig } from "./firebaseClient";
 
-const TOKEN_KEY = "marketku_auth_token";
-const SESSION_KEY = "marketku_auth_session";
-const DEVICE_NAME = "marketplace-web";
+const DEFAULT_DEVICE_NAME = "marketplace-web";
 const IDENTITY_API_PREFIX = "/api/v1/identity";
 const AUTH_PREFIX = "/auth";
-const REALTIME_USERS_PATH = "users";
 
 let firebaseBackendLoginPromise = null;
 let firebaseBackendLoginUid = null;
@@ -36,28 +33,10 @@ function makePath(...parts) {
 }
 
 function getAuthPath(path) {
-  return `/${makePath(AUTH_PREFIX, path)}`;
+  return `/${makePath(IDENTITY_API_PREFIX, AUTH_PREFIX, path)}`;
 }
 
-export const authApi = axios.create({
-  baseURL: IDENTITY_API_PREFIX,
-  withCredentials: true,
-  headers: {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  },
-});
-
-authApi.interceptors.request.use((config) => {
-  const token = readStoredToken();
-
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
+export const authApi = apiClient;
 
 function parseJson(value, fallback = null) {
   try {
@@ -71,16 +50,22 @@ function getFirstValue(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== "");
 }
 
-function normalizeRoles(value) {
-  if (!Array.isArray(value)) return [];
+function normalizeRole(value) {
+  if (typeof value === "string") {
+    return value.toLowerCase().trim();
+  }
 
-  return value
-    .map((role) => {
-      if (typeof role === "string") return role;
-      return role?.name || role?.role || role?.value || "";
-    })
-    .map((role) => String(role).toLowerCase().trim())
-    .filter(Boolean);
+  return String(value?.name || value?.role || value?.value || value?.slug || "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeRoles(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value.map(normalizeRole).filter(Boolean))];
 }
 
 function getInitial(name = "") {
@@ -88,22 +73,140 @@ function getInitial(name = "") {
   return source.slice(0, 1).toUpperCase() || "U";
 }
 
-export function normalizeAuthPayload(payload = {}) {
-  const source = payload?.data?.data || payload?.data || payload;
-  const userSource = source?.user || source?.data?.user || source?.data || source || {};
-  const roles = normalizeRoles(source?.roles || userSource?.roles || []);
-  const activeRole = String(source?.active_role || userSource?.active_role || roles[0] || "buyer").toLowerCase();
-  const token = getFirstValue(source?.access_token, source?.api_token, source?.token, payload?.access_token, payload?.api_token);
-  const name = getFirstValue(userSource?.name, userSource?.displayName, source?.name, "User");
-  const email = getFirstValue(userSource?.email, source?.email, "");
-  const avatar = getFirstValue(userSource?.avatar, userSource?.photoURL, userSource?.picture, source?.avatar, source?.picture);
-  const id = getFirstValue(userSource?.id, userSource?.uid, userSource?.firebase_uid, source?.id, source?.uid);
-  const firebaseUid = getFirstValue(userSource?.firebase_uid, userSource?.firebaseUid, userSource?.uid, source?.firebase_uid, source?.firebaseUid);
+function resolveDeviceName(value, role = "buyer") {
+  const deviceName = String(value || "").trim();
+  return deviceName || `${DEFAULT_DEVICE_NAME}-${role}`;
+}
+
+function getSource(payload = {}) {
+  return payload?.data?.data ?? payload?.data ?? payload ?? {};
+}
+
+function readBaseSession() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const session = parseJson(localStorage.getItem(BASE_SESSION_KEY));
+  const token = localStorage.getItem(BASE_TOKEN_KEY) || session?.token || "";
+
+  if (!session && !token) {
+    return null;
+  }
 
   return {
+    ...(session || {}),
     token,
-    tokenType: source?.token_type || "Bearer",
+    storageScope: "base",
+  };
+}
+
+function readWindowSession() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const session = parseJson(sessionStorage.getItem(WINDOW_SESSION_KEY));
+  const token = sessionStorage.getItem(WINDOW_TOKEN_KEY) || session?.token || "";
+
+  if (!session && !token) {
+    return null;
+  }
+
+  return {
+    ...(session || {}),
+    token,
+    storageScope: "window",
+  };
+}
+
+export function normalizeAuthPayload(payload = {}, fallbackSession = null) {
+  const source = getSource(payload);
+  const nestedSource = source?.data && typeof source.data === "object" ? source.data : null;
+  const userSource = source?.user || nestedSource?.user || nestedSource || source || {};
+  const fallbackUser = fallbackSession?.user || {};
+  const roles = normalizeRoles(
+    source?.roles ||
+      nestedSource?.roles ||
+      userSource?.roles ||
+      fallbackSession?.roles ||
+      fallbackUser?.roles ||
+      []
+  );
+  const requestedActiveRole = getFirstValue(
+    source?.active_role,
+    source?.activeRole,
+    nestedSource?.active_role,
+    nestedSource?.activeRole,
+    userSource?.active_role,
+    userSource?.activeRole,
+    userSource?.role,
+    fallbackSession?.activeRole,
+    fallbackSession?.active_role,
+    fallbackUser?.role,
+    roles[0],
+    "buyer"
+  );
+  const activeRole = normalizeRole(requestedActiveRole) || "buyer";
+  const token = getFirstValue(
+    source?.access_token,
+    source?.api_token,
+    source?.token,
+    nestedSource?.access_token,
+    nestedSource?.api_token,
+    nestedSource?.token,
+    payload?.access_token,
+    payload?.api_token,
+    payload?.token,
+    fallbackSession?.token
+  );
+  const name = getFirstValue(
+    userSource?.name,
+    userSource?.displayName,
+    source?.name,
+    fallbackUser?.name,
+    "User"
+  );
+  const email = getFirstValue(
+    userSource?.email,
+    source?.email,
+    fallbackUser?.email,
+    ""
+  );
+  const avatar = getFirstValue(
+    userSource?.avatar,
+    userSource?.photoURL,
+    userSource?.picture,
+    source?.avatar,
+    source?.picture,
+    fallbackUser?.avatar,
+    fallbackUser?.photoURL,
+    fallbackUser?.picture
+  );
+  const id = getFirstValue(
+    userSource?.id,
+    userSource?.uid,
+    userSource?.firebase_uid,
+    source?.id,
+    source?.uid,
+    fallbackUser?.id,
+    fallbackUser?.uid
+  );
+  const firebaseUid = getFirstValue(
+    userSource?.firebase_uid,
+    userSource?.firebaseUid,
+    source?.firebase_uid,
+    source?.firebaseUid,
+    fallbackUser?.firebase_uid,
+    fallbackUser?.firebaseUid
+  );
+
+  return {
+    ...(fallbackSession || {}),
+    token: token || "",
+    tokenType: source?.token_type || fallbackSession?.tokenType || "Bearer",
     user: {
+      ...fallbackUser,
       ...userSource,
       id: id ? String(id) : "",
       firebase_uid: firebaseUid ? String(firebaseUid) : null,
@@ -115,93 +218,168 @@ export function normalizeAuthPayload(payload = {}) {
     },
     roles,
     activeRole,
-    store: source?.store || userSource?.store || null,
+    store:
+      source?.store ??
+      nestedSource?.store ??
+      userSource?.store ??
+      fallbackSession?.store ??
+      null,
+    storageScope: fallbackSession?.storageScope || "base",
   };
 }
 
 export function getApiErrorMessage(error, fallback = "Terjadi kesalahan. Silakan coba lagi.") {
   const responseData = error?.response?.data;
 
-  if (typeof responseData?.message === "string") return responseData.message;
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return responseData.message;
+  }
 
   if (responseData?.errors && typeof responseData.errors === "object") {
     const firstError = Object.values(responseData.errors).flat().find(Boolean);
-    if (firstError) return String(firstError);
+
+    if (firstError) {
+      return String(firstError);
+    }
   }
 
-  if (typeof error?.message === "string") return error.message;
+  if (typeof error?.message === "string" && error.message.trim()) {
+    return error.message;
+  }
 
   return fallback;
 }
 
+export function getCurrentSessionScope() {
+  return readWindowSession()?.token ? "window" : "base";
+}
+
 export function readStoredToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  return readStoredSession()?.token || "";
 }
 
 export function readStoredSession() {
-  return parseJson(localStorage.getItem(SESSION_KEY));
+  const baseSession = readBaseSession();
+  const windowSession = readWindowSession();
+
+  if (windowSession?.token) {
+    return {
+      ...(baseSession || {}),
+      ...windowSession,
+      user: {
+        ...(baseSession?.user || {}),
+        ...(windowSession.user || {}),
+      },
+      token: windowSession.token,
+      storageScope: "window",
+    };
+  }
+
+  if (baseSession?.token) {
+    return baseSession;
+  }
+
+  return null;
 }
 
-export function persistSession(session) {
-  if (session?.token) localStorage.setItem(TOKEN_KEY, session.token);
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return session;
-}
+export function persistSession(session, options = {}) {
+  if (typeof window === "undefined") {
+    return session;
+  }
 
-export function clearStoredSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(SESSION_KEY);
-}
+  const scope = options.scope || session?.storageScope || "base";
+  const token = String(session?.token || "").trim();
 
-export function getFirebaseUid(sessionUser, firebaseUser) {
-  return sessionUser?.firebase_uid || sessionUser?.firebaseUid || firebaseUser?.uid || null;
-}
+  if (!token) {
+    throw new Error("Backend tidak mengembalikan token Sanctum.");
+  }
 
-export function mapFirebaseUser(user) {
-  if (!user) return null;
-
-  return {
-    uid: user.uid,
-    email: user.email || "",
-    name: user.displayName || user.email || "User",
-    avatar: user.photoURL || getInitial(user.displayName || user.email),
-    emailVerified: user.emailVerified,
+  const nextSession = {
+    ...session,
+    token,
+    storageScope: scope,
   };
+
+  if (scope === "window") {
+    sessionStorage.setItem(WINDOW_TOKEN_KEY, token);
+    sessionStorage.setItem(WINDOW_SESSION_KEY, JSON.stringify(nextSession));
+  } else {
+    localStorage.setItem(BASE_TOKEN_KEY, token);
+    localStorage.setItem(BASE_SESSION_KEY, JSON.stringify(nextSession));
+    sessionStorage.removeItem(WINDOW_TOKEN_KEY);
+    sessionStorage.removeItem(WINDOW_SESSION_KEY);
+    sessionStorage.removeItem(BASE_TOKEN_KEY);
+    sessionStorage.removeItem(BASE_SESSION_KEY);
+  }
+
+  return nextSession;
+}
+
+export function clearStoredSession(options = {}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const scope = options.scope || getCurrentSessionScope();
+
+  if (options.all || scope === "base") {
+    localStorage.removeItem(BASE_TOKEN_KEY);
+    localStorage.removeItem(BASE_SESSION_KEY);
+    sessionStorage.removeItem(WINDOW_TOKEN_KEY);
+    sessionStorage.removeItem(WINDOW_SESSION_KEY);
+    sessionStorage.removeItem(BASE_TOKEN_KEY);
+    sessionStorage.removeItem(BASE_SESSION_KEY);
+    return;
+  }
+
+  sessionStorage.removeItem(WINDOW_TOKEN_KEY);
+  sessionStorage.removeItem(WINDOW_SESSION_KEY);
 }
 
 async function ensureFirebaseReady() {
   if (!hasFirebaseConfig() || !firebaseAuth) {
-    throw new Error("Konfigurasi Firebase belum lengkap.");
+    throw new Error("Konfigurasi Firebase Google Login belum lengkap.");
   }
 
-  await setPersistence(firebaseAuth, browserLocalPersistence);
+  await setPersistence(firebaseAuth, browserSessionPersistence);
 }
 
-async function loginBackendWithFirebaseUser(firebaseUser) {
+async function loginBackendWithFirebaseUser(firebaseUser, options = {}) {
   if (!firebaseUser?.uid) {
-    throw new Error("Sesi Firebase tidak ditemukan.");
+    throw new Error("Sesi Google Firebase tidak ditemukan.");
   }
 
-  if (firebaseBackendLoginPromise && firebaseBackendLoginUid === firebaseUser.uid) {
+  const requestedRole = normalizeRole(options.role || "buyer") || "buyer";
+  const storageScope = options.storageScope || "base";
+  const promiseKey = `${firebaseUser.uid}:${requestedRole}:${storageScope}`;
+
+  if (firebaseBackendLoginPromise && firebaseBackendLoginUid === promiseKey) {
     return firebaseBackendLoginPromise;
   }
 
-  firebaseBackendLoginUid = firebaseUser.uid;
+  firebaseBackendLoginUid = promiseKey;
   firebaseBackendLoginPromise = (async () => {
     try {
       const idToken = await firebaseUser.getIdToken(true);
       const response = await authApi.post(
         getAuthPath("firebase-login"),
-        { device_name: DEVICE_NAME },
+        {
+          role: requestedRole,
+          device_name: resolveDeviceName(options.deviceName, requestedRole),
+        },
         {
           headers: {
             Authorization: `Bearer ${idToken}`,
           },
         }
       );
+      const normalized = normalizeAuthPayload(response.data, {
+        storageScope,
+      });
 
-      const session = normalizeAuthPayload(response.data);
-      return persistSession(session);
+      return persistSession(normalized, {
+        scope: storageScope,
+      });
     } finally {
       firebaseBackendLoginPromise = null;
       firebaseBackendLoginUid = null;
@@ -214,36 +392,35 @@ async function loginBackendWithFirebaseUser(firebaseUser) {
 export async function loginWithPassword(payload) {
   const email = String(payload?.email || "").trim();
   const password = String(payload?.password || "");
+  const role = normalizeRole(payload?.role || "buyer") || "buyer";
+  const storageScope = payload?.storageScope || "base";
 
   if (!email || !password) {
     throw new Error("Email dan password wajib diisi.");
   }
 
-  if (hasFirebaseConfig() && firebaseAuth) {
-    try {
-      await ensureFirebaseReady();
-      const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      return await loginBackendWithFirebaseUser(credential.user);
-    } catch (error) {
-      if (!error?.code || !String(error.code).startsWith("auth/")) throw error;
-    }
-  }
-
   const response = await authApi.post(getAuthPath("password-login"), {
     email,
     password,
-    device_name: DEVICE_NAME,
+    role,
+    device_name: resolveDeviceName(payload?.deviceName, role),
+  });
+  const normalized = normalizeAuthPayload(response.data, {
+    storageScope,
   });
 
-  const session = normalizeAuthPayload(response.data);
-  return persistSession(session);
+  return persistSession(normalized, {
+    scope: storageScope,
+  });
 }
 
 export async function registerWithPassword(payload) {
   const name = String(payload?.name || "").trim();
   const email = String(payload?.email || "").trim();
   const password = String(payload?.password || "");
-  const passwordConfirmation = String(payload?.password_confirmation || payload?.confirm || "");
+  const passwordConfirmation = String(
+    payload?.password_confirmation || payload?.confirm || ""
+  );
 
   if (!name || !email || !password || !passwordConfirmation) {
     throw new Error("Semua field wajib diisi.");
@@ -253,53 +430,23 @@ export async function registerWithPassword(payload) {
     throw new Error("Konfirmasi password tidak cocok.");
   }
 
-  if (hasFirebaseConfig() && firebaseAuth) {
-    await ensureFirebaseReady();
-    const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-    await updateProfile(credential.user, { displayName: name });
-    const session = await loginBackendWithFirebaseUser(credential.user);
-
-    try {
-      await saveRealtimeUserProfile(getFirebaseUid(session.user, credential.user), {
-        id: session.user?.id || null,
-        firebase_uid: credential.user.uid,
-        name,
-        email,
-        avatar: session.user?.avatar || getInitial(name),
-        roles: session.roles || ["buyer"],
-        active_role: session.activeRole || "buyer",
-        updated_at: new Date().toISOString(),
-      });
-    } catch {
-      return session;
-    }
-
-    return session;
-  }
-
   const response = await authApi.post(getAuthPath("password-register"), {
     name,
     email,
     password,
     password_confirmation: passwordConfirmation,
-    device_name: DEVICE_NAME,
+    device_name: resolveDeviceName(payload?.deviceName, "buyer"),
+  });
+  const normalized = normalizeAuthPayload(response.data, {
+    storageScope: "base",
   });
 
-  const session = normalizeAuthPayload(response.data);
-  return persistSession(session);
+  return persistSession(normalized, {
+    scope: "base",
+  });
 }
 
-export async function loginWithCurrentFirebaseUser() {
-  await ensureFirebaseReady();
-
-  if (!firebaseAuth.currentUser) {
-    throw new Error("Sesi Firebase tidak ditemukan.");
-  }
-
-  return await loginBackendWithFirebaseUser(firebaseAuth.currentUser);
-}
-
-export async function loginWithGoogle() {
+export async function loginWithGoogle(options = {}) {
   await ensureFirebaseReady();
 
   if (!googleProvider) {
@@ -307,24 +454,7 @@ export async function loginWithGoogle() {
   }
 
   const credential = await signInWithPopup(firebaseAuth, googleProvider);
-  const session = await loginBackendWithFirebaseUser(credential.user);
-
-  try {
-    await saveRealtimeUserProfile(getFirebaseUid(session.user, credential.user), {
-      id: session.user?.id || null,
-      firebase_uid: credential.user.uid,
-      name: credential.user.displayName || session.user?.name || "User",
-      email: credential.user.email || session.user?.email || "",
-      avatar: credential.user.photoURL || session.user?.avatar || getInitial(credential.user.displayName),
-      roles: session.roles || ["buyer"],
-      active_role: session.activeRole || "buyer",
-      updated_at: new Date().toISOString(),
-    });
-  } catch {
-    return session;
-  }
-
-  return session;
+  return loginBackendWithFirebaseUser(credential.user, options);
 }
 
 export async function requestPasswordReset(email) {
@@ -334,80 +464,81 @@ export async function requestPasswordReset(email) {
     throw new Error("Email wajib diisi.");
   }
 
-  await ensureFirebaseReady();
-  await sendPasswordResetEmail(firebaseAuth, targetEmail);
+  await authApi.post(getAuthPath("forgot-password"), {
+    email: targetEmail,
+  });
+
   return true;
 }
 
 export async function fetchCurrentAuthUser() {
+  const currentSession = readStoredSession();
+
+  if (!currentSession?.token) {
+    throw new Error("Sesi login tidak ditemukan.");
+  }
+
   const response = await authApi.get(getAuthPath("me"));
-  const session = normalizeAuthPayload({ ...response.data, access_token: readStoredToken() });
-  return persistSession(session);
+  const normalized = normalizeAuthPayload(response.data, currentSession);
+
+  return persistSession(normalized, {
+    scope: currentSession.storageScope || getCurrentSessionScope(),
+  });
 }
 
-export async function switchActiveRole(role) {
+export async function switchActiveRole(role, options = {}) {
+  const targetRole = normalizeRole(role);
+
+  if (!targetRole) {
+    throw new Error("Role tujuan tidak valid.");
+  }
+
+  const currentSession = readStoredSession();
+
+  if (!currentSession?.token) {
+    throw new Error("Sesi login tidak ditemukan.");
+  }
+
   const response = await authApi.post(getAuthPath("switch-role"), {
-    role,
-    device_name: DEVICE_NAME,
+    role: targetRole,
+    device_name: resolveDeviceName(options.deviceName, targetRole),
+  });
+  const storageScope = options.storageScope || "window";
+  const normalized = normalizeAuthPayload(response.data, {
+    ...currentSession,
+    activeRole: targetRole,
+    storageScope,
   });
 
-  const stored = readStoredSession() || {};
-  const source = response.data || {};
-  const token = source.access_token || source.api_token || stored.token;
-
-  const nextSession = {
-    ...stored,
-    token,
-    tokenType: source.token_type || stored.tokenType || "Bearer",
-    activeRole: source.active_role || role,
-    user: {
-      ...(stored.user || {}),
-      role: source.active_role || role,
+  return persistSession(
+    {
+      ...normalized,
+      activeRole: normalized.activeRole || targetRole,
+      user: {
+        ...(normalized.user || {}),
+        role: normalized.activeRole || targetRole,
+      },
+      storageScope,
     },
-  };
-
-  return persistSession(nextSession);
+    {
+      scope: storageScope,
+    }
+  );
 }
 
 export async function logoutFromApi() {
+  const scope = getCurrentSessionScope();
+  const hasToken = Boolean(readStoredToken());
+
   try {
-    if (readStoredToken()) {
+    if (hasToken) {
       await authApi.post(getAuthPath("logout"));
     }
   } finally {
-    clearStoredSession();
+    clearStoredSession({ scope });
 
-    if (firebaseAuth?.currentUser) {
+    if (scope === "base" && firebaseAuth?.currentUser) {
       await signOut(firebaseAuth);
     }
   }
-}
-
-export function listenFirebaseAuth(callback) {
-  if (!firebaseAuth) return () => {};
-  return onAuthStateChanged(firebaseAuth, (user) => callback(mapFirebaseUser(user)));
-}
-
-export function subscribeRealtimeUser(uid, callback, errorCallback) {
-  if (!firebaseDatabase || !uid) return () => {};
-
-  const userRef = ref(firebaseDatabase, makePath(REALTIME_USERS_PATH, uid));
-
-  onValue(
-    userRef,
-    (snapshot) => {
-      callback(snapshot.exists() ? snapshot.val() : null);
-    },
-    errorCallback
-  );
-
-  return () => off(userRef);
-}
-
-export async function saveRealtimeUserProfile(uid, payload) {
-  if (!firebaseDatabase || !uid || !payload) return false;
-
-  const userRef = ref(firebaseDatabase, makePath(REALTIME_USERS_PATH, uid));
-  await update(userRef, Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined)));
-  return true;
 }

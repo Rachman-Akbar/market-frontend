@@ -1,35 +1,43 @@
 import { useMemo, useState } from "react";
-import { Gift, Search, ShoppingBag, TicketPercent, Truck } from "lucide-react";
+import { Gift, Search, TicketPercent, Truck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
-import { vouchers } from "@/features/profile/data/profileMarketplaceData";
-import { cn } from "@/shared/utils/utils";
+import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
+import { formatPrice } from "@/shared/utils/utils";
 
 const FILTERS = [
   { key: "all", label: "Semua" },
-  { key: "ongkir", label: "Gratis Ongkir" },
-  { key: "cashback", label: "Cashback" },
-  { key: "diskon", label: "Diskon" },
-  { key: "toko", label: "Voucher Toko" },
+  { key: "shipping", label: "Gratis Ongkir" },
+  { key: "percentage", label: "Persentase" },
+  { key: "fixed", label: "Potongan Tetap" },
 ];
 
-function getVoucherIcon(category) {
-  if (category === "ongkir") return Truck;
-  if (category === "cashback") return Gift;
+function getVoucherIcon(type) {
+  if (String(type).includes("shipping")) return Truck;
+  if (type === "percentage") return Gift;
   return TicketPercent;
 }
 
+function getVoucherValue(voucher) {
+  if (voucher.discountType === "percentage" || voucher.discountType === "shipping_percentage") return `${voucher.discountValue}%`;
+  if (voucher.discountType === "free_shipping") return "Gratis";
+  return formatPrice(voucher.discountValue);
+}
+
 export default function VouchersPage() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
-
+  const vouchersQuery = useActiveVouchers();
+  const vouchers = vouchersQuery.data || [];
   const filteredVouchers = useMemo(() => {
-    const value = keyword.trim().toLowerCase();
+    const search = keyword.trim().toLowerCase();
     return vouchers.filter((voucher) => {
-      const categoryMatch = filter === "all" || voucher.category === filter;
-      const keywordMatch = !value || `${voucher.title} ${voucher.code} ${voucher.minimum}`.toLowerCase().includes(value);
+      const categoryMatch = filter === "all" || (filter === "shipping" ? voucher.discountType.includes("shipping") || voucher.discountType === "free_shipping" : voucher.discountType === filter);
+      const keywordMatch = !search || `${voucher.name} ${voucher.code}`.toLowerCase().includes(search);
       return categoryMatch && keywordMatch;
     });
-  }, [filter, keyword]);
+  }, [filter, keyword, vouchers]);
 
   return (
     <section className={profileLayout.contentShell}>
@@ -38,12 +46,11 @@ export default function VouchersPage() {
           <div>
             <span className={profileLayout.contentEyebrow}>Voucher wallet</span>
             <h2 className={profileLayout.contentTitle}>Voucher Saya</h2>
-            <p className={`mt-2 ${profileLayout.contentDesc}`}>Kelola gratis ongkir, cashback, voucher toko, dan diskon belanja dummy.</p>
+            <p className={`mt-2 ${profileLayout.contentDesc}`}>Voucher aktif yang tersedia untuk checkout.</p>
           </div>
         </div>
 
         <hr className={profileLayout.divider} />
-
         <div className="flex min-h-[72px] flex-col gap-3 py-4 lg:flex-row lg:items-center lg:justify-between">
           <label className={`${profileLayout.searchBox} min-w-0 flex-1 gap-2`}>
             <Search size={17} />
@@ -51,57 +58,48 @@ export default function VouchersPage() {
           </label>
           <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
             {FILTERS.map((item) => (
-              <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={cn("h-9 shrink-0 rounded-full px-4 text-xs font-semibold transition", filter === item.key ? "bg-[#ee4d2d] text-white" : "bg-white text-slate-500 ring-1 ring-[#e5e7eb] hover:text-[#ee4d2d]")}>{item.label}</button>
+              <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={`h-9 shrink-0 rounded-full px-4 text-xs font-semibold transition ${filter === item.key ? "bg-[#ee4d2d] text-white" : "bg-white text-slate-500 ring-1 ring-[#e5e7eb] hover:text-[#ee4d2d]"}`}>{item.label}</button>
             ))}
           </div>
         </div>
-
         <hr className={profileLayout.divider} />
 
-        <div>
-          {filteredVouchers.map((voucher) => {
-            const Icon = getVoucherIcon(voucher.category);
-            const used = voucher.status === "used";
-
-            return (
-              <div key={voucher.id} className={cn("grid min-h-[128px] gap-4 py-6 md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center", used && "opacity-60")}>
-                <div className={cn("flex items-center gap-3 md:block md:text-center", used ? "text-slate-400" : "text-[#ee4d2d]")}>
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-[#e5e7eb] md:mx-auto md:mb-2">
-                    <Icon size={22} />
-                  </div>
-                  <b className="block text-2xl font-light">{voucher.value}</b>
-                </div>
-
-                <div className="min-w-0">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-slate-950">{voucher.title}</h3>
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", used ? "bg-[#f0f2f5] text-slate-500" : "bg-[#fff1ec] text-[#ee4d2d]")}>{used ? "Dipakai" : "Aktif"}</span>
-                  </div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kode: {voucher.code}</p>
-                  <p className="mt-2 text-sm text-slate-600">{voucher.minimum}</p>
-                  <p className="mt-1 text-xs text-slate-400">{voucher.expiry}</p>
-                </div>
-
-                <div className="flex items-center gap-3 md:justify-end">
-                  <button type="button" className="inline-flex h-10 items-center gap-1.5 text-xs font-semibold text-[#ee4d2d] hover:underline">
-                    <ShoppingBag size={14} />
-                    Produk
-                  </button>
-                  <button type="button" disabled={used} className={cn("inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-semibold transition", used ? "cursor-not-allowed bg-[#f0f2f5] text-slate-400" : "bg-[#ee4d2d] text-white hover:bg-[#d73211]")}>Pakai</button>
-                </div>
-                <hr className="border-[#e5e7eb] md:col-span-3" />
+        {vouchersQuery.isLoading ? <p className="py-12 text-center text-sm text-slate-500">Memuat voucher...</p> : null}
+        {vouchersQuery.error ? <p className="py-12 text-center text-sm text-red-600">{vouchersQuery.error.message}</p> : null}
+        {filteredVouchers.map((voucher) => {
+          const Icon = getVoucherIcon(voucher.discountType);
+          return (
+            <div key={voucher.id} className="grid min-h-[128px] gap-4 py-6 md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center">
+              <div className="flex items-center gap-3 text-[#ee4d2d] md:block md:text-center">
+                {voucher.imageUrl ? (
+                  <img src={voucher.imageUrl} alt={voucher.name} className="h-16 w-24 rounded-xl object-cover ring-1 ring-[#e5e7eb] md:mx-auto md:mb-2" />
+                ) : (
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-[#e5e7eb] md:mx-auto md:mb-2"><Icon size={22} /></div>
+                )}
+                <b className="block text-2xl font-light">{getVoucherValue(voucher)}</b>
               </div>
-            );
-          })}
-        </div>
+              <div className="min-w-0">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-semibold text-slate-950">{voucher.name}</h3>
+                  <span className="rounded-full bg-[#fff1ec] px-2 py-0.5 text-[11px] font-semibold text-[#ee4d2d]">Aktif</span>
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kode: {voucher.code}</p>
+                <p className="mt-2 text-sm text-slate-600">Min. belanja {formatPrice(voucher.minSpend)}</p>
+                <p className="mt-1 text-xs text-slate-400">Berlaku sampai {voucher.endsAt ? new Date(voucher.endsAt).toLocaleDateString("id-ID") : "tanpa batas"}</p>
+              </div>
+              <button type="button" onClick={() => navigate("/cart", { state: { voucherCode: voucher.code } })} className="inline-flex h-10 items-center justify-center rounded-full bg-[#ee4d2d] px-5 text-sm font-semibold text-white transition hover:bg-[#d73211]">Pakai</button>
+              <hr className="border-[#e5e7eb] md:col-span-3" />
+            </div>
+          );
+        })}
 
-        {filteredVouchers.length === 0 && (
+        {!vouchersQuery.isLoading && !filteredVouchers.length ? (
           <div className="py-16 text-center">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#fff1ec] text-[#ee4d2d]"><TicketPercent size={34} /></div>
             <h3 className="text-xl font-light text-slate-950">Voucher tidak ditemukan</h3>
-            <p className="mt-2 text-sm text-slate-500">Coba gunakan kata kunci lain atau pilih kategori berbeda.</p>
+            <p className="mt-2 text-sm text-slate-500">Belum ada voucher aktif yang sesuai filter.</p>
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   );

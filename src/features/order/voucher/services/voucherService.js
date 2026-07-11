@@ -1,99 +1,57 @@
-const VOUCHER_ENDPOINT = "/api/v1/order/vouchers";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient, unwrapCollection } from "@/core/utils/apiClient";
 
-function getVoucherListFromPayload(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.data)) return payload.data.data;
-  if (Array.isArray(payload?.vouchers)) return payload.vouchers;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.result)) return payload.result;
+export const voucherKeys = {
+  active: ["order", "vouchers", "active"],
+};
 
-  return [];
+
+function resolveAssetUrl(path) {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = String(import.meta.env.VITE_ASSET_BASE_URL || import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+  const normalized = String(path).replace(/^\/+/, "");
+  return normalized.startsWith("storage/") ? `${base}/${normalized}` : `${base}/storage/${normalized}`;
 }
 
 function toNumber(value, fallback = 0) {
-  if (value === null || value === undefined || value === "") return fallback;
-
   const number = Number(value);
-
   return Number.isFinite(number) ? number : fallback;
 }
 
-function toBoolean(value) {
-  return value === true || value === 1 || value === "1";
-}
-
-function normalizeVoucher(voucher) {
+export function normalizeVoucher(voucher = {}) {
   const maxDiscount = voucher.maxDiscount ?? voucher.max_discount;
 
   return {
-    id: voucher.id,
+    id: Number(voucher.id),
     code: voucher.code || "",
-    name: voucher.name || "",
+    name: voucher.name || "Voucher",
+    image: voucher.image || "",
+    imageUrl: resolveAssetUrl(voucher.imageUrl || voucher.image_url || voucher.image || ""),
     discountType: voucher.discountType || voucher.discount_type || "fixed",
     discountValue: toNumber(voucher.discountValue ?? voucher.discount_value),
     minSpend: toNumber(voucher.minSpend ?? voucher.min_spend),
-    maxDiscount:
-      maxDiscount === null || maxDiscount === undefined
-        ? null
-        : toNumber(maxDiscount),
+    maxDiscount: maxDiscount === null || maxDiscount === undefined ? null : toNumber(maxDiscount),
     startsAt: voucher.startsAt || voucher.starts_at || null,
     endsAt: voucher.endsAt || voucher.ends_at || null,
     usageLimit: toNumber(voucher.usageLimit ?? voucher.usage_limit),
     usedCount: toNumber(voucher.usedCount ?? voucher.used_count),
     storeId: voucher.storeId ?? voucher.store_id ?? null,
-    isActive: toBoolean(voucher.isActive ?? voucher.is_active),
+    isActive: Boolean(voucher.isActive ?? voucher.is_active),
     createdAt: voucher.createdAt || voucher.created_at || null,
   };
 }
 
-async function readResponse(response) {
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    return response.json();
-  }
-
-  const text = await response.text();
-
-  return {
-    message: text,
-  };
+export async function getActiveVouchers() {
+  const response = await apiClient.get("/api/v1/order/vouchers", { params: { is_active: 1 } });
+  return unwrapCollection(response.data).map(normalizeVoucher);
 }
 
-export async function getActiveVouchers() {
-  const url = new URL(VOUCHER_ENDPOINT, window.location.origin);
-
-  url.searchParams.set("is_active", "1");
-
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest",
-    },
-    credentials: "same-origin",
+export function useActiveVouchers(options = {}) {
+  return useQuery({
+    queryKey: voucherKeys.active,
+    queryFn: getActiveVouchers,
+    staleTime: 300000,
+    ...options,
   });
-
-  const payload = await readResponse(response);
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 419) {
-      throw new Error("Sesi login tidak valid. Silakan login ulang.");
-    }
-
-    if (response.status === 403) {
-      throw new Error("Kamu tidak memiliki akses untuk melihat voucher.");
-    }
-
-    if (response.status === 404) {
-      throw new Error("Endpoint voucher tidak ditemukan.");
-    }
-
-    throw new Error(payload?.message || `Gagal memuat voucher (${response.status})`);
-  }
-
-  const list = getVoucherListFromPayload(payload);
-
-  return list.map(normalizeVoucher);
 }

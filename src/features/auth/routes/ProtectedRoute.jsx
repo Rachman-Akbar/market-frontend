@@ -11,7 +11,7 @@ function LoadingScreen() {
 
 export default function ProtectedRoute({ children, roles = [] }) {
   const location = useLocation();
-  const { initializing, isAuthenticated, roles: userRoles, activeRole } = useAuth();
+  const { initializing, isAuthenticated, activeRole } = useAuth();
 
   if (initializing) return <LoadingScreen />;
 
@@ -20,10 +20,7 @@ export default function ProtectedRoute({ children, roles = [] }) {
   }
 
   const allowedRoles = Array.isArray(roles) ? roles.map((role) => String(role).toLowerCase()) : [];
-  const hasRoleAccess =
-    allowedRoles.length === 0 ||
-    allowedRoles.includes(String(activeRole).toLowerCase()) ||
-    allowedRoles.some((role) => userRoles.includes(role));
+  const hasRoleAccess = allowedRoles.length === 0 || allowedRoles.includes(String(activeRole).toLowerCase());
 
   if (!hasRoleAccess) {
     return <Navigate to="/" replace />;

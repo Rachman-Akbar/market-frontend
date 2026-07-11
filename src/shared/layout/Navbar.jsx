@@ -1,65 +1,92 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useSellerStore } from "@/features/seller/store/services/sellerStoreService";
+import { useSellerOrders } from "@/features/order/ordering/orderService";
+import { formatPrice } from "@/shared/utils/utils";
 import { CategoryDropdown } from "@/features/catalog/category/components/CategoryDropdown";
 
-const SALES = [12, 19, 8, 24, 17, 30, 22];
-const DAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
-const MAX = Math.max(...SALES);
+function openIndependentPortal(path, windowName) {
+  window.open(path, windowName, "noopener,noreferrer");
+}
 
-function StoreTooltip() {
+function openSellerPortal() {
+  const sellerWindow = window.open(
+    "/auth/role-switch?redirect=%2Fseller",
+    "marketku-seller"
+  );
+
+  if (sellerWindow) {
+    try {
+      sellerWindow.opener = null;
+    } catch {
+      return sellerWindow;
+    }
+  }
+
+  return sellerWindow;
+}
+
+function StoreTooltip({ onOpenSeller, canReadSellerData }) {
+  const storeQuery = useSellerStore();
+  const store = storeQuery.data;
+  const ordersQuery = useSellerOrders(canReadSellerData ? store?.id : 0, { per_page: 100 });
+  const orders = ordersQuery.data?.data || [];
+  const paidOrders = orders.filter((order) => ["paid", "success", "settlement"].includes(String(order.paymentStatus || "").toLowerCase()));
+  const revenue = paidOrders.reduce((total, order) => total + Number(order.totalItemsPrice || 0), 0);
+  const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+  const sales = days.map((_, index) => orders.filter((order) => {
+    if (!order.createdAt) return false;
+    const day = new Date(order.createdAt).getDay();
+    return (day + 6) % 7 === index;
+  }).length);
+  const max = Math.max(...sales, 1);
+
   return (
-    <div
-      className="absolute right-0 top-full mt-2 w-64 overflow-hidden border border-gray-200 bg-white z-[95]"
-      style={{ borderRadius: 5, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}
-    >
+    <div className="absolute right-0 top-full mt-2 w-64 overflow-hidden border border-gray-200 bg-white z-[95]" style={{ borderRadius: 5, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
       <div className="bg-[#03ac0e] px-4 py-3">
         <p className="text-xs font-bold text-white">Performa Toko Minggu Ini</p>
-        <p className="mt-0.5 text-[10px] text-white/80">Saganext Official Store</p>
+        <p className="mt-0.5 text-[10px] text-white/80">{store?.name || "Daftarkan toko Anda"}</p>
       </div>
-
       <div className="px-4 py-3">
         <div className="mb-3 grid grid-cols-3 gap-2">
-          {[
-            { label: "Pesanan", value: "132" },
-            { label: "Pendapatan", value: "4.2jt" },
-            { label: "Rating", value: "4.9★" },
-          ].map((item) => (
-            <div key={item.label} className="text-center">
-              <p className="text-[11px] font-bold text-gray-800">{item.value}</p>
-              <p className="text-[10px] text-gray-400">{item.label}</p>
-            </div>
+          {[{ label: "Pesanan", value: orders.length.toLocaleString("id-ID") }, { label: "Pendapatan", value: formatPrice(revenue) }, { label: "Status", value: store?.isActive ? "Aktif" : "-" }].map((item) => (
+            <div key={item.label} className="text-center"><p className="truncate text-[11px] font-bold text-gray-800">{item.value}</p><p className="text-[10px] text-gray-400">{item.label}</p></div>
           ))}
         </div>
-
         <div className="flex h-16 items-end gap-1">
-          {SALES.map((value, index) => (
-            <div key={DAYS[index]} className="flex flex-1 flex-col items-center gap-0.5">
-              <div
-                className="w-full rounded-sm bg-[#03ac0e]/80"
-                style={{ height: `${(value / MAX) * 48}px` }}
-              />
-              <span className="text-[9px] text-gray-400">{DAYS[index]}</span>
-            </div>
-          ))}
+          {sales.map((value, index) => <div key={days[index]} className="flex flex-1 flex-col items-center gap-0.5"><div className="w-full rounded-sm bg-[#03ac0e]/80" style={{ height: `${Math.max(2, (value / max) * 48)}px` }} /><span className="text-[9px] text-gray-400">{days[index]}</span></div>)}
         </div>
-
         <div className="mt-3 border-t border-gray-100 pt-3">
-          <Link
-            to="/seller"
-            className="block w-full text-center text-xs font-bold text-[#03ac0e] hover:underline"
-          >
+          <button type="button" onClick={onOpenSeller} className="block w-full text-center text-xs font-bold text-[#03ac0e] hover:underline">
             Kelola Toko →
-          </Link>
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function ProfileTooltip({ onClose }) {
-  function open(path) {
-    window.open(path, "_blank");
+function ProfileTooltip({ onClose, roles }) {
+  const items = [
+    { icon: "person", label: "Profil Saya", path: "/profile", mode: "shared" },
+    { icon: "receipt_long", label: "Pesanan Saya", path: "/profile/orders", mode: "shared" },
+    { icon: "favorite", label: "Wishlist", path: "/profile/wishlist", mode: "shared" },
+    { icon: "location_on", label: "Alamat Saya", path: "/profile/addresses", mode: "shared" },
+    { icon: "chat", label: "Chat", path: "/chat/login?redirect=%2Fchat", mode: "independent", windowName: "marketku-chat" },
+  ];
+
+  if (roles.includes("admin")) {
+    items.push({ icon: "admin_panel_settings", label: "Admin", path: "/admin/login", mode: "independent", windowName: "marketku-admin" });
+  }
+
+  function open(item) {
+    if (item.mode === "independent") {
+      openIndependentPortal(item.path, item.windowName);
+    } else {
+      window.open(item.path, "_blank");
+    }
+
     onClose();
   }
 
@@ -68,16 +95,11 @@ function ProfileTooltip({ onClose }) {
       className="absolute right-0 top-full mt-2 w-52 border border-gray-200 bg-white py-1 z-[95]"
       style={{ borderRadius: 5, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}
     >
-      {[
-        { icon: "person", label: "Profil Saya", path: "/profile" },
-        { icon: "receipt_long", label: "Pesanan Saya", path: "/profile/orders" },
-        { icon: "favorite", label: "Wishlist", path: "/profile/wishlist" },
-        { icon: "location_on", label: "Alamat Saya", path: "/profile/addresses" },
-      ].map((item) => (
+      {items.map((item) => (
         <button
           key={item.label}
           type="button"
-          onClick={() => open(item.path)}
+          onClick={() => open(item)}
           className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
         >
           <span className="material-symbols-outlined text-[18px] text-gray-500">
@@ -92,7 +114,7 @@ function ProfileTooltip({ onClose }) {
 
 export function Navbar() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, roles, activeRole } = useAuth();
   const [query, setQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [storeHover, setStoreHover] = useState(false);
@@ -109,6 +131,11 @@ export function Navbar() {
 
   function handleProfileClick() {
     window.open("/profile", "_blank");
+  }
+
+  function handleOpenSeller() {
+    setStoreHover(false);
+    openSellerPortal();
   }
 
   function toggleCategory(event) {
@@ -217,8 +244,9 @@ export function Navbar() {
                   }}
                   onMouseLeave={() => setStoreHover(false)}
                 >
-                  <Link
-                    to="/seller"
+                  <button
+                    type="button"
+                    onClick={handleOpenSeller}
                     className="flex items-center gap-1.5 border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:border-[#006e04] hover:text-[#006e04]"
                     style={{ borderRadius: 5 }}
                   >
@@ -236,7 +264,7 @@ export function Navbar() {
                       <path d="M9 22V12h6v10" strokeLinejoin="round" />
                     </svg>
                     <span className="hidden lg:inline">Toko</span>
-                  </Link>
+                  </button>
 
                   <div
                     className={`origin-top-right transition-all duration-200 ${
@@ -245,7 +273,7 @@ export function Navbar() {
                         : "pointer-events-none scale-95 opacity-0"
                     }`}
                   >
-                    <StoreTooltip />
+                    <StoreTooltip onOpenSeller={handleOpenSeller} canReadSellerData={activeRole === "seller"} />
                   </div>
                 </div>
 
@@ -282,7 +310,7 @@ export function Navbar() {
                         : "pointer-events-none scale-95 opacity-0"
                     }`}
                   >
-                    <ProfileTooltip onClose={() => setProfileHover(false)} />
+                    <ProfileTooltip onClose={() => setProfileHover(false)} roles={roles} />
                   </div>
                 </div>
               </>

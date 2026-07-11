@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getCategoriesMenu, getCategoryHref } from "@/features/catalog/category/services/categoryService";
+import { getCategoryHref, useCategoriesMenu } from "@/features/catalog/category/services/categoryService";
 
 const TABS = ["Pulsa", "Paket Data", "Listrik PLN", "Roaming"];
 
@@ -10,24 +10,11 @@ function flattenCategories(categories = []) {
 
 export function CategorySection() {
   const [activeTab, setActiveTab] = useState(0);
-  const [quickLinks, setQuickLinks] = useState([]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    getCategoriesMenu()
-      .then((result) => {
-        if (!mounted) return;
-        setQuickLinks(flattenCategories(result.data).slice(0, 7));
-      })
-      .catch(() => {
-        if (mounted) setQuickLinks([]);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const categoriesQuery = useCategoriesMenu();
+  const quickLinks = useMemo(
+    () => flattenCategories(categoriesQuery.data?.data || []).slice(0, 7),
+    [categoriesQuery.data]
+  );
 
   return (
     <div className="bg-white border border-gray-100 p-4" style={{ borderRadius: 5 }}>
@@ -51,7 +38,7 @@ export function CategorySection() {
             </div>
 
             <div className="absolute right-4 bottom-0 opacity-90">
-              <span className="text-5xl">🦉</span>
+              <span className="material-symbols-outlined text-[52px]">shopping_bag</span>
             </div>
           </div>
         </div>
@@ -88,10 +75,7 @@ export function CategorySection() {
                 className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#03ac0e]"
                 style={{ borderRadius: 5 }}
               >
-                <option>Axis</option>
-                <option>Telkomsel</option>
-                <option>Indosat</option>
-                <option>XL</option>
+                <option value="">Pilih layanan</option>
               </select>
             </div>
             <div>
@@ -110,10 +94,7 @@ export function CategorySection() {
                   className="flex-1 px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#03ac0e]"
                   style={{ borderRadius: 5 }}
                 >
-                  <option>AXIS PASS 1 har</option>
-                  <option>Rp 25.000</option>
-                  <option>Rp 50.000</option>
-                  <option>Rp 100.000</option>
+                  <option value="">Pilih nominal</option>
                 </select>
                 <button
                   className="px-3 py-2 bg-gray-100 text-gray-400 text-xs font-semibold border border-gray-200 cursor-not-allowed"

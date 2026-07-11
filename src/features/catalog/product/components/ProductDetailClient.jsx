@@ -4,7 +4,7 @@ import { VariantSelector } from "./VariantSelector";
 import { ProductCheckoutPanel } from "@/features/catalog/product/components/ProductCheckoutPanel";
 import { ReviewSection } from "@/features/order/review/components/ReviewSection";
 import { formatPrice } from "@/shared/utils/utils";
-import { getProductBySlug, getProductVariants } from "@/features/catalog/product/services/productService";
+import { useProductBySlug, useProductVariants } from "@/features/catalog/product/services/productService";
 import { getCategoryHref } from "@/features/catalog/category/services/categoryService";
 
 const DETAIL_TABS = ["Detail Produk", "Panduan"];
@@ -18,47 +18,29 @@ function getProductCategories(product) {
 
 export function ProductDetailClient({ slug }) {
   const [activeTab, setActiveTab] = useState(0);
-  const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const productQuery = useProductBySlug(slug);
+  const baseProduct = productQuery.data || null;
+  const variantsQuery = useProductVariants(baseProduct?.id, {
+    enabled: Boolean(baseProduct?.id && !baseProduct?.variants?.length),
+  });
+  const product = useMemo(() => {
+    if (!baseProduct) return null;
+    if (baseProduct.variants?.length || !variantsQuery.data?.data?.length) return baseProduct;
+    const variants = variantsQuery.data.data;
+    return {
+      ...baseProduct,
+      variants,
+      default_variant: variants.find((variant) => variant.is_default) || variants[0] || null,
+    };
+  }, [baseProduct, variantsQuery.data]);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    setError("");
-    setSelectedVariant(null);
+    setSelectedVariant(product?.default_variant || product?.variants?.[0] || null);
+  }, [product?.id, product?.default_variant?.id]);
 
-    getProductBySlug(slug)
-      .then(async (result) => {
-        if (!result.variants.length && result.id) {
-          try {
-            const variantResult = await getProductVariants(result.id);
-            return { ...result, variants: variantResult.data, default_variant: variantResult.data.find((variant) => variant.is_default) || variantResult.data[0] || null };
-          } catch {
-            return result;
-          }
-        }
-        return result;
-      })
-      .then((result) => {
-        if (!mounted) return;
-        setProduct(result);
-        setSelectedVariant(result.default_variant || result.variants[0] || null);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setProduct(null);
-        setError(err.message || "Gagal memuat detail produk");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [slug]);
+  const loading = productQuery.isLoading || variantsQuery.isLoading;
+  const error = productQuery.error?.message || variantsQuery.error?.message || "";
 
   const handleVariantChange = useCallback((variant) => {
     setSelectedVariant(variant || null);
@@ -223,7 +205,7 @@ export function ProductDetailClient({ slug }) {
         </aside>
 
         <div className="lg:col-span-9">
-          <ReviewSection />
+          <ReviewSection reviews={product.reviews} summary={product.review_summary} />
         </div>
       </div>
     </main>

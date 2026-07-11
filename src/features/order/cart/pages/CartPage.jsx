@@ -14,6 +14,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCart } from "@/features/order/cart/context/CartContext";
+import { useWishlist } from "@/features/order/wishlist/context/WishlistContext";
+import { useOrders } from "@/features/order/ordering/orderService";
 import { CartItemRow } from "@/features/order/cart/components/CartItemRow";
 import { formatPrice } from "@/shared/utils/utils";
 
@@ -29,144 +31,6 @@ const sortOptions = [
   { value: "priceHigh", label: "Harga Tertinggi" },
   { value: "priceLow", label: "Harga Terendah" },
   { value: "popular", label: "Terpopuler" },
-];
-
-const dummyCartItems = [
-  {
-    productId: "K90-PRO",
-    variantId: "black-blue",
-    productName: "Mechanical Keyboard K90 Pro - Stealth Black Wireless RGB",
-    variantLabel: "Cherry MX Blue",
-    storeName: "TechGear Official",
-    price: 1450000,
-    quantity: 1,
-    stock: 12,
-    imageUrl:
-      "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    productId: "SONY-XM5",
-    variantId: "silver",
-    productName: "Sony WH-1000XM5 Wireless Noise Canceling Headphones - Silver",
-    variantLabel: "Silver",
-    storeName: "AudioLuxe Jakarta",
-    price: 4299000,
-    quantity: 1,
-    stock: 8,
-    imageUrl:
-      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    productId: "SPEAKER-S3",
-    variantId: "matte-gray",
-    productName: "Portable Bluetooth Speaker Mini S3",
-    variantLabel: "Matte Gray",
-    storeName: "AudioLuxe Jakarta",
-    price: 450000,
-    quantity: 1,
-    stock: 1,
-    imageUrl:
-      "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=300&q=80",
-  },
-];
-
-const dummyWishlistItems = [
-  {
-    id: "WL-001",
-    productName: "Smartwatch Active Pro dengan AMOLED Display",
-    storeName: "WearHub Official",
-    price: 899000,
-    previousPrice: 1299000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1544117519-31a4b719223d?auto=format&fit=crop&w=300&q=80",
-    badge: "Diskon 31%",
-  },
-  {
-    id: "WL-002",
-    productName: "Premium Slim Backpack Anti Air untuk Laptop 15 Inch",
-    storeName: "Urban Daily Store",
-    price: 325000,
-    previousPrice: 450000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=300&q=80",
-    badge: "Banyak Dicari",
-  },
-  {
-    id: "WL-003",
-    productName: "Desk Lamp Minimalis Touch Control Warm White",
-    storeName: "HomeLight Studio",
-    price: 189000,
-    previousPrice: 240000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=300&q=80",
-    badge: "Stok Terbatas",
-  },
-];
-
-const dummyOrders = [
-  {
-    id: "ORD-2026-00091",
-    date: "8 Juli 2026",
-    storeName: "TechGear Official",
-    status: "Selesai",
-    productName: "USB-C Hub 9 in 1 Aluminum Series",
-    variantLabel: "Space Gray",
-    quantity: 1,
-    total: 389000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1625842268584-8f3296236761?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "ORD-2026-00088",
-    date: "6 Juli 2026",
-    storeName: "AudioLuxe Jakarta",
-    status: "Dikirim",
-    productName: "Wireless Earbuds Neo Bass ANC",
-    variantLabel: "Pearl White",
-    quantity: 1,
-    total: 749000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "ORD-2026-00077",
-    date: "2 Juli 2026",
-    storeName: "Urban Daily Store",
-    status: "Diproses",
-    productName: "Organizer Pouch Premium Travel Pack",
-    variantLabel: "Black",
-    quantity: 2,
-    total: 258000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?auto=format&fit=crop&w=300&q=80",
-  },
-];
-
-const dummyReviews = [
-  {
-    id: "RV-001",
-    productName: "Mechanical Keyboard K90 Pro",
-    reviewer: "Raka Pratama",
-    rating: 5,
-    date: "4 minggu lalu",
-    variantLabel: "Cherry MX Blue",
-    content:
-      "Build quality terasa premium, koneksi stabil, dan suara switch sangat solid untuk kerja harian maupun gaming.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "RV-002",
-    productName: "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
-    reviewer: "Nadya Kirana",
-    rating: 5,
-    date: "2 minggu lalu",
-    variantLabel: "Silver",
-    content:
-      "Noise canceling sangat nyaman, ringan dipakai lama, dan packaging rapi. Cocok untuk meeting dan perjalanan.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=300&q=80",
-  },
 ];
 
 function getItemKey(item) {
@@ -298,9 +162,9 @@ function StoreGroup({ storeName, items, selectedKeys, onToggleStore, onToggleIte
 function CartSummary({ selectedItems, onCheckout, voucherCode, onVoucherCodeChange }) {
   const itemCount = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const subtotal = selectedItems.reduce((sum, item) => sum + getItemAmount(item), 0);
-  const shipping = itemCount ? 25000 : 0;
-  const discount = itemCount ? 50000 : 0;
-  const total = Math.max(subtotal + shipping - discount, 0);
+  const shipping = 0;
+  const discount = 0;
+  const total = subtotal;
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
@@ -437,7 +301,7 @@ function CartTab({ items, selectedKeys, onToggleAll, onToggleStore, onToggleItem
   );
 }
 
-function WishlistTab({ items }) {
+function WishlistTab({ items, onAddToCart }) {
   if (!items.length) {
     return (
       <EmptyState
@@ -457,20 +321,20 @@ function WishlistTab({ items }) {
               <img src={item.imageUrl} alt={item.productName} className="h-24 w-24 flex-shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded bg-[#76fca3] px-2 py-0.5 text-[10px] font-bold text-[#005229]">
-                    {item.badge}
-                  </span>
+                  {item.badge ? <span className="rounded bg-[#76fca3] px-2 py-0.5 text-[10px] font-bold text-[#005229]">{item.badge}</span> : null}
                   <span className="text-xs text-[#5f5e5e]">{item.storeName}</span>
                 </div>
                 <h3 className="line-clamp-2 text-base font-semibold text-[#181c1f]">{item.productName}</h3>
                 <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p className="text-xl font-bold text-[#006d38]">{formatPrice(item.price)}</p>
-                    <p className="text-sm text-[#5f5e5e] line-through">{formatPrice(item.previousPrice)}</p>
+                    {item.previousPrice ? <p className="text-sm text-[#5f5e5e] line-through">{formatPrice(item.previousPrice)}</p> : null}
                   </div>
                   <button
                     type="button"
-                    className="rounded-xl bg-[#00aa5b] px-5 py-2 text-sm font-bold text-white transition hover:opacity-90"
+                    disabled={!item.variantId}
+                    onClick={() => onAddToCart(item)}
+                    className="rounded-xl bg-[#00aa5b] disabled:cursor-not-allowed disabled:opacity-50 px-5 py-2 text-sm font-bold text-white transition hover:opacity-90"
                   >
                     Masukkan Cart
                   </button>
@@ -500,7 +364,7 @@ function WishlistTab({ items }) {
   );
 }
 
-function OrderTab({ items }) {
+function OrderTab({ items, onOpen }) {
   if (!items.length) {
     return (
       <EmptyState
@@ -548,6 +412,7 @@ function OrderTab({ items }) {
             </p>
             <button
               type="button"
+              onClick={() => onOpen(order.orderId || order.id)}
               className="rounded-lg border border-[#bccabc] bg-white px-4 py-2 text-sm font-bold text-[#006d38] transition hover:border-[#006d38]"
             >
               Lihat Detail
@@ -584,6 +449,13 @@ function ReviewTab({ items }) {
     );
   }
 
+  const totalRating = items.reduce((sum, item) => sum + Number(item.rating || 0), 0);
+  const averageRating = totalRating / items.length;
+  const distribution = [5, 4, 3, 2, 1].map((rating) => ({
+    rating,
+    count: items.filter((item) => Number(item.rating) === rating).length,
+  }));
+
   return (
     <div className="grid grid-cols-12 gap-6">
       <aside className="col-span-12 lg:col-span-4">
@@ -592,17 +464,15 @@ function ReviewTab({ items }) {
             <Star size={42} className="fill-[#f59e0b] text-[#f59e0b]" />
             <div>
               <p className="text-5xl font-bold text-[#181c1f]">
-                4.8<span className="ml-1 text-lg font-normal text-[#5f5e5e]">/ 5.0</span>
+                {averageRating.toFixed(1)}<span className="ml-1 text-lg font-normal text-[#5f5e5e]">/ 5.0</span>
               </p>
-              <p className="mt-2 text-sm font-bold text-[#181c1f]">96% pembeli merasa puas</p>
-              <p className="mt-1 text-sm text-[#5f5e5e]">2096 rating • 1230 ulasan</p>
+              <p className="mt-1 text-sm text-[#5f5e5e]">{items.length} ulasan</p>
             </div>
           </div>
           <hr className="my-5 border-[#e0e3e7]" />
           <div className="space-y-3">
-            {[5, 4, 3, 2, 1].map((rating, index) => {
-              const width = [86, 11, 2, 1, 1][index];
-
+            {distribution.map(({ rating, count }) => {
+              const width = Math.round((count / items.length) * 100);
               return (
                 <div key={rating} className="flex items-center gap-2 text-xs text-[#5f5e5e]">
                   <Star size={14} className="fill-[#f59e0b] text-[#f59e0b]" />
@@ -644,100 +514,73 @@ function ReviewTab({ items }) {
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { items: contextItems, updateQty, removeItem, clearCart } = useCart();
+  const { items: cartItems, updateQty, removeItem, clearCart, addItem } = useCart();
+  const { items: wishlistSource } = useWishlist();
+  const ordersQuery = useOrders({ per_page: 30 });
   const [activeTab, setActiveTab] = useState("cart");
   const [sortBy, setSortBy] = useState("latest");
   const [voucherCode, setVoucherCode] = useState("");
-  const [dummyItems, setDummyItems] = useState(dummyCartItems);
-
-  const isUsingContextItems = contextItems.length > 0;
-  const cartItems = isUsingContextItems ? contextItems : dummyItems;
   const sortedCartItems = useMemo(() => sortByOption(cartItems, sortBy), [cartItems, sortBy]);
-  const wishlistItems = useMemo(() => sortByOption(dummyWishlistItems, sortBy), [sortBy]);
-  const orderItems = useMemo(() => sortByOption(dummyOrders, sortBy), [sortBy]);
+  const wishlistItems = useMemo(() => sortByOption(wishlistSource, sortBy), [sortBy, wishlistSource]);
+  const orderItems = useMemo(() => {
+    const labels = { pending: "Menunggu Pembayaran", processing: "Diproses", shipped: "Dikirim", completed: "Selesai", cancelled: "Dibatalkan" };
+    return sortByOption((ordersQuery.data?.data || []).map((order) => {
+      const firstItem = order.items[0] || order.subOrders[0]?.items?.[0] || {};
+      return {
+        id: order.orderNumber,
+        orderId: order.id,
+        date: order.createdAt ? new Date(order.createdAt).toLocaleDateString("id-ID") : "-",
+        storeName: firstItem.storeName || order.subOrders[0]?.storeName || "Toko",
+        status: labels[order.status] || order.status,
+        productName: firstItem.productName || "Pesanan",
+        variantLabel: firstItem.variantLabel || firstItem.sku || "-",
+        quantity: firstItem.quantity || order.items.reduce((sum, item) => sum + item.quantity, 0),
+        total: order.grandTotal,
+        imageUrl: firstItem.imageUrl || "",
+      };
+    }), sortBy);
+  }, [ordersQuery.data?.data, sortBy]);
   const [selectedKeys, setSelectedKeys] = useState([]);
 
   useEffect(() => {
-    setSelectedKeys(sortedCartItems.map(getItemKey));
+    setSelectedKeys((current) => {
+      const available = sortedCartItems.map(getItemKey);
+      const retained = current.filter((key) => available.includes(key));
+      return retained.length ? retained : available;
+    });
   }, [sortedCartItems]);
 
   const selectedItems = sortedCartItems.filter((item) => selectedKeys.includes(getItemKey(item)));
   const selectedCount = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const goCheckout = () => navigate("/checkout", {
+    state: {
+      cartItemIds: selectedItems.map((item) => item.cartItemId).filter(Boolean),
+      voucherCode,
+    },
+  });
 
   const handleToggleAll = () => {
-    setSelectedKeys((current) => {
-      if (current.length === sortedCartItems.length) return [];
-      return sortedCartItems.map(getItemKey);
-    });
+    setSelectedKeys((current) => current.length === sortedCartItems.length ? [] : sortedCartItems.map(getItemKey));
   };
 
   const handleToggleStore = (storeItems) => {
     const storeKeys = storeItems.map(getItemKey);
     const allChecked = storeKeys.every((key) => selectedKeys.includes(key));
-
-    setSelectedKeys((current) => {
-      if (allChecked) return current.filter((key) => !storeKeys.includes(key));
-      return Array.from(new Set([...current, ...storeKeys]));
-    });
+    setSelectedKeys((current) => allChecked ? current.filter((key) => !storeKeys.includes(key)) : Array.from(new Set([...current, ...storeKeys])));
   };
 
   const handleToggleItem = (itemKey) => {
-    setSelectedKeys((current) => {
-      if (current.includes(itemKey)) return current.filter((key) => key !== itemKey);
-      return [...current, itemKey];
-    });
-  };
-
-  const handleDummyQty = (item, quantity) => {
-    setDummyItems((current) =>
-      current
-        .map((row) => (getItemKey(row) === getItemKey(item) ? { ...row, quantity } : row))
-        .filter((row) => row.quantity > 0)
-    );
+    setSelectedKeys((current) => current.includes(itemKey) ? current.filter((key) => key !== itemKey) : [...current, itemKey]);
   };
 
   const handleDecrease = (item) => {
     const nextQty = (item.quantity || 1) - 1;
-
-    if (isUsingContextItems) {
-      if (nextQty <= 0) {
-        removeItem(item.productId, item.variantId);
-        return;
-      }
-      updateQty(item.productId, item.variantId, nextQty);
-      return;
-    }
-
-    handleDummyQty(item, nextQty);
+    if (nextQty <= 0) removeItem(item.productId, item.variantId);
+    else updateQty(item.productId, item.variantId, nextQty);
   };
 
   const handleIncrease = (item) => {
-    const nextQty = (item.quantity || 1) + 1;
-
-    if (isUsingContextItems) {
-      updateQty(item.productId, item.variantId, nextQty);
-      return;
-    }
-
-    handleDummyQty(item, nextQty);
-  };
-
-  const handleRemove = (item) => {
-    if (isUsingContextItems) {
-      removeItem(item.productId, item.variantId);
-      return;
-    }
-
-    setDummyItems((current) => current.filter((row) => getItemKey(row) !== getItemKey(item)));
-  };
-
-  const handleClear = () => {
-    if (isUsingContextItems) {
-      clearCart();
-      return;
-    }
-
-    setDummyItems([]);
+    updateQty(item.productId, item.variantId, Math.min(item.stock || Number.MAX_SAFE_INTEGER, (item.quantity || 1) + 1));
   };
 
   return (
@@ -746,16 +589,12 @@ export default function CartPage() {
         <TabNavigation activeTab={activeTab} onChange={setActiveTab} />
 
         <section className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <SectionHeader
-            title="MarketPremium Activity"
-            description="Kelola wishlist, cart, order, dan review dalam satu layout utama yang mengikuti referensi HTML."
-          />
+          <SectionHeader title="MarketPremium Activity" description="Kelola wishlist, cart, order, dan review dalam satu layout utama yang mengikuti referensi HTML." />
           <SortDropdown value={sortBy} onChange={setSortBy} />
         </section>
 
         <div className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
-          {activeTab === "wishlist" ? <WishlistTab items={wishlistItems} /> : null}
-
+          {activeTab === "wishlist" ? <WishlistTab items={wishlistItems} onAddToCart={(item) => addItem({ variantId: item.variantId, quantity: 1 })} /> : null}
           {activeTab === "cart" ? (
             <CartTab
               items={sortedCartItems}
@@ -765,26 +604,20 @@ export default function CartPage() {
               onToggleItem={handleToggleItem}
               onDecrease={handleDecrease}
               onIncrease={handleIncrease}
-              onRemove={handleRemove}
-              onClear={handleClear}
-              onCheckout={() => navigate("/checkout")}
+              onRemove={(item) => removeItem(item.productId, item.variantId)}
+              onClear={clearCart}
+              onCheckout={goCheckout}
               voucherCode={voucherCode}
               onVoucherCodeChange={setVoucherCode}
             />
           ) : null}
-
-          {activeTab === "order" ? <OrderTab items={orderItems} /> : null}
-          {activeTab === "review" ? <ReviewTab items={dummyReviews} /> : null}
+          {activeTab === "order" ? <OrderTab items={orderItems} onOpen={(id) => navigate(`/orders/${id}`)} /> : null}
+          {activeTab === "review" ? <ReviewTab items={[]} /> : null}
         </div>
 
         {activeTab === "cart" && sortedCartItems.length ? (
           <div className="mt-6 lg:hidden">
-            <button
-              type="button"
-              disabled={!selectedCount}
-              onClick={() => navigate("/checkout")}
-              className="w-full rounded-xl bg-[#00aa5b] py-5 text-2xl font-bold text-white shadow-lg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            <button type="button" disabled={!selectedCount} onClick={goCheckout} className="w-full rounded-xl bg-[#00aa5b] py-5 text-2xl font-bold text-white shadow-lg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
               Lanjut ke Pembayaran
             </button>
           </div>

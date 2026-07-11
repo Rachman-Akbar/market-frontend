@@ -1,5 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
+import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
 import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 import { getCatalogGroups } from "@/features/catalog/cataloggroup/services/catalogGroupService";
+
+let navigationCache = null;
+let navigationCacheExpiresAt = 0;
+let navigationPromise = null;
 
 function slugify(value = "") {
   return String(value)
@@ -31,19 +37,6 @@ function encodeCategoryPath(path = "") {
     .join("/");
 }
 
-function makeQueryString(params = {}) {
-  const searchParams = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
-    searchParams.append(key, value);
-  });
-
-  const query = searchParams.toString();
-
-  return query ? `?${query}` : "";
-}
-
 function getCategoryChildren(category = {}) {
   return extractCategories(
     category.children ??
@@ -53,6 +46,10 @@ function getCategoryChildren(category = {}) {
       category.items ??
       []
   );
+}
+
+function navigationIsFresh() {
+  return navigationCache && navigationCacheExpiresAt > Date.now();
 }
 
 export function extractCategories(value) {
@@ -187,7 +184,6 @@ export function buildCategoryTree(categories = [], fallback = {}) {
 
   normalized.forEach((category) => {
     const item = mapByKey.get(String(category.key));
-
     const parentKey = category.parent_key ? String(category.parent_key) : "";
     const parentId =
       category.parent_id !== null && category.parent_id !== undefined
@@ -248,10 +244,7 @@ function splitMenuByGroup(menuCategories = [], groups = []) {
     groups.map((group) => {
       const groupId = String(group.id ?? "");
       const groupKey = String(group.key ?? groupId);
-
-      const groupItems = flat.filter((category) => {
-        return String(category.catalog_group_id ?? "") === groupId;
-      });
+      const groupItems = flat.filter((category) => String(category.catalog_group_id ?? "") === groupId);
 
       return [
         groupKey,
@@ -269,7 +262,10 @@ export function getCategoryHref(category = {}) {
 }
 
 export async function getCategories() {
-  const payload = await catalogRequest("/categories");
+  const payload = await catalogRequest("/categories", {
+    cacheTtl: CATALOG_CACHE_TTL.long,
+    persistCache: true,
+  });
   const rawItems = extractCategories(payload);
 
   return {
@@ -279,7 +275,10 @@ export async function getCategories() {
 }
 
 export async function getCategoriesMenu() {
-  const payload = await catalogRequest("/categories/menu");
+  const payload = await catalogRequest("/categories/menu", {
+    cacheTtl: CATALOG_CACHE_TTL.long,
+    persistCache: true,
+  });
   const rawItems = extractCategories(payload);
 
   return {
@@ -289,7 +288,10 @@ export async function getCategoriesMenu() {
 }
 
 export async function getCategoriesByCatalogGroup(groupId) {
-  const payload = await catalogRequest(`/catalog-groups/${groupId}/categories`);
+  const payload = await catalogRequest(`/catalog-groups/${groupId}/categories`, {
+    cacheTtl: CATALOG_CACHE_TTL.long,
+    persistCache: true,
+  });
   const data = unwrapData(payload);
   const rawItems = extractCategories(data);
 
@@ -302,7 +304,9 @@ export async function getCategoriesByCatalogGroup(groupId) {
 }
 
 export async function getCategoryById(id) {
-  const payload = await catalogRequest(`/categories/${id}`);
+  const payload = await catalogRequest(`/categories/${id}`, {
+    cacheTtl: CATALOG_CACHE_TTL.medium,
+  });
   const data = unwrapData(payload);
 
   return normalizeCategory(data);
@@ -310,7 +314,9 @@ export async function getCategoryById(id) {
 
 export async function getCategoryByPath(path) {
   const encodedPath = encodeCategoryPath(path);
-  const payload = await catalogRequest(`/categories/path/${encodedPath}`);
+  const payload = await catalogRequest(`/categories/path/${encodedPath}`, {
+    cacheTtl: CATALOG_CACHE_TTL.medium,
+  });
   const data = unwrapData(payload);
 
   return normalizeCategory(data);
@@ -318,9 +324,15 @@ export async function getCategoryByPath(path) {
 
 export async function getProductsByCategoryPath(path, params = {}) {
   const encodedPath = encodeCategoryPath(path);
-  const queryString = makeQueryString(params);
-
-  const payload = await catalogRequest(`/categories/path/${encodedPath}/products${queryString}`);
+  const payload = await catalogRequest(`/categories/path/${encodedPath}/products`, {
+    params: {
+      include_descendants: true,
+      per_page: params.per_page ?? params.limit ?? 20,
+      include: "summary",
+      ...params,
+    },
+    cacheTtl: CATALOG_CACHE_TTL.short,
+  });
   const { items, meta } = unwrapCollection(payload);
 
   return {
@@ -330,84 +342,120 @@ export async function getProductsByCategoryPath(path, params = {}) {
   };
 }
 
-export async function getCategoryNavigation() {
-  const groupsResult = await getCatalogGroups();
+export async function getCategoryNavigation({ forceRefresh = false } = {}) {
+  if (!forceRefresh && navigationIsFresh()) return navigationCache;
+  if (!forceRefresh && navigationPromise) return navigationPromise;
 
-  const groups = Array.isArray(groupsResult?.data)
-    ? groupsResult.data
-        .filter((group) => group.is_active !== false)
-        .sort((a, b) => {
-          if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-          return a.name.localeCompare(b.name);
-        })
-        .map((group) => ({
-          ...group,
-          key: String(group.key ?? group.id ?? group.slug),
-        }))
-    : [];
+  navigationPromise = getCatalogGroups({ is_active: 1, include_categories: 1 })
+    .then(async (groupsResult) => {
+      const groups = Array.isArray(groupsResult?.data)
+        ? groupsResult.data
+            .filter((group) => group.is_active !== false)
+            .sort((a, b) => {
+              if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+              return a.name.localeCompare(b.name);
+            })
+            .map((group) => ({
+              ...group,
+              key: String(group.key ?? group.id ?? group.slug),
+            }))
+        : [];
 
-  if (!groups.length) {
-    const menuResult = await getCategoriesMenu();
+      if (!groups.length) {
+        const menuResult = await getCategoriesMenu();
 
-    return {
-      groups: [
-        {
-          id: "all",
-          key: "all",
-          name: "Kategori",
-          slug: "kategori",
-        },
-      ],
-      categoriesByGroup: {
-        all: menuResult.data,
-      },
-    };
-  }
+        return {
+          groups: [
+            {
+              id: "all",
+              key: "all",
+              name: "Kategori",
+              slug: "kategori",
+            },
+          ],
+          categoriesByGroup: {
+            all: menuResult.data,
+          },
+        };
+      }
 
-  let categoriesByGroup = Object.fromEntries(
-    await Promise.all(
-      groups.map(async (group) => {
-        const embeddedCategories = getEmbeddedGroupCategories(group);
+      let categoriesByGroup = Object.fromEntries(
+        groups.map((group) => {
+          const embeddedCategories = getEmbeddedGroupCategories(group);
 
-        if (embeddedCategories.length) {
           return [
             group.key,
             buildCategoryTree(embeddedCategories, {
               catalog_group_id: group.id,
             }),
           ];
-        }
+        })
+      );
 
+      if (isEmptyNavigation(categoriesByGroup)) {
         try {
-          const response = await getCategoriesByCatalogGroup(group.id);
-          return [group.key, response.data];
+          const menuResult = await getCategoriesMenu();
+          const groupedMenu = splitMenuByGroup(extractCategories(menuResult.raw), groups);
+
+          categoriesByGroup = isEmptyNavigation(groupedMenu)
+            ? {
+                ...categoriesByGroup,
+                [groups[0].key]: menuResult.data,
+              }
+            : groupedMenu;
         } catch {
-          return [group.key, []];
+          categoriesByGroup = Object.fromEntries(groups.map((group) => [group.key, []]));
         }
-      })
-    )
-  );
-
-  if (isEmptyNavigation(categoriesByGroup)) {
-    try {
-      const menuResult = await getCategoriesMenu();
-      const groupedMenu = splitMenuByGroup(extractCategories(menuResult.raw), groups);
-
-      if (!isEmptyNavigation(groupedMenu)) {
-        categoriesByGroup = groupedMenu;
-      } else {
-        categoriesByGroup = {
-          ...categoriesByGroup,
-          [groups[0].key]: menuResult.data,
-        };
       }
-    } catch {
-      categoriesByGroup = Object.fromEntries(groups.map((group) => [group.key, []]));
-    }
-  }
 
-  return {
-    groups,
-    categoriesByGroup,
-  };
+      return {
+        groups,
+        categoriesByGroup,
+      };
+    })
+    .then((result) => {
+      navigationCache = result;
+      navigationCacheExpiresAt = Date.now() + CATALOG_CACHE_TTL.long;
+      return result;
+    })
+    .finally(() => {
+      navigationPromise = null;
+    });
+
+  return navigationPromise;
+}
+
+
+export const categoryKeys = {
+  menu: ["catalog", "categories", "menu"],
+  navigation: ["catalog", "categories", "navigation"],
+  path: (path) => ["catalog", "categories", "path", String(path || "")],
+};
+
+export function useCategoriesMenu(options = {}) {
+  return useQuery({
+    queryKey: categoryKeys.menu,
+    queryFn: getCategoriesMenu,
+    staleTime: 300000,
+    ...options,
+  });
+}
+
+export function useCategoryNavigation(options = {}) {
+  return useQuery({
+    queryKey: categoryKeys.navigation,
+    queryFn: () => getCategoryNavigation(),
+    staleTime: 300000,
+    ...options,
+  });
+}
+
+export function useCategoryByPath(path, options = {}) {
+  return useQuery({
+    queryKey: categoryKeys.path(path),
+    queryFn: () => getCategoryByPath(path),
+    enabled: Boolean(path),
+    staleTime: 300000,
+    ...options,
+  });
 }

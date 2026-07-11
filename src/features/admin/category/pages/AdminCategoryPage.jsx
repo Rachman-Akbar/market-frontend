@@ -1,22 +1,20 @@
-import { useEffect, useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { CategoryAdminToolbar } from "@/features/admin/category/components/CategoryAdminToolbar";
 import { CategoryAdminTable } from "@/features/admin/category/components/CategoryAdminTable";
 import { CategoryAdminForm } from "@/features/admin/category/components/CategoryAdminForm";
-import { getCategoryAdminRows } from "@/features/admin/category/services/categoryAdminService";
+import { useAdminCategories } from "@/features/admin/adminService";
 
 export default function AdminCategoryPage() {
-  const [rows, setRows] = useState([]);
+  const categoriesQuery = useAdminCategories();
+  const rows = categoriesQuery.data || [];
   const { query, setQuery, filteredRows } = useTableSearch(rows, ["name", "group", "slug", "parent"]);
-
-  useEffect(() => {
-    getCategoryAdminRows().then(setRows);
-  }, []);
 
   return (
     <AdminShell title="Manajemen Kategori" subtitle="Kelola struktur kategori marketplace, parent-child, visibilitas menu, dan readiness data katalog.">
       <CategoryAdminToolbar query={query} onQueryChange={setQuery} />
+      {categoriesQuery.isLoading ? <p className="py-8 text-sm text-slate-500">Memuat kategori...</p> : null}
+      {categoriesQuery.error ? <p className="py-8 text-sm text-red-600">{categoriesQuery.error.message}</p> : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <CategoryAdminTable rows={filteredRows} />
         <CategoryAdminForm />

@@ -1,56 +1,119 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient, unwrapApiData } from "@/core/utils/apiClient";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 const CartContext = createContext(null);
-const STORAGE_KEY = "marketku_cart_items";
+const CART_KEY = ["order", "cart"];
 
-function getStoredItems() {
-  try {
-    const value = localStorage.getItem(STORAGE_KEY);
-    return value ? JSON.parse(value) : [];
-  } catch {
-    return [];
-  }
+function normalizeCartItem(item = {}) {
+  const attributes = item.attributes && typeof item.attributes === "object" ? item.attributes : {};
+  const variantLabel = Object.values(attributes).filter(Boolean).join(", ");
+
+  return {
+    cartItemId: Number(item.cart_item_id ?? item.id ?? 0),
+    productId: Number(item.product_id ?? 0),
+    variantId: Number(item.variant_id ?? item.product_variant_id ?? 0),
+    productName: item.product_name || item.name || "Produk",
+    variantLabel: item.variant_label || variantLabel || item.sku || "",
+    storeId: Number(item.store_id ?? 0),
+    storeName: item.store_name || "Toko",
+    sku: item.sku || "",
+    price: Number(item.price || 0),
+    quantity: Number(item.quantity || 0),
+    subtotal: Number(item.subtotal || 0),
+    stock: Number(item.stock ?? 0),
+    imageUrl: item.thumbnail || item.image || item.image_url || "",
+    attributes,
+  };
+}
+
+function normalizeCart(payload = {}) {
+  const source = unwrapApiData(payload) || {};
+  const items = Array.isArray(source.items) ? source.items.map(normalizeCartItem) : [];
+
+  return {
+    items,
+    totalItems: Number(source.total_items ?? source.totalItems ?? items.reduce((sum, item) => sum + item.quantity, 0)),
+    totalPrice: Number(source.total_price ?? source.totalPrice ?? items.reduce((sum, item) => sum + item.price * item.quantity, 0)),
+  };
+}
+
+async function fetchCart() {
+  const response = await apiClient.get("/api/v1/order/carts");
+  return normalizeCart(response.data);
+}
+
+async function addCartItem(item) {
+  const response = await apiClient.post("/api/v1/order/carts/items", {
+    items: [
+      {
+        product_variant_id: Number(item.variantId ?? item.product_variant_id),
+        quantity: Number(item.quantity || 1),
+      },
+    ],
+  });
+  return normalizeCart(response.data);
+}
+
+async function updateCartItem({ variantId, quantity }) {
+  const response = await apiClient.patch(`/api/v1/order/carts/items/${variantId}`, { quantity });
+  return normalizeCart(response.data);
+}
+
+async function removeCartItem(variantId) {
+  const response = await apiClient.delete(`/api/v1/order/carts/items/${variantId}`);
+  return normalizeCart(response.data);
+}
+
+async function clearRemoteCart() {
+  const response = await apiClient.delete("/api/v1/order/carts");
+  return normalizeCart(response.data);
 }
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+  const cartQuery = useQuery({
+    queryKey: CART_KEY,
+    queryFn: fetchCart,
+    enabled: isAuthenticated,
+    staleTime: 30000,
+  });
 
-  useEffect(() => {
-    setItems(getStoredItems());
-  }, []);
+  const setCart = (cart) => queryClient.setQueryData(CART_KEY, cart);
+  const addMutation = useMutation({ mutationFn: addCartItem, onSuccess: setCart });
+  const updateMutation = useMutation({ mutationFn: updateCartItem, onSuccess: setCart });
+  const removeMutation = useMutation({ mutationFn: removeCartItem, onSuccess: setCart });
+  const clearMutation = useMutation({ mutationFn: clearRemoteCart, onSuccess: setCart });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+  const cart = cartQuery.data || { items: [], totalItems: 0, totalPrice: 0 };
 
-  const addItem = (item) => {
-    setItems((current) => {
-      const existing = current.find((row) => row.productId === item.productId && row.variantId === item.variantId);
-      if (!existing) return [...current, { ...item, quantity: item.quantity || 1 }];
-      return current.map((row) =>
-        row.productId === item.productId && row.variantId === item.variantId
-          ? { ...row, quantity: row.quantity + (item.quantity || 1) }
-          : row
-      );
-    });
-  };
-
-  const updateQty = (productId, variantId, quantity) => {
-    setItems((current) =>
-      current
-        .map((row) => (row.productId === productId && row.variantId === variantId ? { ...row, quantity } : row))
-        .filter((row) => row.quantity > 0)
-    );
-  };
-
-  const removeItem = (productId, variantId) => {
-    setItems((current) => current.filter((row) => !(row.productId === productId && row.variantId === variantId)));
-  };
-
-  const clearCart = () => setItems([]);
-
-  const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.price * item.quantity, 0), [items]);
-  const value = useMemo(() => ({ items, subtotal, addItem, updateQty, removeItem, clearCart }), [items, subtotal]);
+  const value = useMemo(
+    () => ({
+      items: cart.items,
+      subtotal: cart.totalPrice,
+      totalItems: cart.totalItems,
+      loading: cartQuery.isLoading,
+      error: cartQuery.error,
+      addItem: (item) => addMutation.mutateAsync(item),
+      updateQty: (_productId, variantId, quantity) => updateMutation.mutateAsync({ variantId, quantity }),
+      removeItem: (_productId, variantId) => removeMutation.mutateAsync(variantId),
+      clearCart: () => clearMutation.mutateAsync(),
+      refreshCart: () => cartQuery.refetch(),
+      mutating: addMutation.isPending || updateMutation.isPending || removeMutation.isPending || clearMutation.isPending,
+    }),
+    [
+      addMutation,
+      cart.items,
+      cart.totalItems,
+      cart.totalPrice,
+      cartQuery,
+      clearMutation,
+      removeMutation,
+      updateMutation,
+    ]
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

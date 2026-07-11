@@ -1,44 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { getCategoryHref, getCategoryNavigation } from "@/features/catalog/category/services/categoryService";
+import { getCategoryHref, useCategoryNavigation } from "@/features/catalog/category/services/categoryService";
 
 export function CategoryGrid() {
-  const [groups, setGroups] = useState([]);
-  const [categoriesByGroup, setCategoriesByGroup] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-
-    getCategoryNavigation()
-      .then((result) => {
-        if (!mounted) return;
-        setGroups(result.groups);
-        setCategoriesByGroup(result.categoriesByGroup);
-      })
-      .catch((err) => {
-        if (mounted) setError(err.message || "Gagal memuat kategori populer");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const categories = useMemo(() => {
-    return groups.flatMap((group) => categoriesByGroup[group.key] || []).slice(0, 8);
-  }, [categoriesByGroup, groups]);
+  const navigationQuery = useCategoryNavigation();
+  const groups = navigationQuery.data?.groups || [];
+  const categoriesByGroup = navigationQuery.data?.categoriesByGroup || {};
+  const categories = useMemo(
+    () => groups.flatMap((group) => categoriesByGroup[group.key] || []).slice(0, 8),
+    [categoriesByGroup, groups]
+  );
 
   return (
     <div>
       <h2 className="text-lg font-bold text-gray-800 mb-4">Kategori Populer</h2>
-      {loading && <div className="text-sm text-gray-500">Memuat kategori...</div>}
-      {error && <div className="text-sm text-red-500">{error}</div>}
-      {!loading && !error && (
+      {navigationQuery.isLoading && <div className="text-sm text-gray-500">Memuat kategori...</div>}
+      {navigationQuery.error && <div className="text-sm text-red-500">{navigationQuery.error.message || "Gagal memuat kategori populer"}</div>}
+      {!navigationQuery.isLoading && !navigationQuery.error && (
         <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
           {categories.map((category) => (
             <Link

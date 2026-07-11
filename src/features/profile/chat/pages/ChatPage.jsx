@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { ProfileChatList } from "@/features/profile/chat/components/ProfileChatList";
 import { ProfileChatWindow } from "@/features/profile/chat/components/ProfileChatWindow";
-import { getProfileChatThreads } from "@/features/profile/chat/services/profileChatService";
+import { useProfileChatThreads } from "@/features/profile/chat/services/profileChatService";
 
 export default function ChatPage() {
-  const [threads, setThreads] = useState([]);
+  const threadsQuery = useProfileChatThreads();
+  const threads = threadsQuery.data || [];
   const [activeId, setActiveId] = useState("");
 
   useEffect(() => {
-    getProfileChatThreads().then((items) => {
-      setThreads(items);
-      setActiveId(items[0]?.id || "");
-    });
-  }, []);
+    if (!activeId && threads[0]?.id) setActiveId(threads[0].id);
+  }, [activeId, threads]);
 
   const activeThread = useMemo(() => threads.find((thread) => thread.id === activeId), [threads, activeId]);
 

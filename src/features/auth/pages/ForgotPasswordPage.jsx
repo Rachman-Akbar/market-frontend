@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">Reset password</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Lupa password?</h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Masukkan email akun kamu, lalu sistem akan mengirim link reset password melalui Firebase Auth.
+            Masukkan email akun kamu, lalu sistem akan mengirim link reset password dari database utama melalui email.
           </p>
         </div>
       </div>

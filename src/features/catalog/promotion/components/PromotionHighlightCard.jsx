@@ -7,11 +7,13 @@ export function PromotionHighlightCard({ promotion }) {
       className={`group relative min-h-[260px] overflow-hidden bg-gradient-to-br ${promotion.color} text-white`}
       style={{ borderRadius: 12 }}
     >
-      <img
-        src={promotion.image}
-        alt={promotion.title}
-        className="absolute inset-0 h-full w-full object-cover opacity-25 transition duration-500 group-hover:scale-105"
-      />
+      {promotion.image ? (
+        <img
+          src={promotion.image}
+          alt={promotion.title}
+          className="absolute inset-0 h-full w-full object-cover opacity-25 transition duration-500 group-hover:scale-105"
+        />
+      ) : null}
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
       <div className="relative flex h-full flex-col justify-between p-6">
         <div>
