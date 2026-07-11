@@ -94,7 +94,6 @@ function buildStoreAddressPayload(values = {}) {
     notes: String(values.address_notes || "").trim() || null,
     latitude: toNullableNumber(values.latitude),
     longitude: toNullableNumber(values.longitude),
-    komerce_destination_id: String(values.komerce_destination_id || "").trim(),
     is_primary: true,
   };
 }

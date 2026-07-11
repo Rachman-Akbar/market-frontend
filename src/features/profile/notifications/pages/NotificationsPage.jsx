@@ -22,8 +22,8 @@ export default function NotificationsPage() {
         <div className={profileLayout.listScroll}>
           {ordersQuery.isLoading ? <p className="p-6 text-sm text-slate-500">Memuat notifikasi...</p> : null}
           {notifications.map((item) => (
-            <button key={item.id} type="button" onClick={() => setActiveId(item.id)} className={`${profileLayout.listItem} ${activeNotification?.id === item.id ? "bg-[#fff7f3]" : "hover:bg-[#f7f8fa]"}`}>
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff1ec] text-[#ee4d2d]"><PackageCheck size={20} /></div>
+            <button key={item.id} type="button" onClick={() => setActiveId(item.id)} className={`${profileLayout.listItem} ${activeNotification?.id === item.id ? "bg-[#f4fff8]" : "hover:bg-[#f7f8fa]"}`}>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e9fbea] text-[#03ac0e]"><PackageCheck size={20} /></div>
               <div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-950">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.description}</p></div>
               <hr className={profileLayout.listDivider} />
             </button>

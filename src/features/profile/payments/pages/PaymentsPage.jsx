@@ -38,7 +38,7 @@ export default function PaymentsPage() {
             {["Midtrans Snap", "Cash on Delivery", "Transfer Manual", "Tunai di Toko"].map((method) => (
               <div key={method} className="py-4">
                 <div className="flex min-h-[52px] items-center gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff1ec] text-[#ee4d2d]"><CreditCard size={20} /></div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e9fbea] text-[#03ac0e]"><CreditCard size={20} /></div>
                   <b className="text-sm font-semibold text-slate-950">{method}</b>
                 </div>
                 <hr className="mt-4 border-[#e5e7eb]" />
@@ -54,7 +54,7 @@ export default function PaymentsPage() {
               <h3 className="text-lg font-semibold text-slate-950">Riwayat Transaksi</h3>
               <p className="mt-1 text-sm text-slate-500">Status dan nilai transaksi dari API order.</p>
             </div>
-            <Link to="/profile/orders" className="text-sm font-semibold text-[#ee4d2d] hover:underline">Lihat Semua</Link>
+            <Link to="/profile/orders" className="text-sm font-semibold text-[#03ac0e] hover:underline">Lihat Semua</Link>
           </div>
           {ordersQuery.isLoading ? <p className="py-10 text-center text-sm text-slate-500">Memuat transaksi...</p> : null}
           <div className="overflow-x-auto">
@@ -76,7 +76,7 @@ export default function PaymentsPage() {
           {!ordersQuery.isLoading && !orders.length ? <p className="py-12 text-center text-sm text-slate-500">Belum ada transaksi pembayaran.</p> : null}
         </div>
 
-        <div className="mt-2 flex items-start gap-3 rounded-2xl bg-[#f7f8fa] p-4 text-sm text-slate-500"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#ee4d2d]" /><p>Jangan mengubah status pembayaran dari frontend. Status final harus berasal dari webhook Midtrans yang tervalidasi.</p></div>
+        <div className="mt-2 flex items-start gap-3 rounded-2xl bg-[#f7f8fa] p-4 text-sm text-slate-500"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#03ac0e]" /><p>Jangan mengubah status pembayaran dari frontend. Status final harus berasal dari webhook Midtrans yang tervalidasi.</p></div>
       </div>
     </section>
   );

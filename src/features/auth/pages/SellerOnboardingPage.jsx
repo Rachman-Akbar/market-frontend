@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import SellerLocationTracker from "@/features/auth/components/SellerLocationTracker";
+import AddressMapTracker from "@/features/profile/address/components/AddressMapTracker";
+import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
 import {
   getSellerOnboardingError,
   useSellerOnboarding,
@@ -125,6 +126,10 @@ export default function SellerOnboardingPage() {
   const [logo, setLogo] = useState(null);
   const [banner, setBanner] = useState(null);
   const [message, setMessage] = useState("");
+  const [destinationStatus, setDestinationStatus] = useState({
+    loading: false,
+    message: "",
+  });
 
   useEffect(() => {
     if (!user) {
@@ -155,6 +160,7 @@ export default function SellerOnboardingPage() {
       cityOrRegency: form.city_or_regency,
       district: form.district,
       subdistrict: form.subdistrict,
+      postalCode: form.postal_code,
       fullAddress: form.full_address,
     }),
     [
@@ -162,6 +168,7 @@ export default function SellerOnboardingPage() {
       form.country,
       form.district,
       form.full_address,
+      form.postal_code,
       form.province,
       form.subdistrict,
     ]
@@ -169,9 +176,18 @@ export default function SellerOnboardingPage() {
 
   const change = (key) => (event) => {
     setMessage("");
+    const resetDestination = [
+      "province",
+      "city_or_regency",
+      "district",
+      "subdistrict",
+      "postal_code",
+    ].includes(key);
+
     setForm((current) => ({
       ...current,
       [key]: event.target.value,
+      ...(resetDestination ? { komerce_destination_id: "" } : {}),
     }));
   };
 
@@ -205,6 +221,7 @@ export default function SellerOnboardingPage() {
       subdistrict: address.subdistrict || current.subdistrict,
       postal_code: address.postalCode || current.postal_code,
       full_address: address.fullAddress || current.full_address,
+      komerce_destination_id: "",
     }));
   };
 
@@ -215,6 +232,62 @@ export default function SellerOnboardingPage() {
       longitude,
     }));
   };
+
+  const ensureDestination = async () => {
+    if (form.komerce_destination_id) {
+      return form.komerce_destination_id;
+    }
+
+    setDestinationStatus({
+      loading: true,
+      message: "Mencocokkan tujuan logistik...",
+    });
+
+    try {
+      const destination = await resolveKomerceDestination(addressValues);
+      setForm((current) => ({
+        ...current,
+        komerce_destination_id: destination.id,
+      }));
+      setDestinationStatus({
+        loading: false,
+        message: `Tujuan logistik ditemukan: ${destination.label || destination.subdistrict || destination.id}`,
+      });
+      return destination.id;
+    } catch (error) {
+      setDestinationStatus({
+        loading: false,
+        message: error.message,
+      });
+      return "";
+    }
+  };
+
+  useEffect(() => {
+    if (
+      step !== 2 ||
+      !form.subdistrict ||
+      !form.district ||
+      !form.city_or_regency ||
+      !form.province
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      ensureDestination();
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    addressValues,
+    form.city_or_regency,
+    form.district,
+    form.postal_code,
+    form.province,
+    form.subdistrict,
+    step,
+  ]);
 
   const validateStep = () => {
     if (step === 1) {
@@ -238,11 +311,10 @@ export default function SellerOnboardingPage() {
         form.full_address,
         form.latitude,
         form.longitude,
-        form.komerce_destination_id,
       ];
 
       if (required.some((value) => !String(value || "").trim())) {
-        return "Lengkapi alamat, koordinat, dan Komerce Destination ID toko.";
+        return "Lengkapi alamat dan pinpoint lokasi toko.";
       }
     }
 
@@ -253,7 +325,7 @@ export default function SellerOnboardingPage() {
     return "";
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     const validationMessage = validateStep();
 
     if (validationMessage) {
@@ -285,7 +357,7 @@ export default function SellerOnboardingPage() {
 
     try {
       await onboardingMutation.mutateAsync({
-        values: form,
+        values: { ...form },
         files: {
           logo,
           banner,
@@ -475,30 +547,26 @@ export default function SellerOnboardingPage() {
                   />
                 </Field>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Catatan atau patokan">
-                    <Input
-                      value={form.address_notes}
-                      onChange={change("address_notes")}
-                      placeholder="Contoh: Pagar hitam dekat minimarket"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
-                    />
-                  </Field>
-                  <Field
-                    label="Komerce Destination ID"
-                    required
-                    helper="Gunakan ID subdistrik logistik dari backend atau layanan Komerce."
-                  >
-                    <Input
-                      value={form.komerce_destination_id}
-                      onChange={change("komerce_destination_id")}
-                      placeholder="Masukkan destination ID"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
-                    />
-                  </Field>
+                <Field label="Catatan atau patokan">
+                  <Input
+                    value={form.address_notes}
+                    onChange={change("address_notes")}
+                    placeholder="Contoh: Pagar hitam dekat minimarket"
+                    className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                  />
+                </Field>
+
+                <div className="rounded-2xl border border-[#03ac0e]/20 bg-[#f4fff8] px-4 py-3">
+                  <p className="text-sm font-black text-slate-800">
+                    Tujuan logistik terisi otomatis
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {destinationStatus.message ||
+                      "OpenStreetMap mengisi wilayah dan backend mencocokkan ID tujuan kurir secara otomatis."}
+                  </p>
                 </div>
 
-                <SellerLocationTracker
+                <AddressMapTracker
                   latitude={form.latitude}
                   longitude={form.longitude}
                   addressValues={addressValues}

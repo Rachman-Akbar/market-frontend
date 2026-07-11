@@ -54,7 +54,6 @@ export function toAddressPayload(values = {}) {
     notes: String(values.notes || "").trim() || null,
     latitude: toNullableNumber(values.latitude),
     longitude: toNullableNumber(values.longitude),
-    komerce_destination_id: String(values.komerceDestinationId || values.komerce_destination_id || "").trim(),
     is_primary: Boolean(values.isPrimary ?? values.is_primary),
   };
 }

@@ -39,11 +39,11 @@ export default function ProfileLayout() {
                 aria-label={label}
                 className={cn(
                   "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
-                  active ? "bg-[#fff1ec] text-[#ee4d2d]" : "text-slate-500 hover:bg-[#fff7f3] hover:text-[#ee4d2d]"
+                  active ? "bg-[#e9fbea] text-[#03ac0e]" : "text-slate-500 hover:bg-[#f4fff8] hover:text-[#03ac0e]"
                 )}
               >
                 <Icon size={20} />
-                {active && <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#ee4d2d]" />}
+                {active && <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#03ac0e]" />}
               </Link>
             );
           })}
@@ -55,11 +55,11 @@ export default function ProfileLayout() {
           aria-label="Profile"
           className={cn(
             "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
-            profileActive ? "bg-[#ee4d2d] text-white" : "bg-[#111b21] text-white hover:bg-[#ee4d2d]"
+            profileActive ? "bg-[#03ac0e] text-white" : "bg-[#111b21] text-white hover:bg-[#03ac0e]"
           )}
         >
           {profileActive ? <UserRound size={20} /> : <span className="text-sm font-bold">{initial}</span>}
-          {profileActive && <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#ee4d2d]" />}
+          {profileActive && <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#03ac0e]" />}
         </Link>
       </aside>
 

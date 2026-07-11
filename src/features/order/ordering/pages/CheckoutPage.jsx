@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, MapPin, Truck, CreditCard, ShoppingBag, Landmark, Banknote, Store } from "lucide-react";
 import { useCart } from "@/features/order/cart/context/CartContext";
 import { useAddresses } from "@/features/profile/address/addressService";
+import InstantAddressModal from "@/features/profile/address/components/InstantAddressModal";
 import { getOrderError, useCreateOrder, useShippingOptions } from "@/features/order/ordering/orderService";
 import { Button } from "@/shared/components/ui/Button";
 import { Separator } from "@/shared/components/ui/Separator";
@@ -64,6 +65,7 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState("midtrans");
   const [voucherCode, setVoucherCode] = useState(location.state?.voucherCode || "");
   const [error, setError] = useState("");
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const addresses = addressesQuery.data || [];
   const requestedIds = useMemo(() => Array.isArray(location.state?.cartItemIds) ? location.state.cartItemIds.map(Number).filter(Boolean) : [], [location.state]);
   const selectedItems = useMemo(() => requestedIds.length ? items.filter((item) => requestedIds.includes(item.cartItemId)) : items, [items, requestedIds]);
@@ -196,7 +198,7 @@ export default function CheckoutPage() {
       <div className="flex items-center mb-8">
         {STEPS.map((item, index) => (
           <div key={item.key} className="flex items-center">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${index < currentStepIdx ? "bg-green-100 text-green-600" : index === currentStepIdx ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-400"}`}>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${index < currentStepIdx ? "bg-green-100 text-green-600" : index === currentStepIdx ? "bg-[#03ac0e] text-white" : "bg-gray-100 text-gray-400"}`}>
               {index < currentStepIdx ? <CheckCircle size={14} /> : item.icon}
               <span className="hidden sm:inline font-medium">{item.label}</span>
             </div>
@@ -209,16 +211,16 @@ export default function CheckoutPage() {
         <div className="lg:col-span-2 space-y-4">
           {step === "address" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MapPin size={18} className="text-orange-500" />Pilih Alamat Pengiriman</h2>
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MapPin size={18} className="text-[#03ac0e]" />Pilih Alamat Pengiriman</h2>
               {addressesQuery.isLoading ? <p className="text-sm text-gray-500">Memuat alamat...</p> : null}
               <div className="space-y-3">
                 {addresses.map((address) => (
-                  <label key={address.id} className={`flex gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${addressId === address.id ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-orange-200"}`}>
-                    <input type="radio" className="mt-1 accent-orange-500" checked={addressId === address.id} onChange={() => setAddressId(address.id)} />
+                  <label key={address.id} className={`flex gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${addressId === address.id ? "border-[#03ac0e] bg-[#f4fff8]" : "border-gray-200 hover:border-[#03ac0e]/30"}`}>
+                    <input type="radio" className="mt-1 accent-[#03ac0e]" checked={addressId === address.id} onChange={() => setAddressId(address.id)} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm text-gray-800">{address.recipientName}</p>
-                        <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">{address.label}</span>
+                        <span className="text-xs bg-[#e9fbea] text-[#03ac0e] px-2 py-0.5 rounded-full">{address.label}</span>
                         {address.isPrimary ? <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Utama</span> : null}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">{address.phoneNumber}</p>
@@ -226,7 +228,7 @@ export default function CheckoutPage() {
                     </div>
                   </label>
                 ))}
-                <button type="button" onClick={() => navigate("/profile/addresses")} className="w-full border-2 border-dashed border-gray-300 rounded-xl p-3 text-sm text-gray-500 hover:border-orange-300 hover:text-orange-500 transition">
+                <button type="button" onClick={() => setShowAddressModal(true)} className="w-full border-2 border-dashed border-gray-300 rounded-xl p-3 text-sm text-gray-500 hover:border-[#03ac0e]/40 hover:text-[#03ac0e] transition">
                   + Tambah Alamat Baru
                 </button>
               </div>
@@ -237,13 +239,13 @@ export default function CheckoutPage() {
 
           {step === "shipping" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Truck size={18} className="text-orange-500" />Pilih Metode Pengiriman</h2>
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Truck size={18} className="text-[#03ac0e]" />Pilih Metode Pengiriman</h2>
               {shippingQuery.isLoading ? <p className="text-sm text-gray-500">Menghitung ongkir...</p> : null}
               {shippingQuery.error ? <p className="text-sm text-red-500">{getOrderError(shippingQuery.error)}</p> : null}
               <div className="space-y-2">
                 {shippingOptions.map((option) => (
-                  <label key={option.id} className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${String(shipping?.id) === String(option.id) ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-orange-200"}`}>
-                    <input type="radio" className="accent-orange-500" checked={String(shipping?.id) === String(option.id)} onChange={() => setShippingId(String(option.id))} />
+                  <label key={option.id} className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${String(shipping?.id) === String(option.id) ? "border-[#03ac0e] bg-[#f4fff8]" : "border-gray-200 hover:border-[#03ac0e]/30"}`}>
+                    <input type="radio" className="accent-[#03ac0e]" checked={String(shipping?.id) === String(option.id)} onChange={() => setShippingId(String(option.id))} />
                     <div className="flex-1">
                       <p className="font-medium text-sm text-gray-800">{option.courier_label || String(option.courier || "").toUpperCase()} — {option.service}</p>
                       <p className="text-xs text-gray-500">{option.description || option.estimated_days || option.etd || "Estimasi mengikuti layanan kurir"}</p>
@@ -261,13 +263,13 @@ export default function CheckoutPage() {
 
           {step === "payment" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><CreditCard size={18} className="text-orange-500" />Metode Pembayaran</h2>
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><CreditCard size={18} className="text-[#03ac0e]" />Metode Pembayaran</h2>
               <div className="grid grid-cols-2 gap-2">
                 {availablePaymentMethods.map((method) => {
                   const Icon = method.icon;
                   return (
-                    <label key={method.id} className={`flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all ${payment === method.id ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-orange-200"}`}>
-                      <input type="radio" className="accent-orange-500" checked={payment === method.id} onChange={() => setPayment(method.id)} />
+                    <label key={method.id} className={`flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all ${payment === method.id ? "border-[#03ac0e] bg-[#f4fff8]" : "border-gray-200 hover:border-[#03ac0e]/30"}`}>
+                      <input type="radio" className="accent-[#03ac0e]" checked={payment === method.id} onChange={() => setPayment(method.id)} />
                       <Icon size={17} />
                       <span className="text-sm font-medium text-gray-700">{method.label}</span>
                     </label>
@@ -283,7 +285,7 @@ export default function CheckoutPage() {
 
           {step === "review" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-              <h2 className="font-bold text-gray-800 flex items-center gap-2"><ShoppingBag size={18} className="text-orange-500" />Review Pesanan</h2>
+              <h2 className="font-bold text-gray-800 flex items-center gap-2"><ShoppingBag size={18} className="text-[#03ac0e]" />Review Pesanan</h2>
               <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
                 <p className="font-medium text-gray-700">Alamat</p>
                 <p className="text-gray-600">{selectedAddress?.recipientName} · {selectedAddress?.phoneNumber}</p>
@@ -306,7 +308,7 @@ export default function CheckoutPage() {
               </div>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-gray-600">Kode Voucher</span>
-                <input value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.toUpperCase())} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400" placeholder="Masukkan kode voucher" />
+                <input value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.toUpperCase())} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#03ac0e]" placeholder="Masukkan kode voucher" />
               </label>
               {error ? <p className="text-sm text-red-500">{error}</p> : null}
               <div className="flex gap-2">
@@ -328,10 +330,20 @@ export default function CheckoutPage() {
           <Separator className="my-3" />
           <div className="flex justify-between font-bold text-gray-900">
             <span>Total</span>
-            <span className="text-orange-500 text-lg">{formatPrice(total)}</span>
+            <span className="text-[#03ac0e] text-lg">{formatPrice(total)}</span>
           </div>
         </div>
       </div>
+
+      <InstantAddressModal
+        open={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        defaultPrimary={addresses.length === 0}
+        onCreated={(address) => {
+          setAddressId(address.id);
+          setShowAddressModal(false);
+        }}
+      />
     </div>
   );
 }

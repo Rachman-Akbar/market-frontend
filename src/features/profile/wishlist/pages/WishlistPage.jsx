@@ -36,13 +36,13 @@ export default function WishlistPage() {
         {!loading && filteredItems.map((item) => (
           <div key={item.productId} className="min-h-[104px] py-6">
             <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#fff1ec] text-[#ee4d2d]">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#e9fbea] text-[#03ac0e]">
                 {item.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-full w-full object-cover" /> : <Heart size={22} />}
               </div>
               <div className="min-w-0">
-                <Link to={`/products/${item.slug || item.productId}`} className="text-base font-semibold text-slate-950 hover:text-[#ee4d2d]">{item.productName}</Link>
+                <Link to={`/products/${item.slug || item.productId}`} className="text-base font-semibold text-slate-950 hover:text-[#03ac0e]">{item.productName}</Link>
                 <p className="text-sm text-slate-500">{item.storeName}</p>
-                <p className="mt-1 text-sm font-semibold text-[#ee4d2d]">{formatPrice(item.price)}</p>
+                <p className="mt-1 text-sm font-semibold text-[#03ac0e]">{formatPrice(item.price)}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => addItem({ productId: item.productId, variantId: item.variantId, quantity: 1 })} className={profileLayout.primaryButton}><ShoppingCart size={16} /> Beli</button>
@@ -55,7 +55,7 @@ export default function WishlistPage() {
 
         {!loading && !filteredItems.length ? (
           <div className="py-16 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#fff1ec] text-[#ee4d2d]"><Heart size={34} /></div>
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#e9fbea] text-[#03ac0e]"><Heart size={34} /></div>
             <h3 className="text-xl font-light text-slate-950">Wishlist kosong</h3>
             <p className="mt-2 text-sm text-slate-500">Produk yang Anda sukai akan tampil di sini.</p>
           </div>

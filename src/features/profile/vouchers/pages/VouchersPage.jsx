@@ -58,7 +58,7 @@ export default function VouchersPage() {
           </label>
           <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
             {FILTERS.map((item) => (
-              <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={`h-9 shrink-0 rounded-full px-4 text-xs font-semibold transition ${filter === item.key ? "bg-[#ee4d2d] text-white" : "bg-white text-slate-500 ring-1 ring-[#e5e7eb] hover:text-[#ee4d2d]"}`}>{item.label}</button>
+              <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={`h-9 shrink-0 rounded-full px-4 text-xs font-semibold transition ${filter === item.key ? "bg-[#03ac0e] text-white" : "bg-white text-slate-500 ring-1 ring-[#e5e7eb] hover:text-[#03ac0e]"}`}>{item.label}</button>
             ))}
           </div>
         </div>
@@ -70,7 +70,7 @@ export default function VouchersPage() {
           const Icon = getVoucherIcon(voucher.discountType);
           return (
             <div key={voucher.id} className="grid min-h-[128px] gap-4 py-6 md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center">
-              <div className="flex items-center gap-3 text-[#ee4d2d] md:block md:text-center">
+              <div className="flex items-center gap-3 text-[#03ac0e] md:block md:text-center">
                 {voucher.imageUrl ? (
                   <img src={voucher.imageUrl} alt={voucher.name} className="h-16 w-24 rounded-xl object-cover ring-1 ring-[#e5e7eb] md:mx-auto md:mb-2" />
                 ) : (
@@ -81,13 +81,13 @@ export default function VouchersPage() {
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <h3 className="text-base font-semibold text-slate-950">{voucher.name}</h3>
-                  <span className="rounded-full bg-[#fff1ec] px-2 py-0.5 text-[11px] font-semibold text-[#ee4d2d]">Aktif</span>
+                  <span className="rounded-full bg-[#e9fbea] px-2 py-0.5 text-[11px] font-semibold text-[#03ac0e]">Aktif</span>
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Kode: {voucher.code}</p>
                 <p className="mt-2 text-sm text-slate-600">Min. belanja {formatPrice(voucher.minSpend)}</p>
                 <p className="mt-1 text-xs text-slate-400">Berlaku sampai {voucher.endsAt ? new Date(voucher.endsAt).toLocaleDateString("id-ID") : "tanpa batas"}</p>
               </div>
-              <button type="button" onClick={() => navigate("/cart", { state: { voucherCode: voucher.code } })} className="inline-flex h-10 items-center justify-center rounded-full bg-[#ee4d2d] px-5 text-sm font-semibold text-white transition hover:bg-[#d73211]">Pakai</button>
+              <button type="button" onClick={() => navigate("/cart", { state: { voucherCode: voucher.code } })} className="inline-flex h-10 items-center justify-center rounded-full bg-[#03ac0e] px-5 text-sm font-semibold text-white transition hover:bg-[#039f0d]">Pakai</button>
               <hr className="border-[#e5e7eb] md:col-span-3" />
             </div>
           );
@@ -95,7 +95,7 @@ export default function VouchersPage() {
 
         {!vouchersQuery.isLoading && !filteredVouchers.length ? (
           <div className="py-16 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#fff1ec] text-[#ee4d2d]"><TicketPercent size={34} /></div>
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#e9fbea] text-[#03ac0e]"><TicketPercent size={34} /></div>
             <h3 className="text-xl font-light text-slate-950">Voucher tidak ditemukan</h3>
             <p className="mt-2 text-sm text-slate-500">Belum ada voucher aktif yang sesuai filter.</p>
           </div>

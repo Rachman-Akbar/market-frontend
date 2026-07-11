@@ -29,7 +29,7 @@ export function ProfileChatWindow({ thread }) {
     <section className={profileLayout.chatPanel} aria-label="Ruang chat">
       <header className={profileLayout.chatHeader}>
         <div className="flex min-w-0 items-center">
-          <div className={cn("mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white", thread.avatar || "from-orange-500 to-rose-500")}>
+          <div className={cn("mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white", thread.avatar || "from-emerald-500 to-green-600")}>
             {initials}
           </div>
           <div className="min-w-0">
@@ -38,9 +38,9 @@ export function ProfileChatWindow({ thread }) {
           </div>
         </div>
         <div className="flex items-center gap-5 text-slate-500">
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Video"><Video size={20} /></button>
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Cari"><Search size={20} /></button>
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Menu"><MoreVertical size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Video"><Video size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Cari"><Search size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Menu"><MoreVertical size={20} /></button>
         </div>
       </header>
 
@@ -64,14 +64,14 @@ export function ProfileChatWindow({ thread }) {
 
       <footer className={profileLayout.chatFooter}>
         <div className="flex items-center gap-3 text-slate-500">
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Tambah"><Plus size={20} /></button>
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Emoji"><Smile size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Tambah"><Plus size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Emoji"><Smile size={20} /></button>
         </div>
         <form className="flex flex-1 items-center">
           <input type="text" autoComplete="off" placeholder="Ketik pesan" className="h-10 w-full rounded-lg border-0 bg-[#f0f2f5] px-4 text-sm text-slate-800 outline-none placeholder:text-slate-400" />
         </form>
-        <button type="button" className="text-slate-500 transition hover:text-[#ee4d2d]" aria-label="Rekam"><Mic size={20} /></button>
-        <button type="button" className="text-[#ee4d2d] transition hover:text-[#d73211]" aria-label="Kirim"><Send size={20} /></button>
+        <button type="button" className="text-slate-500 transition hover:text-[#03ac0e]" aria-label="Rekam"><Mic size={20} /></button>
+        <button type="button" className="text-[#03ac0e] transition hover:text-[#039f0d]" aria-label="Kirim"><Send size={20} /></button>
       </footer>
     </section>
   );

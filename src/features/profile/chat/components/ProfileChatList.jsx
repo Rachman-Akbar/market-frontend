@@ -8,8 +8,8 @@ export function ProfileChatList({ threads = [], activeId, onSelect }) {
       <div className={profileLayout.sidebarHeader}>
         <h1 className={profileLayout.sidebarTitle}>Chat</h1>
         <div className="flex items-center gap-3 text-slate-500">
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Chat baru"><SquarePlus size={20} /></button>
-          <button type="button" className="transition hover:text-[#ee4d2d]" aria-label="Menu"><MoreVertical size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Chat baru"><SquarePlus size={20} /></button>
+          <button type="button" className="transition hover:text-[#03ac0e]" aria-label="Menu"><MoreVertical size={20} /></button>
         </div>
       </div>
 
@@ -21,13 +21,13 @@ export function ProfileChatList({ threads = [], activeId, onSelect }) {
       </div>
 
       <div className={profileLayout.filterRow}>
-        <button type="button" className="shrink-0 rounded-full bg-[#fff1ec] px-3 py-1 font-semibold text-[#ee4d2d]">Semua</button>
-        <button type="button" className="shrink-0 rounded-full bg-[#f0f2f5] px-3 py-1 font-semibold text-slate-500 transition hover:bg-[#fff1ec] hover:text-[#ee4d2d]">Belum dibaca</button>
-        <button type="button" className="shrink-0 rounded-full bg-[#f0f2f5] px-3 py-1 font-semibold text-slate-500 transition hover:bg-[#fff1ec] hover:text-[#ee4d2d]">Favorit</button>
+        <button type="button" className="shrink-0 rounded-full bg-[#e9fbea] px-3 py-1 font-semibold text-[#03ac0e]">Semua</button>
+        <button type="button" className="shrink-0 rounded-full bg-[#f0f2f5] px-3 py-1 font-semibold text-slate-500 transition hover:bg-[#e9fbea] hover:text-[#03ac0e]">Belum dibaca</button>
+        <button type="button" className="shrink-0 rounded-full bg-[#f0f2f5] px-3 py-1 font-semibold text-slate-500 transition hover:bg-[#e9fbea] hover:text-[#03ac0e]">Favorit</button>
       </div>
 
       <button type="button" className="flex h-[52px] shrink-0 items-center px-4 text-left text-sm font-medium text-slate-800 transition hover:bg-[#f7f8fa]">
-        <Archive size={17} className="mr-6 text-[#ee4d2d]" />
+        <Archive size={17} className="mr-6 text-[#03ac0e]" />
         <span className="flex-1">Diarsipkan</span>
       </button>
       <hr className={profileLayout.divider} />
@@ -42,9 +42,9 @@ export function ProfileChatList({ threads = [], activeId, onSelect }) {
               key={thread.id}
               type="button"
               onClick={() => onSelect(thread.id)}
-              className={cn(profileLayout.listItem, active ? "bg-[#fff7f3]" : "hover:bg-[#f7f8fa]")}
+              className={cn(profileLayout.listItem, active ? "bg-[#f4fff8]" : "hover:bg-[#f7f8fa]")}
             >
-              <div className={cn("relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white", thread.avatar || "from-orange-500 to-rose-500")}>
+              <div className={cn("relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white", thread.avatar || "from-emerald-500 to-green-600")}>
                 {initials}
                 <span className={cn("absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white", thread.status === "online" ? "bg-[#25d366]" : "bg-slate-300")} />
               </div>
@@ -53,8 +53,8 @@ export function ProfileChatList({ threads = [], activeId, onSelect }) {
                 <p className="mt-1 truncate text-xs text-slate-500">{thread.lastMessage}</p>
               </div>
               <div className="flex flex-col items-end gap-2 pt-0.5">
-                <span className={cn("text-[11px] font-medium", thread.unread > 0 ? "text-[#ee4d2d]" : "text-slate-400")}>{thread.time}</span>
-                {thread.unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ee4d2d] px-1.5 text-[11px] font-bold text-white">{thread.unread}</span>}
+                <span className={cn("text-[11px] font-medium", thread.unread > 0 ? "text-[#03ac0e]" : "text-slate-400")}>{thread.time}</span>
+                {thread.unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#03ac0e] px-1.5 text-[11px] font-bold text-white">{thread.unread}</span>}
               </div>
               <hr className={profileLayout.listDivider} />
             </button>
@@ -62,7 +62,7 @@ export function ProfileChatList({ threads = [], activeId, onSelect }) {
         })}
       </div>
 
-      <div className="flex h-14 shrink-0 items-center gap-3 border-t border-[#e5e7eb] bg-white px-4 text-xs font-medium text-[#ee4d2d]">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-t border-[#e5e7eb] bg-white px-4 text-xs font-medium text-[#03ac0e]">
         <Laptop size={16} />
         <span className="cursor-pointer hover:underline">Gunakan chat marketplace versi desktop</span>
       </div>
