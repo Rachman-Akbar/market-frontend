@@ -4,7 +4,10 @@ import { VariantSelector } from "./VariantSelector";
 import { ProductCheckoutPanel } from "@/features/catalog/product/components/ProductCheckoutPanel";
 import { ReviewSection } from "@/features/order/review/components/ReviewSection";
 import { formatPrice } from "@/shared/utils/utils";
-import { useProductBySlug, useProductVariants } from "@/features/catalog/product/services/productService";
+import {
+  useProductBySlug,
+  useProductVariants,
+} from "@/features/catalog/product/services/productService";
 import { getCategoryHref } from "@/features/catalog/category/services/categoryService";
 
 const DETAIL_TABS = ["Detail Produk", "Panduan"];
@@ -26,21 +29,26 @@ export function ProductDetailClient({ slug }) {
   });
   const product = useMemo(() => {
     if (!baseProduct) return null;
-    if (baseProduct.variants?.length || !variantsQuery.data?.data?.length) return baseProduct;
+    if (baseProduct.variants?.length || !variantsQuery.data?.data?.length)
+      return baseProduct;
     const variants = variantsQuery.data.data;
     return {
       ...baseProduct,
       variants,
-      default_variant: variants.find((variant) => variant.is_default) || variants[0] || null,
+      default_variant:
+        variants.find((variant) => variant.is_default) || variants[0] || null,
     };
   }, [baseProduct, variantsQuery.data]);
 
   useEffect(() => {
-    setSelectedVariant(product?.default_variant || product?.variants?.[0] || null);
+    setSelectedVariant(
+      product?.default_variant || product?.variants?.[0] || null,
+    );
   }, [product?.id, product?.default_variant?.id]);
 
   const loading = productQuery.isLoading || variantsQuery.isLoading;
-  const error = productQuery.error?.message || variantsQuery.error?.message || "";
+  const error =
+    productQuery.error?.message || variantsQuery.error?.message || "";
 
   const handleVariantChange = useCallback((variant) => {
     setSelectedVariant(variant || null);
@@ -76,14 +84,21 @@ export function ProductDetailClient({ slug }) {
 
   return (
     <main className="max-w-[1200px] mx-auto px-4 py-4">
-      <nav className="mb-6 text-xs text-[#03ac0e] font-semibold">
+      <nav className="mb-6 text-xs text-[#10B981] font-semibold">
         <div className="flex items-center flex-wrap gap-1">
           <span className="after:content-['>'] after:mx-2 after:text-gray-400">
-            <a href="#" className="hover:underline">Home</a>
+            <a href="#" className="hover:underline">
+              Home
+            </a>
           </span>
           {categories.slice(0, 3).map((crumb) => (
-            <span key={crumb.id || crumb.slug || crumb.name} className="after:content-['>'] after:mx-2 after:text-gray-400">
-              <a href={getCategoryHref(crumb)} className="hover:underline">{crumb.name}</a>
+            <span
+              key={crumb.id || crumb.slug || crumb.name}
+              className="after:content-['>'] after:mx-2 after:text-gray-400"
+            >
+              <a href={getCategoryHref(crumb)} className="hover:underline">
+                {crumb.name}
+              </a>
             </span>
           ))}
           <span className="text-gray-400">{product.name}</span>
@@ -103,13 +118,22 @@ export function ProductDetailClient({ slug }) {
           <div className="flex items-center text-sm mb-4 gap-2">
             {!!product.sold && (
               <span className="text-gray-500">
-                Terjual <span className="text-gray-800 font-semibold">{product.sold}</span>
+                Terjual{" "}
+                <span className="text-gray-800 font-semibold">
+                  {product.sold}
+                </span>
               </span>
             )}
-            {!!product.sold && !!product.rating && <span className="text-gray-300">•</span>}
+            {!!product.sold && !!product.rating && (
+              <span className="text-gray-300">•</span>
+            )}
             {!!product.rating && (
               <div className="flex items-center gap-1">
-                <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="w-4 h-4 text-yellow-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
                 <span className="font-bold">{product.rating}</span>
@@ -117,10 +141,15 @@ export function ProductDetailClient({ slug }) {
             )}
           </div>
 
-          <div className="text-3xl font-bold mb-6">{formatPrice(activePrice)}</div>
+          <div className="text-3xl font-bold mb-6">
+            {formatPrice(activePrice)}
+          </div>
           <hr className="mb-6 border-gray-100" />
 
-          <VariantSelector variants={product.variants} onVariantChange={handleVariantChange} />
+          <VariantSelector
+            variants={product.variants}
+            onVariantChange={handleVariantChange}
+          />
 
           <div className="border-b border-gray-200 mb-4">
             <div className="flex gap-8">
@@ -130,8 +159,8 @@ export function ProductDetailClient({ slug }) {
                   onClick={() => setActiveTab(i)}
                   className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
                     i === activeTab
-                      ? "border-[#03ac0e] text-[#03ac0e] font-bold"
-                      : "border-transparent text-gray-500 hover:text-[#03ac0e]"
+                      ? "border-[#10B981] text-[#10B981] font-bold"
+                      : "border-transparent text-gray-500 hover:text-[#10B981]"
                   }`}
                 >
                   {tab}
@@ -166,7 +195,9 @@ export function ProductDetailClient({ slug }) {
             )}
             {activeTab === 1 && (
               <div className="space-y-4">
-                <p className="leading-relaxed">Panduan produk belum tersedia.</p>
+                <p className="leading-relaxed">
+                  Panduan produk belum tersedia.
+                </p>
               </div>
             )}
 
@@ -184,7 +215,11 @@ export function ProductDetailClient({ slug }) {
                 <div>
                   <div className="flex items-center gap-1">
                     <span className="font-bold">{product.brand || "Toko"}</span>
-                    <svg className="w-4 h-4 text-[#03ac0e]" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-4 h-4 text-[#10B981]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
                     </svg>
                   </div>
@@ -193,7 +228,7 @@ export function ProductDetailClient({ slug }) {
                   </div>
                 </div>
               </div>
-              <button className="px-6 py-1.5 border border-[#03ac0e] text-[#03ac0e] font-bold rounded-lg hover:bg-gray-50">
+              <button className="px-6 py-1.5 border border-[#10B981] text-[#10B981] font-bold rounded-lg hover:bg-gray-50">
                 Follow
               </button>
             </div>
@@ -205,7 +240,10 @@ export function ProductDetailClient({ slug }) {
         </aside>
 
         <div className="lg:col-span-9">
-          <ReviewSection reviews={product.reviews} summary={product.review_summary} />
+          <ReviewSection
+            reviews={product.reviews}
+            summary={product.review_summary}
+          />
         </div>
       </div>
     </main>

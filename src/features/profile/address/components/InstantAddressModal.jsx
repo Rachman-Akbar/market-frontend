@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, LoaderCircle, MapPin, X } from "lucide-react";
-import { getAddressError, useCreateAddress } from "@/features/profile/address/addressService";
+import {
+  getAddressError,
+  useCreateAddress,
+} from "@/features/profile/address/addressService";
 import AddressMapTracker from "@/features/profile/address/components/AddressMapTracker";
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
 
@@ -82,7 +85,7 @@ export default function InstantAddressModal({
       form.postalCode,
       form.province,
       form.subdistrict,
-    ]
+    ],
   );
 
   const update = (key, value) => {
@@ -201,7 +204,9 @@ export default function InstantAddressModal({
     ];
 
     if (required.some((value) => !String(value || "").trim())) {
-      setMessage("Lengkapi identitas penerima, wilayah, alamat, dan pinpoint lokasi.");
+      setMessage(
+        "Lengkapi identitas penerima, wilayah, alamat, dan pinpoint lokasi.",
+      );
       return;
     }
 
@@ -224,7 +229,7 @@ export default function InstantAddressModal({
       <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#03ac0e]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#10B981]">
               Alamat instan
             </p>
             <h2 className="mt-1 text-xl font-black text-slate-950">
@@ -258,7 +263,7 @@ export default function InstantAddressModal({
                 <input
                   value={form[key]}
                   onChange={(event) => update(key, event.target.value)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#03ac0e] focus:bg-white focus:ring-2 focus:ring-[#03ac0e]/10"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#10B981] focus:bg-white focus:ring-2 focus:ring-[#10B981]/10"
                 />
               </Field>
             ))}
@@ -270,14 +275,14 @@ export default function InstantAddressModal({
                 value={form.fullAddress}
                 onChange={(event) => update("fullAddress", event.target.value)}
                 rows={3}
-                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-[#03ac0e] focus:bg-white focus:ring-2 focus:ring-[#03ac0e]/10"
+                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-[#10B981] focus:bg-white focus:ring-2 focus:ring-[#10B981]/10"
               />
             </Field>
             <Field label="Catatan atau patokan">
               <input
                 value={form.notes}
                 onChange={(event) => update("notes", event.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#03ac0e] focus:bg-white focus:ring-2 focus:ring-[#03ac0e]/10"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#10B981] focus:bg-white focus:ring-2 focus:ring-[#10B981]/10"
                 placeholder="Contoh: Pagar hitam dekat minimarket"
               />
             </Field>
@@ -294,12 +299,15 @@ export default function InstantAddressModal({
             />
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[#03ac0e]/20 bg-[#f4fff8] px-4 py-3">
+          <div className="mt-4 rounded-2xl border border-[#10B981]/20 bg-[#ECFDF5] px-4 py-3">
             <div className="flex items-start gap-3">
               {destinationState.loading ? (
-                <LoaderCircle className="mt-0.5 animate-spin text-[#03ac0e]" size={18} />
+                <LoaderCircle
+                  className="mt-0.5 animate-spin text-[#10B981]"
+                  size={18}
+                />
               ) : form.komerceDestinationId ? (
-                <CheckCircle2 className="mt-0.5 text-[#03ac0e]" size={18} />
+                <CheckCircle2 className="mt-0.5 text-[#10B981]" size={18} />
               ) : (
                 <MapPin className="mt-0.5 text-slate-400" size={18} />
               )}
@@ -309,18 +317,27 @@ export default function InstantAddressModal({
                 </p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
                   {destinationState.message ||
-                    "OpenStreetMap mengisi wilayah dan backend mencocokkan ID tujuan kurir secara otomatis."}
+                    "OpenStreetMap mengisi wilayah. ID tujuan kurir akan diisi jika pencocokan backend menemukan data yang valid."}
                 </p>
               </div>
             </div>
           </div>
+
+          <Field label="Komerce Destination ID (opsional)">
+            <input
+              readOnly
+              value={form.komerceDestinationId}
+              placeholder="Terisi otomatis dari backend"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none"
+            />
+          </Field>
 
           <label className="mt-4 flex items-center gap-2 text-sm text-slate-600">
             <input
               type="checkbox"
               checked={form.isPrimary}
               onChange={(event) => update("isPrimary", event.target.checked)}
-              className="accent-[#03ac0e]"
+              className="accent-[#10B981]"
             />
             Jadikan alamat utama
           </label>
@@ -336,7 +353,7 @@ export default function InstantAddressModal({
           <button
             type="button"
             onClick={onClose}
-            className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-600 transition hover:border-[#03ac0e] hover:text-[#03ac0e]"
+            className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-600 transition hover:border-[#10B981] hover:text-[#10B981]"
           >
             Batal
           </button>
@@ -344,9 +361,11 @@ export default function InstantAddressModal({
             type="button"
             onClick={submit}
             disabled={createMutation.isPending || destinationState.loading}
-            className="h-11 rounded-xl bg-[#03ac0e] px-5 text-sm font-black text-white transition hover:bg-[#039f0d] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 rounded-xl bg-[#10B981] px-5 text-sm font-black text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {createMutation.isPending ? "Menyimpan..." : "Simpan dan Pilih Alamat"}
+            {createMutation.isPending
+              ? "Menyimpan..."
+              : "Simpan dan Pilih Alamat"}
           </button>
         </div>
       </div>

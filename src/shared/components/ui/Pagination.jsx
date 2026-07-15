@@ -6,7 +6,13 @@ function createPages(current, total) {
     return Array.from({ length: safeTotal }, (_, index) => index + 1);
   }
 
-  const pages = new Set([1, safeTotal, safeCurrent, safeCurrent - 1, safeCurrent + 1]);
+  const pages = new Set([
+    1,
+    safeTotal,
+    safeCurrent,
+    safeCurrent - 1,
+    safeCurrent + 1,
+  ]);
   return Array.from(pages)
     .filter((page) => page >= 1 && page <= safeTotal)
     .sort((a, b) => a - b)
@@ -33,7 +39,7 @@ export function Pagination({ current = 1, total = 1, onChange = () => {} }) {
         type="button"
         disabled={safeCurrent <= 1}
         onClick={() => moveTo(safeCurrent - 1)}
-        className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#bccbb4] hover:border-[#006e04] text-[#3e4a39] transition-all disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#bccbb4] hover:border-[#047857] text-[#3e4a39] transition-all disabled:cursor-not-allowed disabled:opacity-40"
       >
         <span className="material-symbols-outlined">chevron_left</span>
       </button>
@@ -49,19 +55,19 @@ export function Pagination({ current = 1, total = 1, onChange = () => {} }) {
             onClick={() => moveTo(page)}
             className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
               page === safeCurrent
-                ? "bg-[#03ac0e] text-white font-bold"
+                ? "bg-[#10B981] text-white font-bold"
                 : "border border-[#bccbb4] hover:bg-[#f6f3f2]"
             }`}
           >
             {page}
           </button>
-        )
+        ),
       )}
       <button
         type="button"
         disabled={safeCurrent >= safeTotal}
         onClick={() => moveTo(safeCurrent + 1)}
-        className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#bccbb4] hover:border-[#006e04] text-[#3e4a39] transition-all disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#bccbb4] hover:border-[#047857] text-[#3e4a39] transition-all disabled:cursor-not-allowed disabled:opacity-40"
       >
         <span className="material-symbols-outlined">chevron_right</span>
       </button>

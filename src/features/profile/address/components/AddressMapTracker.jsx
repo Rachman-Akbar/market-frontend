@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -12,7 +12,7 @@ function createPinIcon() {
   return L.divIcon({
     className: "",
     html: `
-      <div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:#03ac0e;border:3px solid #ffffff;box-shadow:0 8px 20px rgba(15,23,42,.28);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
+      <div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:#10B981;border:3px solid #ffffff;box-shadow:0 8px 20px rgba(15,23,42,.28);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
         <div style="width:10px;height:10px;border-radius:9999px;background:#ffffff;transform:rotate(45deg);"></div>
       </div>
     `,
@@ -24,6 +24,34 @@ function createPinIcon() {
 function formatCoordinate(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number.toFixed(8) : "";
+}
+
+function getAddressSignature(values = {}) {
+  return [
+    values.fullAddress,
+    values.subdistrict,
+    values.district,
+    values.cityOrRegency,
+    values.province,
+    values.postalCode,
+    values.country,
+  ]
+    .map((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    )
+    .join("|");
+}
+
+function isAddressReady(values = {}) {
+  return Boolean(
+    String(values.province || "").trim() &&
+      String(values.cityOrRegency || "").trim() &&
+      String(values.district || "").trim() &&
+      String(values.subdistrict || "").trim() &&
+      String(values.fullAddress || "").trim(),
+  );
 }
 
 export default function AddressMapTracker({
@@ -39,6 +67,8 @@ export default function AddressMapTracker({
   const markerRef = useRef(null);
   const coordinateHandlerRef = useRef(onCoordinateChange);
   const addressHandlerRef = useRef(onAddressResolved);
+  const lastAutomaticSearchRef = useRef("");
+  const skipAutomaticSearchUntilRef = useRef(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -55,6 +85,82 @@ export default function AddressMapTracker({
 
     return [lat, lng];
   }, [latitude, longitude]);
+
+  const setMapCoordinate = useCallback((lat, lng, zoom = 16) => {
+    const coordinate = [lat, lng];
+    mapRef.current?.setView(coordinate, zoom);
+    markerRef.current?.setOpacity(1);
+    markerRef.current?.setLatLng(coordinate);
+    coordinateHandlerRef.current?.({
+      latitude: formatCoordinate(lat),
+      longitude: formatCoordinate(lng),
+    });
+  }, []);
+
+  const resolveFromPoint = useCallback(
+    async (lat, lng, successMessage) => {
+      setMapCoordinate(lat, lng, 17);
+      setLoading(true);
+      setMessage("Membaca alamat dari OpenStreetMap...");
+
+      try {
+        const address = await reverseGeocode(lat, lng);
+        skipAutomaticSearchUntilRef.current = Date.now() + 1800;
+        lastAutomaticSearchRef.current = getAddressSignature(address);
+        addressHandlerRef.current?.(address);
+        setMessage(successMessage || "Lokasi berhasil ditemukan.");
+      } catch (error) {
+        setMessage(error.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setMapCoordinate],
+  );
+
+  const resolveFromForm = useCallback(
+    async ({ automatic = false } = {}) => {
+      if (!isAddressReady(addressValues)) {
+        if (!automatic) {
+          setMessage(
+            "Lengkapi alamat, kelurahan, kecamatan, kota/kabupaten, dan provinsi terlebih dahulu.",
+          );
+        }
+        return;
+      }
+
+      const signature = getAddressSignature(addressValues);
+
+      if (automatic && signature === lastAutomaticSearchRef.current) {
+        return;
+      }
+
+      setLoading(true);
+      setMessage(
+        automatic
+          ? "Menyinkronkan pin dari form alamat..."
+          : "Mencari lokasi dari data alamat...",
+      );
+
+      try {
+        const result = await forwardGeocode(addressValues);
+        lastAutomaticSearchRef.current = signature;
+        skipAutomaticSearchUntilRef.current = Date.now() + 1200;
+        setMapCoordinate(result.latitude, result.longitude, 16);
+        addressHandlerRef.current?.(result.address);
+        setMessage(
+          automatic
+            ? "Pin otomatis disesuaikan dari form alamat."
+            : "Lokasi dari form berhasil ditemukan.",
+        );
+      } catch (error) {
+        setMessage(error.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [addressValues, setMapCoordinate],
+  );
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -82,34 +188,17 @@ export default function AddressMapTracker({
       marker.setOpacity(0);
     }
 
-    const updateFromPoint = async (lat, lng) => {
-      marker.setOpacity(1);
-      marker.setLatLng([lat, lng]);
-      coordinateHandlerRef.current?.({
-        latitude: formatCoordinate(lat),
-        longitude: formatCoordinate(lng),
-      });
-      setLoading(true);
-      setMessage("Membaca alamat dari OpenStreetMap...");
-
-      try {
-        const address = await reverseGeocode(lat, lng);
-        addressHandlerRef.current?.(address);
-        setMessage("Lokasi berhasil ditemukan.");
-      } catch (error) {
-        setMessage(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     marker.on("dragend", () => {
       const point = marker.getLatLng();
-      updateFromPoint(point.lat, point.lng);
+      resolveFromPoint(point.lat, point.lng, "Pin berhasil dipindahkan.");
     });
 
     map.on("click", (event) => {
-      updateFromPoint(event.latlng.lat, event.latlng.lng);
+      resolveFromPoint(
+        event.latlng.lat,
+        event.latlng.lng,
+        "Lokasi pada peta berhasil dipilih.",
+      );
     });
 
     mapRef.current = map;
@@ -133,6 +222,27 @@ export default function AddressMapTracker({
     markerRef.current.setLatLng(currentCoordinate);
   }, [currentCoordinate]);
 
+  useEffect(() => {
+    if (
+      !isAddressReady(addressValues) ||
+      Date.now() < skipAutomaticSearchUntilRef.current
+    ) {
+      return;
+    }
+
+    const signature = getAddressSignature(addressValues);
+
+    if (!signature || signature === lastAutomaticSearchRef.current) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      resolveFromForm({ automatic: true });
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [addressValues, resolveFromForm]);
+
   const locateCurrentPosition = () => {
     setMessage("");
 
@@ -146,32 +256,19 @@ export default function AddressMapTracker({
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-
-        mapRef.current?.setView([lat, lng], 17);
-        markerRef.current?.setOpacity(1);
-        markerRef.current?.setLatLng([lat, lng]);
-        coordinateHandlerRef.current?.({
-          latitude: formatCoordinate(lat),
-          longitude: formatCoordinate(lng),
-        });
-
-        try {
-          const address = await reverseGeocode(lat, lng);
-          addressHandlerRef.current?.(address);
-          setMessage("Lokasi perangkat berhasil digunakan.");
-        } catch (error) {
-          setMessage(error.message);
-        } finally {
-          setLoading(false);
-        }
+        await resolveFromPoint(
+          position.coords.latitude,
+          position.coords.longitude,
+          "Lokasi perangkat berhasil digunakan.",
+        );
       },
       (error) => {
         setLoading(false);
 
         if (error.code === error.PERMISSION_DENIED) {
-          setMessage("Izin lokasi ditolak. Klik peta atau cari dari form.");
+          setMessage(
+            "Izin lokasi ditolak. Klik peta atau isi alamat secara manual.",
+          );
           return;
         }
 
@@ -181,32 +278,8 @@ export default function AddressMapTracker({
         enableHighAccuracy: true,
         timeout: 12000,
         maximumAge: 60000,
-      }
+      },
     );
-  };
-
-  const locateFromForm = async () => {
-    setLoading(true);
-    setMessage("Mencari lokasi dari data alamat...");
-
-    try {
-      const result = await forwardGeocode(addressValues);
-      const coordinate = [result.latitude, result.longitude];
-
-      mapRef.current?.setView(coordinate, 16);
-      markerRef.current?.setOpacity(1);
-      markerRef.current?.setLatLng(coordinate);
-      coordinateHandlerRef.current?.({
-        latitude: formatCoordinate(result.latitude),
-        longitude: formatCoordinate(result.longitude),
-      });
-      addressHandlerRef.current?.(result.address);
-      setMessage("Lokasi dari form berhasil ditemukan.");
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -215,24 +288,25 @@ export default function AddressMapTracker({
         <div>
           <p className="text-sm font-black text-slate-900">Pinpoint lokasi</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Klik peta, geser pin, gunakan lokasi perangkat, atau cari dari alamat.
+            Klik peta, geser pin, gunakan lokasi perangkat, atau isi form alamat
+            untuk sinkronisasi otomatis.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={locateFromForm}
+            onClick={() => resolveFromForm()}
             disabled={loading}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:border-[#03ac0e] hover:text-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:border-[#10B981] hover:text-[#047857] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Cari dari Form
+            Sinkronkan dari Form
           </button>
           <button
             type="button"
             onClick={locateCurrentPosition}
             disabled={loading}
-            className="h-10 rounded-xl bg-[#03ac0e] px-3 text-xs font-black text-white transition hover:bg-[#039f0d] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 rounded-xl bg-[#10B981] px-3 text-xs font-black text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Gunakan Lokasi Saya
           </button>
@@ -241,14 +315,12 @@ export default function AddressMapTracker({
 
       <div
         ref={containerRef}
-        className={`${compact ? "h-[280px]" : "h-[360px]"} w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100`}
+        className={`${compact ? "h-[280px]" : "h-[360px]"} w-full overflow-hidden rounded-2xl border border-slate-200 bg-white`}
       />
 
       {message ? (
         <p
-          className={`text-xs font-semibold ${
-            message.includes("berhasil") ? "text-[#03ac0e]" : "text-slate-500"
-          }`}
+          className={`text-xs font-semibold ${message.includes("berhasil") || message.includes("otomatis") ? "text-[#10B981]" : "text-slate-500"}`}
         >
           {message}
         </p>

@@ -1,10 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight, Fingerprint, Info, KeyRound, Lock, LogOut, MapPinCheck, Monitor, Plus, ShieldCheck, Trash2, X } from "lucide-react";
+import {
+  ChevronRight,
+  Fingerprint,
+  Info,
+  KeyRound,
+  Lock,
+  LogOut,
+  MapPinCheck,
+  Monitor,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
-import { getAddressError, useAddresses, useCreateAddress, useDeleteAddress, useUpdateAddress } from "@/features/profile/address/addressService";
+import {
+  getAddressError,
+  useAddresses,
+  useCreateAddress,
+  useDeleteAddress,
+  useUpdateAddress,
+} from "@/features/profile/address/addressService";
 import { apiClient, getApiMessage } from "@/core/utils/apiClient";
 import AddressMapTracker from "@/features/profile/address/components/AddressMapTracker";
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
@@ -37,43 +56,69 @@ const EMPTY_ADDRESS = {
 function Field({ label, children }) {
   return (
     <label className="block min-h-[74px] border-b border-[#e5e7eb] pb-3">
-      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</span>
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+        {label}
+      </span>
       {children}
     </label>
   );
 }
 
 function BiodataTab({ user, refreshMe }) {
-  const [form, setForm] = useState({ name: user.name || "", email: user.email || "" });
+  const [form, setForm] = useState({
+    name: user.name || "",
+    email: user.email || "",
+  });
   const [message, setMessage] = useState("");
   const mutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.put(`/api/v1/identity/users/${user.id}`, form);
+      const response = await apiClient.put(
+        `/api/v1/identity/users/${user.id}`,
+        form,
+      );
       return response.data;
     },
     onSuccess: async () => {
       await refreshMe?.();
       setMessage("Biodata berhasil diperbarui.");
     },
-    onError: (error) => setMessage(getApiMessage(error, "Biodata gagal diperbarui.")),
+    onError: (error) =>
+      setMessage(getApiMessage(error, "Biodata gagal diperbarui.")),
   });
 
   return (
     <div className="max-w-[640px] space-y-6">
       <Field label="Nama Lengkap">
-        <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="h-8 w-full border-0 bg-transparent p-0 text-[15px] font-medium text-slate-900 outline-none" />
+        <input
+          value={form.name}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, name: event.target.value }))
+          }
+          className="h-8 w-full border-0 bg-transparent p-0 text-[15px] font-medium text-slate-900 outline-none"
+        />
       </Field>
       <Field label="Email">
-        <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} className="h-8 w-full border-0 bg-transparent p-0 text-[15px] font-medium text-slate-900 outline-none" />
+        <input
+          type="email"
+          value={form.email}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, email: event.target.value }))
+          }
+          className="h-8 w-full border-0 bg-transparent p-0 text-[15px] font-medium text-slate-900 outline-none"
+        />
       </Field>
       {message ? <p className="text-sm text-slate-500">{message}</p> : null}
-      <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate()} className={profileLayout.primaryButton}>
+      <button
+        type="button"
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate()}
+        className={profileLayout.primaryButton}
+      >
         {mutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
       </button>
     </div>
   );
 }
-
 
 function AddressForm({ initialValue, onClose }) {
   const [form, setForm] = useState(initialValue || EMPTY_ADDRESS);
@@ -85,10 +130,7 @@ function AddressForm({ initialValue, onClose }) {
   const createMutation = useCreateAddress();
   const updateMutation = useUpdateAddress();
   const isEdit = Boolean(initialValue?.id);
-  const pending =
-    createMutation.isPending ||
-    updateMutation.isPending ||
-    destinationStatus.loading;
+  const pending = createMutation.isPending || updateMutation.isPending;
 
   const addressValues = useMemo(
     () => ({
@@ -108,7 +150,7 @@ function AddressForm({ initialValue, onClose }) {
       form.postalCode,
       form.province,
       form.subdistrict,
-    ]
+    ],
   );
 
   const update = (key, value) => {
@@ -215,13 +257,9 @@ function AddressForm({ initialValue, onClose }) {
       form.longitude,
     ];
 
-    if (
-      requiredValues.some(
-        (value) => String(value ?? "").trim() === ""
-      )
-    ) {
+    if (requiredValues.some((value) => String(value ?? "").trim() === "")) {
       setMessage(
-        "Lengkapi identitas penerima, wilayah, alamat, dan pinpoint lokasi."
+        "Lengkapi identitas penerima, wilayah, alamat, dan pinpoint lokasi.",
       );
       return;
     }
@@ -265,10 +303,8 @@ function AddressForm({ initialValue, onClose }) {
             </span>
             <input
               value={form[field.key]}
-              onChange={(event) =>
-                update(field.key, event.target.value)
-              }
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#03ac0e]"
+              onChange={(event) => update(field.key, event.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#10B981]"
             />
           </label>
         ))}
@@ -280,10 +316,8 @@ function AddressForm({ initialValue, onClose }) {
         </span>
         <textarea
           value={form.fullAddress}
-          onChange={(event) =>
-            update("fullAddress", event.target.value)
-          }
-          className="min-h-24 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-[#03ac0e]"
+          onChange={(event) => update("fullAddress", event.target.value)}
+          className="min-h-24 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-[#10B981]"
         />
       </label>
 
@@ -294,7 +328,7 @@ function AddressForm({ initialValue, onClose }) {
         <input
           value={form.notes}
           onChange={(event) => update("notes", event.target.value)}
-          className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#03ac0e]"
+          className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-[#10B981]"
         />
       </label>
 
@@ -306,7 +340,7 @@ function AddressForm({ initialValue, onClose }) {
         onAddressResolved={resolveAddress}
       />
 
-      <div className="rounded-2xl border border-[#03ac0e]/20 bg-[#f4fff8] px-4 py-3">
+      <div className="rounded-2xl border border-[#10B981]/20 bg-[#ECFDF5] px-4 py-3">
         <p className="text-sm font-black text-slate-800">
           Tujuan logistik terisi otomatis
         </p>
@@ -316,11 +350,21 @@ function AddressForm({ initialValue, onClose }) {
         </p>
       </div>
 
+      <label className="block space-y-1.5">
+        <span className="text-xs font-semibold text-slate-500">
+          Komerce Destination ID (opsional)
+        </span>
+        <input
+          readOnly
+          value={form.komerceDestinationId}
+          placeholder="Terisi otomatis dari backend"
+          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none"
+        />
+      </label>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1.5">
-          <span className="text-xs font-semibold text-slate-500">
-            Latitude
-          </span>
+          <span className="text-xs font-semibold text-slate-500">Latitude</span>
           <input
             readOnly
             value={form.latitude}
@@ -343,17 +387,13 @@ function AddressForm({ initialValue, onClose }) {
         <input
           type="checkbox"
           checked={form.isPrimary}
-          onChange={(event) =>
-            update("isPrimary", event.target.checked)
-          }
-          className="accent-[#03ac0e]"
+          onChange={(event) => update("isPrimary", event.target.checked)}
+          className="accent-[#10B981]"
         />
         Jadikan alamat utama
       </label>
 
-      {message ? (
-        <p className="text-sm text-red-500">{message}</p>
-      ) : null}
+      {message ? <p className="text-sm text-red-500">{message}</p> : null}
 
       <div className="flex justify-end gap-3">
         <button
@@ -376,7 +416,6 @@ function AddressForm({ initialValue, onClose }) {
   );
 }
 
-
 function AlamatTab() {
   const addressesQuery = useAddresses();
   const deleteMutation = useDeleteAddress();
@@ -384,33 +423,99 @@ function AlamatTab() {
   const [showForm, setShowForm] = useState(false);
   const addresses = addressesQuery.data || [];
 
-  if (showForm) return <AddressForm initialValue={editing} onClose={() => { setShowForm(false); setEditing(null); }} />;
+  if (showForm)
+    return (
+      <AddressForm
+        initialValue={editing}
+        onClose={() => {
+          setShowForm(false);
+          setEditing(null);
+        }}
+      />
+    );
 
   return (
     <div className="max-w-[760px]">
       <div className="mb-4 flex h-10 justify-end">
-        <button type="button" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 text-sm font-semibold text-[#03ac0e] hover:underline"><Plus size={16} />Tambah Alamat</button>
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#10B981] hover:underline"
+        >
+          <Plus size={16} />
+          Tambah Alamat
+        </button>
       </div>
-      {addressesQuery.isLoading ? <p className="py-8 text-sm text-slate-500">Memuat alamat...</p> : null}
-      {!addressesQuery.isLoading && !addresses.length ? <p className="py-8 text-sm text-slate-500">Belum ada alamat tersimpan.</p> : null}
+      {addressesQuery.isLoading ? (
+        <p className="py-8 text-sm text-slate-500">Memuat alamat...</p>
+      ) : null}
+      {!addressesQuery.isLoading && !addresses.length ? (
+        <p className="py-8 text-sm text-slate-500">
+          Belum ada alamat tersimpan.
+        </p>
+      ) : null}
       <div>
         {addresses.map((address) => (
           <div key={address.id} className="group min-h-[152px] py-5">
             <div className="mb-3 flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-slate-950">{address.label}</span>
-                {address.isPrimary ? <span className="rounded-full border border-[#03ac0e]/25 bg-[#e9fbea] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#03ac0e]">Utama</span> : null}
+                <span className="text-sm font-semibold text-slate-950">
+                  {address.label}
+                </span>
+                {address.isPrimary ? (
+                  <span className="rounded-full border border-[#10B981]/25 bg-[#D1FAE5] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
+                    Utama
+                  </span>
+                ) : null}
               </div>
               <div className="flex items-center gap-3 opacity-0 transition group-hover:opacity-100">
-                <button type="button" onClick={() => { setEditing(address); setShowForm(true); }} className="text-sm font-semibold text-slate-400 hover:text-[#03ac0e]">Ubah</button>
-                <button type="button" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate(address.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={16} /></button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(address);
+                    setShowForm(true);
+                  }}
+                  className="text-sm font-semibold text-slate-400 hover:text-[#10B981]"
+                >
+                  Ubah
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(address.id)}
+                  className="text-slate-400 hover:text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
-            <h4 className="text-[15px] font-semibold text-slate-950">{address.recipientName}</h4>
+            <h4 className="text-[15px] font-semibold text-slate-950">
+              {address.recipientName}
+            </h4>
             <p className="mt-1 text-sm text-slate-500">{address.phoneNumber}</p>
-            <p className="mt-1 text-sm leading-6 text-slate-500">{[address.fullAddress, address.subdistrict, address.district, address.cityOrRegency, address.province, address.postalCode].filter(Boolean).join(", ")}</p>
-            {address.notes ? <p className="mt-1 text-xs font-medium text-slate-400">{address.notes}</p> : null}
-            {address.latitude && address.longitude ? <p className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-[#03ac0e]"><MapPinCheck size={15} />Pinpoint akurat</p> : null}
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              {[
+                address.fullAddress,
+                address.subdistrict,
+                address.district,
+                address.cityOrRegency,
+                address.province,
+                address.postalCode,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+            {address.notes ? (
+              <p className="mt-1 text-xs font-medium text-slate-400">
+                {address.notes}
+              </p>
+            ) : null}
+            {address.latitude && address.longitude ? (
+              <p className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-[#10B981]">
+                <MapPinCheck size={15} />
+                Pinpoint akurat
+              </p>
+            ) : null}
             <hr className="mt-5 border-[#e5e7eb]" />
           </div>
         ))}
@@ -418,7 +523,6 @@ function AlamatTab() {
     </div>
   );
 }
-
 
 function PasswordModal({ open, userId, onClose, onSuccess }) {
   const [form, setForm] = useState({
@@ -449,12 +553,9 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
         throw new Error("Konfirmasi kata sandi tidak cocok.");
       }
 
-      const response = await apiClient.put(
-        `/api/v1/identity/users/${userId}`,
-        {
-          password: form.password,
-        }
-      );
+      const response = await apiClient.put(`/api/v1/identity/users/${userId}`, {
+        password: form.password,
+      });
 
       return response.data;
     },
@@ -463,9 +564,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
       onClose?.();
     },
     onError: (error) => {
-      setMessage(
-        getApiMessage(error, "Kata sandi gagal ditambahkan.")
-      );
+      setMessage(getApiMessage(error, "Kata sandi gagal ditambahkan."));
     },
   });
 
@@ -478,7 +577,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
       <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#03ac0e]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#10B981]">
               Keamanan akun
             </p>
             <h2 className="mt-1 text-xl font-black text-slate-950">
@@ -497,8 +596,8 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
 
         <div className="space-y-4 px-6 py-5">
           <p className="text-sm leading-6 text-slate-500">
-            Kata sandi memungkinkan akun Google ini masuk menggunakan
-            email dan kata sandi tanpa menghapus koneksi Google.
+            Kata sandi memungkinkan akun Google ini masuk menggunakan email dan
+            kata sandi tanpa menghapus koneksi Google.
           </p>
 
           <label className="block space-y-2">
@@ -514,7 +613,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
                   password: event.target.value,
                 }))
               }
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#03ac0e] focus:ring-2 focus:ring-[#03ac0e]/10"
+              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
               autoComplete="new-password"
             />
           </label>
@@ -532,7 +631,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
                   confirmation: event.target.value,
                 }))
               }
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#03ac0e] focus:ring-2 focus:ring-[#03ac0e]/10"
+              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
               autoComplete="new-password"
             />
           </label>
@@ -558,9 +657,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
             disabled={mutation.isPending}
             className={profileLayout.primaryButton}
           >
-            {mutation.isPending
-              ? "Menyimpan..."
-              : "Simpan Kata Sandi"}
+            {mutation.isPending ? "Menyimpan..." : "Simpan Kata Sandi"}
           </button>
         </div>
       </div>
@@ -569,14 +666,44 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
 }
 
 function KeamananTab({ onLogout }) {
-  const currentDevice = useMemo(() => `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`, []);
+  const currentDevice = useMemo(
+    () =>
+      `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`,
+    [],
+  );
   return (
     <div className="max-w-[760px]">
-      <div className="mb-8 flex min-h-[64px] gap-3 border-l-2 border-[#03ac0e] bg-[#f4fff8] px-4 py-3 text-sm leading-6 text-slate-600"><Info className="mt-0.5 shrink-0 text-[#03ac0e]" size={18} /><p>Bila terdapat aktivitas tidak dikenal, segera keluar dari perangkat dan perbarui kata sandi melalui pengaturan keamanan.</p></div>
-      <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Perangkat Aktif</h3>
-      <div className="group flex min-h-[72px] items-center gap-5 py-4"><Monitor className="text-[#03ac0e]" size={24} /><div><b className="block text-[15px] font-medium text-slate-950">Browser saat ini</b><span className="text-xs text-slate-400">{currentDevice} • <span className="text-[#03ac0e]">Sedang aktif</span></span></div></div>
+      <div className="mb-8 flex min-h-[64px] gap-3 border-l-2 border-[#10B981] bg-[#ECFDF5] px-4 py-3 text-sm leading-6 text-slate-600">
+        <Info className="mt-0.5 shrink-0 text-[#10B981]" size={18} />
+        <p>
+          Bila terdapat aktivitas tidak dikenal, segera keluar dari perangkat
+          dan perbarui kata sandi melalui pengaturan keamanan.
+        </p>
+      </div>
+      <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+        Perangkat Aktif
+      </h3>
+      <div className="group flex min-h-[72px] items-center gap-5 py-4">
+        <Monitor className="text-[#10B981]" size={24} />
+        <div>
+          <b className="block text-[15px] font-medium text-slate-950">
+            Browser saat ini
+          </b>
+          <span className="text-xs text-slate-400">
+            {currentDevice} •{" "}
+            <span className="text-[#10B981]">Sedang aktif</span>
+          </span>
+        </div>
+      </div>
       <hr className="border-[#e5e7eb]" />
-      <button type="button" onClick={onLogout} className="mt-8 inline-flex h-10 items-center gap-2 text-sm font-semibold text-red-500 hover:text-red-600"><LogOut size={16} />Logout Device Ini</button>
+      <button
+        type="button"
+        onClick={onLogout}
+        className="mt-8 inline-flex h-10 items-center gap-2 text-sm font-semibold text-red-500 hover:text-red-600"
+      >
+        <LogOut size={16} />
+        Logout Device Ini
+      </button>
     </div>
   );
 }
@@ -594,26 +721,41 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
     id: authUser?.id || "",
     name: authUser?.name || "User",
     email: authUser?.email || "",
-    username: authUser?.username || String(authUser?.email || "user").split("@")[0],
+    username:
+      authUser?.username || String(authUser?.email || "user").split("@")[0],
   };
   const initial = user.name.slice(0, 1).toUpperCase();
   const isGoogleAccount = Boolean(
-    authUser?.firebase_uid || authUser?.firebaseUid
+    authUser?.firebase_uid || authUser?.firebaseUid,
   );
   const handleLogout = async () => {
     await logout?.();
     queryClient.clear();
-    navigate("/");
+    window.close();
+    window.setTimeout(() => {
+      if (!window.closed) navigate("/", { replace: true });
+    }, 120);
   };
 
   return (
     <section className={profileLayout.page}>
-      <aside className="hidden h-full w-[360px] shrink-0 flex-col overflow-y-auto border-r border-[#e5e7eb] bg-white md:flex" aria-label="Profil pengguna">
+      <aside
+        className="hidden h-full w-[360px] shrink-0 flex-col overflow-y-auto border-r border-[#e5e7eb] bg-white md:flex"
+        aria-label="Profil pengguna"
+      >
         <div className="flex min-h-[300px] flex-col items-center border-b border-[#e5e7eb] px-8 py-8 text-center">
-          <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-[#03ac0e] text-5xl font-bold text-white shadow-inner">{initial}</div>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950">{user.name}</h2>
-          <span className="mb-6 text-sm font-medium text-[#03ac0e]">@{user.username}</span>
-          <button type="button" className={profileLayout.secondaryButton}>Ubah Foto</button>
+          <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-[#10B981] text-5xl font-bold text-white shadow-inner">
+            {initial}
+          </div>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">
+            {user.name}
+          </h2>
+          <span className="mb-6 text-sm font-medium text-[#10B981]">
+            @{user.username}
+          </span>
+          <button type="button" className={profileLayout.secondaryButton}>
+            Ubah Foto
+          </button>
         </div>
         <div className="py-2">
           {isGoogleAccount ? (
@@ -621,7 +763,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
               <button
                 type="button"
                 onClick={() => setShowPasswordModal(true)}
-                className="flex h-14 w-full items-center justify-between px-8 text-left text-sm font-medium text-slate-800 transition hover:bg-[#f4fff8] hover:text-[#03ac0e]"
+                className="flex h-14 w-full items-center justify-between px-8 text-left text-sm font-medium text-slate-800 transition hover:bg-[#ECFDF5] hover:text-[#10B981]"
               >
                 <span className="flex items-center gap-3">
                   <KeyRound size={16} className="text-slate-400" />
@@ -640,7 +782,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
             <div key={label}>
               <button
                 type="button"
-                className="flex h-14 w-full items-center justify-between px-8 text-left text-sm font-medium text-slate-800 transition hover:bg-[#f4fff8] hover:text-[#03ac0e]"
+                className="flex h-14 w-full items-center justify-between px-8 text-left text-sm font-medium text-slate-800 transition hover:bg-[#ECFDF5] hover:text-[#10B981]"
               >
                 <span className="flex items-center gap-3">
                   <Icon size={16} className="text-slate-400" />
@@ -654,7 +796,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
 
           <Link
             to="/profile/notifications"
-            className="flex h-14 w-full items-center justify-between px-8 text-left text-sm font-medium text-slate-800 transition hover:bg-[#f4fff8] hover:text-[#03ac0e]"
+            className="flex h-14 w-full items-center justify-between px-8 text-left text-sm font-medium text-slate-800 transition hover:bg-[#ECFDF5] hover:text-[#10B981]"
           >
             <span className="flex items-center gap-3">
               <ShieldCheck size={16} className="text-slate-400" />
@@ -678,13 +820,44 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
 
       <div className={profileLayout.contentShell}>
         <div className={profileLayout.contentInner}>
-          <div className={profileLayout.contentHeader}><div><span className={profileLayout.contentEyebrow}>Account settings</span><h1 className={profileLayout.contentTitle}>Pengaturan Akun</h1><p className={`mt-2 ${profileLayout.contentDesc}`}>Kelola profil pembeli, alamat, dan keamanan akun marketplace.</p></div></div>
-          <div className="mb-8 flex h-12 gap-8 overflow-x-auto border-b border-[#e5e7eb]" role="tablist">
-            {TABS.map((tab) => <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} className={cn("shrink-0 border-b-2 pb-3 text-sm font-semibold transition", activeTab === tab.key ? "border-[#03ac0e] text-[#03ac0e]" : "border-transparent text-slate-400 hover:text-slate-900")}>{tab.label}</button>)}
+          <div className={profileLayout.contentHeader}>
+            <div>
+              <span className={profileLayout.contentEyebrow}>
+                Account settings
+              </span>
+              <h1 className={profileLayout.contentTitle}>Pengaturan Akun</h1>
+              <p className={`mt-2 ${profileLayout.contentDesc}`}>
+                Kelola profil pembeli, alamat, dan keamanan akun marketplace.
+              </p>
+            </div>
           </div>
-          {activeTab === "biodata" ? <BiodataTab user={user} refreshMe={refreshMe} /> : null}
+          <div
+            className="mb-8 flex h-12 gap-8 overflow-x-auto border-b border-[#e5e7eb]"
+            role="tablist"
+          >
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "shrink-0 border-b-2 pb-3 text-sm font-semibold transition",
+                  activeTab === tab.key
+                    ? "border-[#10B981] text-[#10B981]"
+                    : "border-transparent text-slate-400 hover:text-slate-900",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {activeTab === "biodata" ? (
+            <BiodataTab user={user} refreshMe={refreshMe} />
+          ) : null}
           {activeTab === "alamat" ? <AlamatTab /> : null}
-          {activeTab === "keamanan" ? <KeamananTab onLogout={handleLogout} /> : null}
+          {activeTab === "keamanan" ? (
+            <KeamananTab onLogout={handleLogout} />
+          ) : null}
         </div>
       </div>
 

@@ -6,41 +6,171 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 const WishlistContext = createContext(null);
 const WISHLIST_KEY = ["order", "wishlist"];
 
+function getImageUrl(product = {}, item = {}) {
+  const images = Array.isArray(product.images)
+    ? product.images
+    : Array.isArray(product.product_images)
+      ? product.product_images
+      : [];
+
+  const primaryImage =
+    images.find((image) => image.is_primary) || images[0] || null;
+
+  return (
+    item.thumbnail ||
+    item.image ||
+    item.image_url ||
+    product.thumbnail ||
+    product.image ||
+    product.image_url ||
+    primaryImage?.url ||
+    primaryImage?.image_url ||
+    ""
+  );
+}
+
 function normalizeWishlistItem(item = {}) {
+  const product =
+    item.product ||
+    item.product_detail ||
+    item.product_data ||
+    item;
+
+  const variants = Array.isArray(product.variants)
+    ? product.variants
+    : Array.isArray(product.product_variants)
+      ? product.product_variants
+      : [];
+
+  const defaultVariant =
+    product.default_variant ||
+    variants.find((variant) => Boolean(variant.is_default)) ||
+    variants[0] ||
+    null;
+
+  const productId = Number(
+    item.product_id ??
+      product.product_id ??
+      product.id ??
+      item.id ??
+      0,
+  );
+
+  const variantId = Number(
+    item.default_variant_id ??
+      item.variant_id ??
+      item.product_variant_id ??
+      defaultVariant?.id ??
+      0,
+  );
+
   return {
-    id: Number(item.id ?? item.product_id ?? 0),
-    productId: Number(item.product_id ?? item.id ?? 0),
-    variantId: Number(item.default_variant_id ?? item.variant_id ?? 0),
-    productName: item.name || item.product_name || "Produk",
-    storeName: item.store_name || "Toko",
-    slug: item.slug || "",
-    brand: item.brand || "",
-    price: Number(item.price || 0),
-    stock: Number(item.stock || 0),
-    imageUrl: item.thumbnail || item.image || "",
-    status: item.status || "",
+    id: Number(item.id ?? productId),
+    productId,
+    variantId,
+    productName:
+      item.product_name ||
+      item.name ||
+      product.name ||
+      product.title ||
+      "Produk",
+    storeId: Number(
+      item.store_id ??
+        product.store_id ??
+        product.store?.id ??
+        0,
+    ),
+    storeName:
+      item.store_name ||
+      product.store_name ||
+      product.store?.name ||
+      product.seller?.store_name ||
+      "Toko",
+    slug:
+      item.slug ||
+      product.slug ||
+      String(productId || ""),
+    brand:
+      item.brand ||
+      product.brand ||
+      product.brand_name ||
+      "",
+    price: Number(
+      item.price ??
+        product.price ??
+        product.min_price ??
+        defaultVariant?.price ??
+        0,
+    ),
+    stock: Number(
+      item.stock ??
+        product.stock ??
+        product.total_stock ??
+        defaultVariant?.stock ??
+        0,
+    ),
+    imageUrl: getImageUrl(product, item),
+    status:
+      item.status ||
+      product.status ||
+      "",
+    location:
+      item.location ||
+      product.location ||
+      product.city ||
+      product.store?.city ||
+      "",
+    raw: item,
   };
+}
+
+function getWishlistRows(payload) {
+  const source = payload?.data ?? payload;
+
+  if (Array.isArray(source)) {
+    return source;
+  }
+
+  if (Array.isArray(source?.data)) {
+    return source.data;
+  }
+
+  if (Array.isArray(source?.items)) {
+    return source.items;
+  }
+
+  if (Array.isArray(source?.wishlist)) {
+    return source.wishlist;
+  }
+
+  return [];
 }
 
 async function fetchWishlist() {
   const response = await apiClient.get("/api/v1/order/wishlist");
-  const rows = response.data?.data || [];
-  return Array.isArray(rows) ? rows.map(normalizeWishlistItem) : [];
+  return getWishlistRows(response.data).map(normalizeWishlistItem);
 }
 
 async function addWishlistItem(productId) {
-  await apiClient.post("/api/v1/order/wishlist", { product_id: Number(productId) });
+  await apiClient.post("/api/v1/order/wishlist", {
+    product_id: Number(productId),
+  });
+
   return Number(productId);
 }
 
 async function removeWishlistItem(productId) {
-  await apiClient.delete(`/api/v1/order/wishlist/${productId}`);
+  await apiClient.delete(
+    `/api/v1/order/wishlist/${Number(productId)}`,
+  );
+
   return Number(productId);
 }
 
 export function WishlistProvider({ children }) {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
+
   const wishlistQuery = useQuery({
     queryKey: WISHLIST_KEY,
     queryFn: fetchWishlist,
@@ -50,43 +180,109 @@ export function WishlistProvider({ children }) {
 
   const addMutation = useMutation({
     mutationFn: addWishlistItem,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: WISHLIST_KEY }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: WISHLIST_KEY,
+      }),
   });
+
   const removeMutation = useMutation({
     mutationFn: removeWishlistItem,
     onMutate: async (productId) => {
-      await queryClient.cancelQueries({ queryKey: WISHLIST_KEY });
-      const previous = queryClient.getQueryData(WISHLIST_KEY) || [];
-      queryClient.setQueryData(WISHLIST_KEY, previous.filter((row) => row.productId !== productId));
+      await queryClient.cancelQueries({
+        queryKey: WISHLIST_KEY,
+      });
+
+      const previous =
+        queryClient.getQueryData(WISHLIST_KEY) || [];
+
+      queryClient.setQueryData(
+        WISHLIST_KEY,
+        previous.filter(
+          (row) =>
+            Number(row.productId) !== Number(productId),
+        ),
+      );
+
       return { previous };
     },
-    onError: (_error, _productId, context) => queryClient.setQueryData(WISHLIST_KEY, context?.previous || []),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: WISHLIST_KEY }),
+    onError: (_error, _productId, context) => {
+      queryClient.setQueryData(
+        WISHLIST_KEY,
+        context?.previous || [],
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: WISHLIST_KEY,
+      }),
   });
 
   const items = wishlistQuery.data || [];
+
   const value = useMemo(
     () => ({
       items,
       loading: wishlistQuery.isLoading,
-      addItem: (item) => addMutation.mutateAsync(Number(item.productId ?? item.id)),
-      removeItem: (productId) => removeMutation.mutateAsync(Number(productId)),
+      error: wishlistQuery.error,
+      addItem: (item) =>
+        addMutation.mutateAsync(
+          Number(item.productId ?? item.id),
+        ),
+      removeItem: (productId) =>
+        removeMutation.mutateAsync(Number(productId)),
       toggleItem: async (item) => {
-        const productId = Number(item.productId ?? item.id);
-        const exists = items.some((row) => row.productId === productId);
-        return exists ? removeMutation.mutateAsync(productId) : addMutation.mutateAsync(productId);
+        const productId = Number(
+          item.productId ?? item.id,
+        );
+
+        const exists = items.some(
+          (row) =>
+            Number(row.productId) === productId,
+        );
+
+        if (exists) {
+          return removeMutation.mutateAsync(productId);
+        }
+
+        return addMutation.mutateAsync(productId);
       },
-      hasItem: (productId) => items.some((row) => row.productId === Number(productId)),
-      mutating: addMutation.isPending || removeMutation.isPending,
+      hasItem: (productId) =>
+        items.some(
+          (row) =>
+            Number(row.productId) ===
+            Number(productId),
+        ),
+      refreshWishlist: () => wishlistQuery.refetch(),
+      mutating:
+        addMutation.isPending ||
+        removeMutation.isPending,
     }),
-    [addMutation, items, removeMutation, wishlistQuery.isLoading]
+    [
+      addMutation,
+      items,
+      removeMutation,
+      wishlistQuery.error,
+      wishlistQuery.isLoading,
+      wishlistQuery.refetch,
+    ],
   );
 
-  return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
+  return (
+    <WishlistContext.Provider value={value}>
+      {children}
+    </WishlistContext.Provider>
+  );
 }
 
 export function useWishlist() {
   const context = useContext(WishlistContext);
-  if (!context) throw new Error("useWishlist harus digunakan di dalam WishlistProvider");
+
+  if (!context) {
+    throw new Error(
+      "useWishlist harus digunakan di dalam WishlistProvider",
+    );
+  }
+
   return context;
 }

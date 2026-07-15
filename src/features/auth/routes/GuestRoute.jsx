@@ -13,7 +13,7 @@ export default function GuestRoute({ children }) {
   if (initializing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#03ac0e]" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#10B981]" />
       </div>
     );
   }

@@ -7,9 +7,17 @@ export function Footer() {
         <div className="space-y-4">
           <h4 className="text-xs font-bold text-[#1b1c1c]">Tokopedia</h4>
           <ul className="space-y-2">
-            {["Tentang Tokopedia", "Hak Kekayaan Intelektual", "Karir", "Blog"].map((item) => (
+            {[
+              "Tentang Tokopedia",
+              "Hak Kekayaan Intelektual",
+              "Karir",
+              "Blog",
+            ].map((item) => (
               <li key={item}>
-                <Link to="#" className="text-xs text-[#3e4a39] hover:text-[#006e04] transition-colors">
+                <Link
+                  to="#"
+                  className="text-xs text-[#3e4a39] hover:text-[#047857] transition-colors"
+                >
                   {item}
                 </Link>
               </li>
@@ -20,26 +28,38 @@ export function Footer() {
         <div className="space-y-4">
           <h4 className="text-xs font-bold text-[#1b1c1c]">Beli</h4>
           <ul className="space-y-2">
-            {["Tagihan & Top Up", "Tukar Tambah HP", "Tokopedia COD"].map((item) => (
-              <li key={item}>
-                <Link to="#" className="text-xs text-[#3e4a39] hover:text-[#006e04] transition-colors">
-                  {item}
-                </Link>
-              </li>
-            ))}
+            {["Tagihan & Top Up", "Tukar Tambah HP", "Tokopedia COD"].map(
+              (item) => (
+                <li key={item}>
+                  <Link
+                    to="#"
+                    className="text-xs text-[#3e4a39] hover:text-[#047857] transition-colors"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
         </div>
 
         <div className="space-y-4">
-          <h4 className="text-xs font-bold text-[#1b1c1c]">Bantuan & Panduan</h4>
+          <h4 className="text-xs font-bold text-[#1b1c1c]">
+            Bantuan & Panduan
+          </h4>
           <ul className="space-y-2">
-            {["Tokopedia Care", "Syarat & Ketentuan", "Kebijakan Privasi"].map((item) => (
-              <li key={item}>
-                <Link to="#" className="text-xs text-[#3e4a39] hover:text-[#006e04] transition-colors">
-                  {item}
-                </Link>
-              </li>
-            ))}
+            {["Tokopedia Care", "Syarat & Ketentuan", "Kebijakan Privasi"].map(
+              (item) => (
+                <li key={item}>
+                  <Link
+                    to="#"
+                    className="text-xs text-[#3e4a39] hover:text-[#047857] transition-colors"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
         </div>
 
@@ -49,9 +69,11 @@ export function Footer() {
             {["public", "photo_camera", "video_library"].map((icon) => (
               <div
                 key={icon}
-                className="w-8 h-8 rounded-lg bg-[#eae7e7] flex items-center justify-center cursor-pointer hover:bg-[#006e04]/20 transition-all"
+                className="w-8 h-8 rounded-lg bg-[#eae7e7] flex items-center justify-center cursor-pointer hover:bg-[#047857]/20 transition-all"
               >
-                <span className="material-symbols-outlined text-[#3e4a39] text-[18px]">{icon}</span>
+                <span className="material-symbols-outlined text-[#3e4a39] text-[18px]">
+                  {icon}
+                </span>
               </div>
             ))}
           </div>

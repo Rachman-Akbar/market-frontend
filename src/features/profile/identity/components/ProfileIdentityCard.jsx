@@ -7,9 +7,13 @@ export function ProfileIdentityCard({ user = null }) {
     <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
         {avatar ? (
-          <img src={avatar} alt={name} className="h-12 w-12 rounded-full object-cover" />
+          <img
+            src={avatar}
+            alt={name}
+            className="h-12 w-12 rounded-full object-cover"
+          />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#03ac0e] text-base font-bold text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#10B981] text-base font-bold text-white">
             {name.charAt(0).toUpperCase()}
           </div>
         )}

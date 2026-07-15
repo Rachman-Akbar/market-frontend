@@ -5,7 +5,7 @@ import App from "./App";
 import { Providers } from "@/shared/providers/Providers";
 import "./styles/globals.css";
 
-document.title = "Tokopedia — Jual Beli Online Aman & Nyaman";
+document.title = "Ziip — Marketplace Hijau dan Terpercaya";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -14,5 +14,5 @@ createRoot(document.getElementById("root")).render(
         <App />
       </Providers>
     </BrowserRouter>
-  </StrictMode>
+  </StrictMode>,
 );

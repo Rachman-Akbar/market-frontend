@@ -64,7 +64,9 @@ function Field({ label, required, children, helper }) {
         {required ? <span className="ml-1 text-red-500">*</span> : null}
       </span>
       {children}
-      {helper ? <span className="block text-xs leading-5 text-slate-400">{helper}</span> : null}
+      {helper ? (
+        <span className="block text-xs leading-5 text-slate-400">{helper}</span>
+      ) : null}
     </label>
   );
 }
@@ -76,7 +78,7 @@ function TextArea({ value, onChange, placeholder, rows = 4 }) {
       onChange={onChange}
       placeholder={placeholder}
       rows={rows}
-      className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#03ac0e] focus:bg-white focus:ring-2 focus:ring-[#03ac0e]/10"
+      className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#10B981] focus:bg-white focus:ring-2 focus:ring-[#10B981]/10"
     />
   );
 }
@@ -84,8 +86,10 @@ function TextArea({ value, onChange, placeholder, rows = 4 }) {
 function UploadField({ label, accept, file, onChange, helper }) {
   return (
     <Field label={label} helper={helper}>
-      <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition hover:border-[#03ac0e] hover:bg-[#f4fff8]">
-        <span className="material-symbols-outlined text-3xl text-[#03ac0e]">add_photo_alternate</span>
+      <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition hover:border-[#10B981] hover:bg-[#ECFDF5]">
+        <span className="material-symbols-outlined text-3xl text-[#10B981]">
+          add_photo_alternate
+        </span>
         <span className="mt-2 text-sm font-black text-slate-700">
           {file ? file.name : `Pilih ${label.toLowerCase()}`}
         </span>
@@ -106,13 +110,15 @@ function StepHeader({ step }) {
 
   return (
     <div className="mb-7">
-      <p className="text-xs font-black uppercase tracking-[0.22em] text-[#03ac0e]">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-[#10B981]">
         Langkah {current.number} dari {STEPS.length}
       </p>
       <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
         {step === 1 ? "Pembuatan identitas toko" : current.title}
       </h1>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{current.description}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">
+        {current.description}
+      </p>
     </div>
   );
 }
@@ -171,7 +177,7 @@ export default function SellerOnboardingPage() {
       form.postal_code,
       form.province,
       form.subdistrict,
-    ]
+    ],
   );
 
   const change = (key) => (event) => {
@@ -202,7 +208,9 @@ export default function SellerOnboardingPage() {
     }
 
     if (file.size > maxSizeMb * 1024 * 1024) {
-      setMessage(`${type === "logo" ? "Logo" : "Banner"} maksimal ${maxSizeMb} MB.`);
+      setMessage(
+        `${type === "logo" ? "Logo" : "Banner"} maksimal ${maxSizeMb} MB.`,
+      );
       event.target.value = "";
       return;
     }
@@ -295,7 +303,11 @@ export default function SellerOnboardingPage() {
         return "Nama toko minimal 3 karakter.";
       }
 
-      if (!form.phone.trim() || !form.owner_name.trim() || !form.owner_phone.trim()) {
+      if (
+        !form.phone.trim() ||
+        !form.owner_name.trim() ||
+        !form.owner_phone.trim()
+      ) {
         return "Telepon toko, nama pemilik, dan telepon pemilik wajib diisi.";
       }
     }
@@ -318,7 +330,12 @@ export default function SellerOnboardingPage() {
       }
     }
 
-    if (step === 3 && form.open_time && form.close_time && form.open_time >= form.close_time) {
+    if (
+      step === 3 &&
+      form.open_time &&
+      form.close_time &&
+      form.open_time >= form.close_time
+    ) {
       return "Jam tutup harus lebih besar dari jam buka.";
     }
 
@@ -372,24 +389,36 @@ export default function SellerOnboardingPage() {
   return (
     <div className="min-h-screen bg-[#f3f4f6] px-4 py-6 sm:px-6 lg:py-8">
       <div className="mx-auto grid min-h-[760px] w-full max-w-7xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] lg:grid-cols-[0.78fr_1.22fr]">
-        <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#00aa5b] via-[#03ac0e] to-[#008c47] p-10 text-white lg:block">
+        <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#10B981] via-[#10B981] to-[#008c47] p-10 text-white lg:block">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/15 blur-2xl" />
           <div className="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-black/10 blur-3xl" />
 
           <div className="relative z-10 flex h-full flex-col">
-            <Link to="/" className="inline-flex w-fit items-center gap-3 rounded-2xl bg-white/14 px-4 py-3 ring-1 ring-white/20 transition hover:bg-white/20">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl font-black text-[#03ac0e]">M</span>
+            <Link
+              to="/"
+              className="inline-flex w-fit items-center gap-3 rounded-2xl bg-white/14 px-4 py-3 ring-1 ring-white/20 transition hover:bg-white/20"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl font-black text-[#10B981]">
+                M
+              </span>
               <div>
                 <p className="text-lg font-black leading-none">MarketKu</p>
-                <p className="mt-1 text-xs font-semibold text-white/75">Seller onboarding</p>
+                <p className="mt-1 text-xs font-semibold text-white/75">
+                  Seller onboarding
+                </p>
               </div>
             </Link>
 
             <div className="mt-14">
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-white/70">Mulai berjualan</p>
-              <h2 className="mt-4 text-4xl font-black leading-tight">Bangun identitas toko dan tentukan lokasi operasionalmu.</h2>
+              <p className="text-sm font-bold uppercase tracking-[0.22em] text-white/70">
+                Mulai berjualan
+              </p>
+              <h2 className="mt-4 text-4xl font-black leading-tight">
+                Bangun identitas toko dan tentukan lokasi operasionalmu.
+              </h2>
               <p className="mt-5 text-sm leading-7 text-white/80">
-                Data toko, lokasi OpenStreetMap, dan alamat logistik disimpan melalui API backend yang sama dengan akun MarketKu.
+                Data toko, lokasi OpenStreetMap, dan alamat logistik disimpan
+                melalui API backend yang sama dengan akun MarketKu.
               </p>
             </div>
 
@@ -403,12 +432,16 @@ export default function SellerOnboardingPage() {
                     key={item.number}
                     className={`flex items-start gap-4 rounded-2xl p-4 ring-1 transition ${active ? "bg-white/20 ring-white/35" : "bg-white/10 ring-white/15"}`}
                   >
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${completed || active ? "bg-white text-[#03ac0e]" : "bg-white/15 text-white"}`}>
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${completed || active ? "bg-white text-[#10B981]" : "bg-white/15 text-white"}`}
+                    >
                       {completed ? "✓" : item.number}
                     </span>
                     <div>
                       <p className="text-sm font-black">{item.title}</p>
-                      <p className="mt-1 text-xs leading-5 text-white/70">{item.description}</p>
+                      <p className="mt-1 text-xs leading-5 text-white/70">
+                        {item.description}
+                      </p>
                     </div>
                   </div>
                 );
@@ -416,8 +449,12 @@ export default function SellerOnboardingPage() {
             </div>
 
             <div className="mt-auto rounded-2xl bg-white/12 p-4 ring-1 ring-white/15">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">Akun aktif</p>
-              <p className="mt-2 text-sm font-black">{user?.name || "Pengguna MarketKu"}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">
+                Akun aktif
+              </p>
+              <p className="mt-2 text-sm font-black">
+                {user?.name || "Pengguna MarketKu"}
+              </p>
               <p className="mt-1 text-xs text-white/70">{user?.email || "-"}</p>
             </div>
           </div>
@@ -426,13 +463,22 @@ export default function SellerOnboardingPage() {
         <main className="min-w-0 bg-white">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-8 lg:hidden">
             <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#03ac0e] text-base font-black text-white">M</span>
-              <span className="text-lg font-black text-[#03ac0e]">MarketKu</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10B981] text-base font-black text-white">
+                M
+              </span>
+              <span className="text-lg font-black text-[#10B981]">
+                MarketKu
+              </span>
             </Link>
-            <span className="text-xs font-black text-slate-500">Langkah {step}/{STEPS.length}</span>
+            <span className="text-xs font-black text-slate-500">
+              Langkah {step}/{STEPS.length}
+            </span>
           </div>
 
-          <form onSubmit={submit} className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+          <form
+            onSubmit={submit}
+            className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10"
+          >
             <StepHeader step={step} />
 
             {step === 1 ? (
@@ -443,7 +489,7 @@ export default function SellerOnboardingPage() {
                       value={form.store_name}
                       onChange={change("store_name")}
                       placeholder="Contoh: MarketKu Official Store"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Deskripsi singkat">
@@ -451,7 +497,7 @@ export default function SellerOnboardingPage() {
                       value={form.short_description}
                       onChange={change("short_description")}
                       placeholder="Maksimal 255 karakter"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Telepon toko" required>
@@ -459,7 +505,7 @@ export default function SellerOnboardingPage() {
                       value={form.phone}
                       onChange={change("phone")}
                       placeholder="08xxxxxxxxxx"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Email toko">
@@ -468,7 +514,7 @@ export default function SellerOnboardingPage() {
                       value={form.email}
                       onChange={change("email")}
                       placeholder="toko@contoh.com"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Nama pemilik" required>
@@ -476,7 +522,7 @@ export default function SellerOnboardingPage() {
                       value={form.owner_name}
                       onChange={change("owner_name")}
                       placeholder="Nama penanggung jawab toko"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Telepon pemilik" required>
@@ -484,7 +530,7 @@ export default function SellerOnboardingPage() {
                       value={form.owner_phone}
                       onChange={change("owner_phone")}
                       placeholder="08xxxxxxxxxx"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                 </div>
@@ -532,7 +578,7 @@ export default function SellerOnboardingPage() {
                       <Input
                         value={form[key]}
                         onChange={change(key)}
-                        className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                        className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                       />
                     </Field>
                   ))}
@@ -552,11 +598,11 @@ export default function SellerOnboardingPage() {
                     value={form.address_notes}
                     onChange={change("address_notes")}
                     placeholder="Contoh: Pagar hitam dekat minimarket"
-                    className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                    className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                   />
                 </Field>
 
-                <div className="rounded-2xl border border-[#03ac0e]/20 bg-[#f4fff8] px-4 py-3">
+                <div className="rounded-2xl border border-[#10B981]/20 bg-[#ECFDF5] px-4 py-3">
                   <p className="text-sm font-black text-slate-800">
                     Tujuan logistik terisi otomatis
                   </p>
@@ -601,7 +647,7 @@ export default function SellerOnboardingPage() {
                       value={form.open_days}
                       onChange={change("open_days")}
                       placeholder="Senin - Sabtu"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Jam buka">
@@ -609,7 +655,7 @@ export default function SellerOnboardingPage() {
                       type="time"
                       value={form.open_time}
                       onChange={change("open_time")}
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Jam tutup">
@@ -617,7 +663,7 @@ export default function SellerOnboardingPage() {
                       type="time"
                       value={form.close_time}
                       onChange={change("close_time")}
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                 </div>
@@ -629,7 +675,7 @@ export default function SellerOnboardingPage() {
                       value={form.website_url}
                       onChange={change("website_url")}
                       placeholder="https://"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                   <Field label="Instagram">
@@ -638,7 +684,7 @@ export default function SellerOnboardingPage() {
                       value={form.instagram_url}
                       onChange={change("instagram_url")}
                       placeholder="https://instagram.com/..."
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
                 </div>
@@ -662,18 +708,30 @@ export default function SellerOnboardingPage() {
                   </Field>
                 </div>
 
-                <div className="rounded-2xl border border-[#03ac0e]/20 bg-[#f4fff8] p-5">
-                  <p className="text-sm font-black text-slate-900">Ringkasan pendaftaran</p>
+                <div className="rounded-2xl border border-[#10B981]/20 bg-[#ECFDF5] p-5">
+                  <p className="text-sm font-black text-slate-900">
+                    Ringkasan pendaftaran
+                  </p>
                   <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Toko</p>
-                      <p className="mt-1 font-black text-slate-800">{form.store_name}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Toko
+                      </p>
+                      <p className="mt-1 font-black text-slate-800">
+                        {form.store_name}
+                      </p>
                       <p className="mt-1 text-slate-500">{form.phone}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Lokasi</p>
-                      <p className="mt-1 font-black text-slate-800">{form.city_or_regency}, {form.province}</p>
-                      <p className="mt-1 line-clamp-2 text-slate-500">{form.full_address}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Lokasi
+                      </p>
+                      <p className="mt-1 font-black text-slate-800">
+                        {form.city_or_regency}, {form.province}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-slate-500">
+                        {form.full_address}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -699,7 +757,10 @@ export default function SellerOnboardingPage() {
                     Kembali
                   </Button>
                 ) : (
-                  <Link to="/" className="text-sm font-black text-slate-500 transition hover:text-[#03ac0e]">
+                  <Link
+                    to="/"
+                    className="text-sm font-black text-slate-500 transition hover:text-[#10B981]"
+                  >
                     Batalkan
                   </Link>
                 )}
@@ -710,7 +771,7 @@ export default function SellerOnboardingPage() {
                   type="button"
                   size="lg"
                   onClick={nextStep}
-                  className="h-12 rounded-xl bg-[#03ac0e] px-6 font-black shadow-[0_14px_30px_rgba(3,172,14,0.2)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e]"
+                  className="h-12 rounded-xl bg-[#10B981] px-6 font-black shadow-[0_14px_30px_rgba(3,172,14,0.2)] hover:bg-[#059669] focus-visible:ring-[#10B981]"
                 >
                   Lanjutkan
                 </Button>
@@ -719,9 +780,11 @@ export default function SellerOnboardingPage() {
                   type="submit"
                   size="lg"
                   disabled={onboardingMutation.isPending}
-                  className="h-12 rounded-xl bg-[#03ac0e] px-6 font-black shadow-[0_14px_30px_rgba(3,172,14,0.2)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-12 rounded-xl bg-[#10B981] px-6 font-black shadow-[0_14px_30px_rgba(3,172,14,0.2)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {onboardingMutation.isPending ? "Membuat Toko..." : "Buat Toko dan Masuk Seller"}
+                  {onboardingMutation.isPending
+                    ? "Membuat Toko..."
+                    : "Buat Toko dan Masuk Seller"}
                 </Button>
               )}
             </div>

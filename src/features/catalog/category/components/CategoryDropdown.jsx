@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { getCategoryHref, useCategoryNavigation } from "@/features/catalog/category/services/categoryService";
-import { VOUCHER_GROUP, VOUCHER_GROUP_KEY } from "@/features/order/voucher/constants/voucherNavigation";
+import {
+  getCategoryHref,
+  useCategoryNavigation,
+} from "@/features/catalog/category/services/categoryService";
+import {
+  VOUCHER_GROUP,
+  VOUCHER_GROUP_KEY,
+} from "@/features/order/voucher/constants/voucherNavigation";
 import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
 import VoucherDropdownPage from "@/features/order/voucher/components/VoucherDropdown";
 
@@ -10,7 +16,11 @@ function sameCategory(a, b) {
   return String(a.key ?? a.id ?? a.slug) === String(b.key ?? b.id ?? b.slug);
 }
 
-export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = "" }) {
+export function CategoryDropdown({
+  open,
+  onClose = () => {},
+  selectedGroupKey = "",
+}) {
   const dropdownRef = useRef(null);
   const [rendered, setRendered] = useState(open);
   const [activeGroup, setActiveGroup] = useState("");
@@ -30,20 +40,27 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
   const navGroups = useMemo(() => [...groups, VOUCHER_GROUP], [groups]);
   const l1List = useMemo(() => {
     if (isVoucherActive) return [];
-    const list = categoriesByGroup[activeGroupKey] ?? categoriesByGroup[Number(activeGroupKey)] ?? [];
+    const list =
+      categoriesByGroup[activeGroupKey] ??
+      categoriesByGroup[Number(activeGroupKey)] ??
+      [];
     return Array.isArray(list) ? list : [];
   }, [activeGroupKey, categoriesByGroup, isVoucherActive]);
   const current = useMemo(() => {
     if (isVoucherActive) return null;
-    if (activeL1 && l1List.some((item) => sameCategory(item, activeL1))) return activeL1;
+    if (activeL1 && l1List.some((item) => sameCategory(item, activeL1)))
+      return activeL1;
     return l1List[0] ?? null;
   }, [activeL1, isVoucherActive, l1List]);
 
-  const handleSetActiveGroup = useCallback((groupKey) => {
-    const nextKey = String(groupKey || "");
-    if (!nextKey || nextKey === activeGroupKey) return;
-    setActiveGroup(nextKey);
-  }, [activeGroupKey]);
+  const handleSetActiveGroup = useCallback(
+    (groupKey) => {
+      const nextKey = String(groupKey || "");
+      if (!nextKey || nextKey === activeGroupKey) return;
+      setActiveGroup(nextKey);
+    },
+    [activeGroupKey],
+  );
   const handleClose = useCallback(() => onClose(), [onClose]);
 
   useEffect(() => {
@@ -58,9 +75,16 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
   useEffect(() => {
     if (!open || !groups.length) return;
     const requested = String(selectedGroupKey || "");
-    const requestedExists = requested && groups.some((group) => String(group.key ?? group.id ?? group.slug) === requested);
-    const nextGroup = requestedExists ? requested : String(groups[0]?.key || groups[0]?.id || "");
-    if (!activeGroupKey || (requestedExists && requested !== activeGroupKey)) setActiveGroup(nextGroup);
+    const requestedExists =
+      requested &&
+      groups.some(
+        (group) => String(group.key ?? group.id ?? group.slug) === requested,
+      );
+    const nextGroup = requestedExists
+      ? requested
+      : String(groups[0]?.key || groups[0]?.id || "");
+    if (!activeGroupKey || (requestedExists && requested !== activeGroupKey))
+      setActiveGroup(nextGroup);
   }, [activeGroupKey, groups, open, selectedGroupKey]);
 
   useEffect(() => {
@@ -122,8 +146,8 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
                   onClick={() => handleSetActiveGroup(groupKey)}
                   className={`whitespace-nowrap border-b-4 px-5 py-3 text-sm font-bold transition-[border-color,color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     isActive
-                      ? "border-[#03ac0e] bg-white text-[#03ac0e]"
-                      : "border-transparent bg-white text-gray-500 hover:text-[#03ac0e]"
+                      ? "border-[#10B981] bg-white text-[#10B981]"
+                      : "border-transparent bg-white text-gray-500 hover:text-[#10B981]"
                   }`}
                 >
                   {group.name}
@@ -143,9 +167,7 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
           <div className="mx-auto flex h-[460px] max-w-[1200px]">
             <div className="w-56 flex-shrink-0 overflow-y-auto overscroll-contain border-r border-gray-200 bg-white py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {loading && (
-                <div className="px-4 py-2 text-xs text-gray-400">
-                  Memuat...
-                </div>
+                <div className="px-4 py-2 text-xs text-gray-400">Memuat...</div>
               )}
 
               {error && (
@@ -169,7 +191,7 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
                     onClick={() => setActiveL1(category)}
                     className={`w-full border-l-4 bg-white px-5 py-2.5 text-left text-sm transition-[border-color,color,background-color,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                       isActive
-                        ? "border-[#03ac0e] font-bold text-[#03ac0e]"
+                        ? "border-[#10B981] font-bold text-[#10B981]"
                         : "border-transparent font-medium text-gray-600 hover:text-gray-900"
                     }`}
                   >
@@ -186,7 +208,7 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
                     <Link
                       to={getCategoryHref(current)}
                       onClick={handleClose}
-                      className="block text-xl font-bold tracking-tight text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#03ac0e]"
+                      className="block text-xl font-bold tracking-tight text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
                     >
                       {current.name}
                     </Link>
@@ -203,7 +225,7 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
                           <Link
                             to={getCategoryHref(levelTwo)}
                             onClick={handleClose}
-                            className="mb-2 block text-sm font-bold text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#03ac0e]"
+                            className="mb-2 block text-sm font-bold text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
                           >
                             {levelTwo.name}
                           </Link>
@@ -222,7 +244,7 @@ export function CategoryDropdown({ open, onClose = () => {}, selectedGroupKey = 
                                   <Link
                                     to={getCategoryHref(levelThree)}
                                     onClick={handleClose}
-                                    className="block text-xs text-gray-500 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#03ac0e]"
+                                    className="block text-xs text-gray-500 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
                                   >
                                     {levelThree.name}
                                   </Link>

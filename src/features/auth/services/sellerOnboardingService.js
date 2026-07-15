@@ -94,6 +94,8 @@ function buildStoreAddressPayload(values = {}) {
     notes: String(values.address_notes || "").trim() || null,
     latitude: toNullableNumber(values.latitude),
     longitude: toNullableNumber(values.longitude),
+    komerce_destination_id:
+      String(values.komerce_destination_id || "").trim() || null,
     is_primary: true,
   };
 }
@@ -107,7 +109,7 @@ async function registerSellerStore(values, files) {
       headers: {
         "X-Device-Name": "marketplace-web-seller-onboarding",
       },
-    }
+    },
   );
 
   return normalizeStore(unwrapApiData(response.data));
@@ -121,7 +123,7 @@ async function createStoreAddress(values) {
       params: {
         scope: "store",
       },
-    }
+    },
   );
 
   return unwrapApiData(response.data);
@@ -151,7 +153,7 @@ export function useSellerOnboarding() {
     onSuccess: ({ store, address }) => {
       queryClient.setQueryData(
         ["seller", "stores", "detail", String(store.id)],
-        store
+        store,
       );
       queryClient.setQueryData(sellerOnboardingKeys.address, [address]);
       queryClient.invalidateQueries({ queryKey: sellerOnboardingKeys.store });
@@ -163,6 +165,6 @@ export function useSellerOnboarding() {
 export function getSellerOnboardingError(error) {
   return getApiMessage(
     error,
-    "Pendaftaran toko gagal diproses. Periksa kembali data yang diisi."
+    "Pendaftaran toko gagal diproses. Periksa kembali data yang diisi.",
   );
 }

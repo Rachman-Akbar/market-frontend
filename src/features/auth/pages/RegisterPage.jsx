@@ -5,7 +5,8 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 
 export default function RegisterPage() {
-  const { registerWithPassword, loginWithGoogle, loading, error, clearError } = useAuth();
+  const { registerWithPassword, loginWithGoogle, loading, error, clearError } =
+    useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
@@ -77,36 +78,45 @@ export default function RegisterPage() {
     <div>
       <div className="mb-8">
         <Link to="/" className="hidden items-center gap-2 lg:inline-flex">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#03ac0e] text-lg font-black text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#10B981] text-lg font-black text-white">
             M
           </span>
-          <span className="text-xl font-black text-[#03ac0e]">MarketKu</span>
+          <span className="text-xl font-black text-[#10B981]">MarketKu</span>
         </Link>
 
         <div className="mt-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">Daftar akun</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Buat akun baru</h1>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#10B981]">
+            Daftar akun
+          </p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+            Buat akun baru
+          </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Daftar sebagai pembeli untuk mulai belanja, menyimpan wishlist, dan melacak pesanan.
+            Daftar sebagai pembeli untuk mulai belanja, menyimpan wishlist, dan
+            melacak pesanan.
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">Nama lengkap</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">
+            Nama lengkap
+          </label>
           <Input
             name="name"
             placeholder="Masukkan nama lengkap"
             value={form.name}
             onChange={handleChange}
             autoComplete="name"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">Email</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">
+            Email
+          </label>
           <Input
             name="email"
             type="email"
@@ -114,12 +124,14 @@ export default function RegisterPage() {
             value={form.email}
             onChange={handleChange}
             autoComplete="email"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">Password</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">
+            Password
+          </label>
           <Input
             name="password"
             type="password"
@@ -127,12 +139,14 @@ export default function RegisterPage() {
             value={form.password}
             onChange={handleChange}
             autoComplete="new-password"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">Konfirmasi password</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">
+            Konfirmasi password
+          </label>
           <Input
             name="confirm"
             type="password"
@@ -140,7 +154,7 @@ export default function RegisterPage() {
             value={form.confirm}
             onChange={handleChange}
             autoComplete="new-password"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
@@ -154,7 +168,7 @@ export default function RegisterPage() {
           type="submit"
           size="lg"
           disabled={loading}
-          className="h-12 w-full rounded-xl bg-[#03ac0e] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-12 w-full rounded-xl bg-[#10B981] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Memproses..." : "Daftar Sekarang"}
         </Button>
@@ -164,7 +178,9 @@ export default function RegisterPage() {
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-xs text-slate-400">
-            <span className="bg-white px-3 font-semibold">atau daftar dengan</span>
+            <span className="bg-white px-3 font-semibold">
+              atau daftar dengan
+            </span>
           </div>
         </div>
 
@@ -173,7 +189,7 @@ export default function RegisterPage() {
           variant="outline"
           disabled={loading}
           onClick={handleGoogleRegister}
-          className="h-12 w-full rounded-xl border-slate-200 font-bold text-slate-700 hover:border-[#03ac0e]/40 hover:bg-[#f4fff8] hover:text-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-12 w-full rounded-xl border-slate-200 font-bold text-slate-700 hover:border-[#10B981]/40 hover:bg-[#ECFDF5] hover:text-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
         >
           Google
         </Button>
@@ -181,7 +197,10 @@ export default function RegisterPage() {
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Sudah punya akun?{" "}
-        <Link to="/auth/login" className="font-black text-[#03ac0e] hover:underline">
+        <Link
+          to="/auth/login"
+          className="font-black text-[#10B981] hover:underline"
+        >
           Masuk
         </Link>
       </p>

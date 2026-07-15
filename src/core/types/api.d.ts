@@ -81,7 +81,7 @@ export interface Address {
   notes: string | null;
   latitude: number | null;
   longitude: number | null;
-  komerceDestinationId: string;
+  komerceDestinationId: string | null;
   isPrimary: boolean;
 }
 
@@ -111,6 +111,8 @@ export interface ShippingOption {
   cost: number;
   etd: string | null;
   type: "delivery" | "pickup";
+  provider?: string;
+  requiresDestinationId?: boolean;
 }
 
 export interface OrderItem {
@@ -139,12 +141,16 @@ export interface SubOrder {
 }
 
 export interface Order {
-  id: number;
+  id: string | number;
   orderNumber: string;
   status: string;
   paymentStatus: string;
   paymentMethod: string;
   snapToken: string | null;
+  paymentUrl?: string | null;
+  redirectUrl?: string | null;
+  midtransClientKey?: string | null;
+  midtransIsProduction?: boolean | null;
   totalItemsPrice: number;
   shippingCost: number;
   discountAmount: number;

@@ -34,24 +34,31 @@ export default function ForgotPasswordPage() {
     <div>
       <div className="mb-8">
         <Link to="/" className="hidden items-center gap-2 lg:inline-flex">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#03ac0e] text-lg font-black text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#10B981] text-lg font-black text-white">
             M
           </span>
-          <span className="text-xl font-black text-[#03ac0e]">MarketKu</span>
+          <span className="text-xl font-black text-[#10B981]">MarketKu</span>
         </Link>
 
         <div className="mt-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">Reset password</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Lupa password?</h1>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#10B981]">
+            Reset password
+          </p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+            Lupa password?
+          </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Masukkan email akun kamu, lalu sistem akan mengirim link reset password dari database utama melalui email.
+            Masukkan email akun kamu, lalu sistem akan mengirim link reset
+            password dari database utama melalui email.
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">Email</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">
+            Email
+          </label>
           <Input
             type="email"
             placeholder="email@contoh.com"
@@ -63,7 +70,7 @@ export default function ForgotPasswordPage() {
               clearError();
             }}
             autoComplete="email"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
@@ -83,7 +90,7 @@ export default function ForgotPasswordPage() {
           type="submit"
           size="lg"
           disabled={loading}
-          className="h-12 w-full rounded-xl bg-[#03ac0e] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-12 w-full rounded-xl bg-[#10B981] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Memproses..." : "Kirim Link Reset"}
         </Button>
@@ -91,7 +98,10 @@ export default function ForgotPasswordPage() {
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Ingat password?{" "}
-        <Link to="/auth/login" className="font-black text-[#03ac0e] hover:underline">
+        <Link
+          to="/auth/login"
+          className="font-black text-[#10B981] hover:underline"
+        >
           Masuk
         </Link>
       </p>

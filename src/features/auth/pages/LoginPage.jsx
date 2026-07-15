@@ -10,7 +10,8 @@ const PORTALS = {
     redirect: "/",
     eyebrow: "Masuk akun",
     title: "Selamat datang kembali",
-    description: "Masuk untuk melanjutkan belanja, mengelola pesanan, dan menggunakan seluruh fitur akun.",
+    description:
+      "Masuk untuk melanjutkan belanja, mengelola pesanan, dan menggunakan seluruh fitur akun.",
     submitLabel: "Masuk",
     deviceName: "marketplace-web-buyer",
     showRegister: true,
@@ -32,7 +33,8 @@ const PORTALS = {
     redirect: "/chat",
     eyebrow: "Chat portal",
     title: "Masuk ke Chat",
-    description: "Masuk melalui halaman khusus agar sesi chat tidak bercampur dengan portal lain.",
+    description:
+      "Masuk melalui halaman khusus agar sesi chat tidak bercampur dengan portal lain.",
     submitLabel: "Masuk ke Chat",
     deviceName: "marketplace-web-chat",
     showRegister: false,
@@ -42,7 +44,8 @@ const PORTALS = {
 
 export default function LoginPage({ portal = "buyer" }) {
   const config = useMemo(() => PORTALS[portal] || PORTALS.buyer, [portal]);
-  const { loginWithPassword, loginWithGoogle, loading, error, clearError } = useAuth();
+  const { loginWithPassword, loginWithGoogle, loading, error, clearError } =
+    useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({
@@ -114,22 +117,30 @@ export default function LoginPage({ portal = "buyer" }) {
     <div>
       <div className="mb-8">
         <Link to="/" className="hidden items-center gap-2 lg:inline-flex">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#03ac0e] text-lg font-black text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#10B981] text-lg font-black text-white">
             M
           </span>
-          <span className="text-xl font-black text-[#03ac0e]">MarketKu</span>
+          <span className="text-xl font-black text-[#10B981]">MarketKu</span>
         </Link>
 
         <div className="mt-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#03ac0e]">{config.eyebrow}</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">{config.title}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-500">{config.description}</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#10B981]">
+            {config.eyebrow}
+          </p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+            {config.title}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            {config.description}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">Email</label>
+          <label className="mb-2 block text-sm font-bold text-slate-700">
+            Email
+          </label>
           <Input
             name="email"
             type="email"
@@ -137,14 +148,19 @@ export default function LoginPage({ portal = "buyer" }) {
             value={form.email}
             onChange={handleChange}
             autoComplete="email"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
         <div>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <label className="block text-sm font-bold text-slate-700">Password</label>
-            <Link to="/auth/forgot-password" className="text-xs font-black text-[#03ac0e] hover:underline">
+            <label className="block text-sm font-bold text-slate-700">
+              Password
+            </label>
+            <Link
+              to="/auth/forgot-password"
+              className="text-xs font-black text-[#10B981] hover:underline"
+            >
               Lupa password?
             </Link>
           </div>
@@ -155,7 +171,7 @@ export default function LoginPage({ portal = "buyer" }) {
             value={form.password}
             onChange={handleChange}
             autoComplete="current-password"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#03ac0e]"
+            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
           />
         </div>
 
@@ -169,7 +185,7 @@ export default function LoginPage({ portal = "buyer" }) {
           type="submit"
           size="lg"
           disabled={loading}
-          className="h-12 w-full rounded-xl bg-[#03ac0e] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#039f0d] focus-visible:ring-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-12 w-full rounded-xl bg-[#10B981] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Memproses..." : config.submitLabel}
         </Button>
@@ -179,7 +195,9 @@ export default function LoginPage({ portal = "buyer" }) {
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-xs text-slate-400">
-            <span className="bg-white px-3 font-semibold">atau masuk dengan</span>
+            <span className="bg-white px-3 font-semibold">
+              atau masuk dengan
+            </span>
           </div>
         </div>
 
@@ -188,7 +206,7 @@ export default function LoginPage({ portal = "buyer" }) {
           variant="outline"
           disabled={loading}
           onClick={handleGoogleLogin}
-          className="h-12 w-full rounded-xl border-slate-200 font-bold text-slate-700 hover:border-[#03ac0e]/40 hover:bg-[#f4fff8] hover:text-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-70"
+          className="h-12 w-full rounded-xl border-slate-200 font-bold text-slate-700 hover:border-[#10B981]/40 hover:bg-[#ECFDF5] hover:text-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
         >
           Google
         </Button>
@@ -197,13 +215,19 @@ export default function LoginPage({ portal = "buyer" }) {
       {config.showRegister ? (
         <p className="mt-6 text-center text-sm text-slate-500">
           Belum punya akun?{" "}
-          <Link to="/auth/register" className="font-black text-[#03ac0e] hover:underline">
+          <Link
+            to="/auth/register"
+            className="font-black text-[#10B981] hover:underline"
+          >
             Daftar sekarang
           </Link>
         </p>
       ) : (
         <p className="mt-6 text-center text-sm text-slate-500">
-          <Link to="/auth/login" className="font-black text-[#03ac0e] hover:underline">
+          <Link
+            to="/auth/login"
+            className="font-black text-[#10B981] hover:underline"
+          >
             Kembali ke login pengguna
           </Link>
         </p>

@@ -12,7 +12,7 @@ function createPinIcon() {
   return L.divIcon({
     className: "",
     html: `
-      <div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:#03ac0e;border:3px solid #ffffff;box-shadow:0 8px 20px rgba(15,23,42,.28);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
+      <div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:#10B981;border:3px solid #ffffff;box-shadow:0 8px 20px rgba(15,23,42,.28);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
         <div style="width:10px;height:10px;border-radius:9999px;background:#ffffff;transform:rotate(45deg);"></div>
       </div>
     `,
@@ -170,7 +170,9 @@ export default function SellerLocationTracker({
         setLoading(false);
 
         if (error.code === error.PERMISSION_DENIED) {
-          setMessage("Izin lokasi ditolak. Klik peta atau cari lokasi dari form.");
+          setMessage(
+            "Izin lokasi ditolak. Klik peta atau cari lokasi dari form.",
+          );
           return;
         }
 
@@ -180,7 +182,7 @@ export default function SellerLocationTracker({
         enableHighAccuracy: true,
         timeout: 12000,
         maximumAge: 60000,
-      }
+      },
     );
   };
 
@@ -212,9 +214,12 @@ export default function SellerLocationTracker({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-slate-900">Pinpoint lokasi toko</p>
+          <p className="text-sm font-black text-slate-900">
+            Pinpoint lokasi toko
+          </p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Klik peta, geser pin, gunakan lokasi perangkat, atau cari dari alamat yang sudah diisi.
+            Klik peta, geser pin, gunakan lokasi perangkat, atau cari dari
+            alamat yang sudah diisi.
           </p>
         </div>
 
@@ -223,7 +228,7 @@ export default function SellerLocationTracker({
             type="button"
             onClick={locateFromForm}
             disabled={loading}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:border-[#03ac0e] hover:text-[#03ac0e] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 transition hover:border-[#10B981] hover:text-[#10B981] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cari dari Form
           </button>
@@ -231,7 +236,7 @@ export default function SellerLocationTracker({
             type="button"
             onClick={locateCurrentPosition}
             disabled={loading}
-            className="h-10 rounded-xl bg-[#03ac0e] px-3 text-xs font-black text-white transition hover:bg-[#039f0d] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 rounded-xl bg-[#10B981] px-3 text-xs font-black text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Gunakan Lokasi Saya
           </button>
@@ -244,7 +249,9 @@ export default function SellerLocationTracker({
       />
 
       {message ? (
-        <p className={`text-xs font-semibold ${message.includes("berhasil") ? "text-[#03ac0e]" : "text-slate-500"}`}>
+        <p
+          className={`text-xs font-semibold ${message.includes("berhasil") ? "text-[#10B981]" : "text-slate-500"}`}
+        >
           {message}
         </p>
       ) : null}

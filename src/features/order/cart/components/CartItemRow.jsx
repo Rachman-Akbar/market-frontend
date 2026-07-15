@@ -5,7 +5,14 @@ function getItemKey(item) {
   return `${item.productId}-${item.variantId || "default"}`;
 }
 
-export function CartItemRow({ item, checked, onToggle, onDecrease, onIncrease, onRemove }) {
+export function CartItemRow({
+  item,
+  checked,
+  onToggle,
+  onDecrease,
+  onIncrease,
+  onRemove,
+}) {
   const itemKey = getItemKey(item);
   const stock = item.stock ?? item.availableStock ?? null;
 
@@ -16,7 +23,7 @@ export function CartItemRow({ item, checked, onToggle, onDecrease, onIncrease, o
           type="checkbox"
           checked={checked}
           onChange={() => onToggle(itemKey)}
-          className="h-5 w-5 rounded border-[#6d7b6e] text-[#006d38] focus:ring-[#00aa5b]"
+          className="h-5 w-5 rounded border-[#6d7b6e] text-[#047857] focus:ring-[#10B981]"
         />
       </div>
 
@@ -50,7 +57,7 @@ export function CartItemRow({ item, checked, onToggle, onDecrease, onIncrease, o
         </div>
 
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <span className="text-xl font-bold leading-6 text-[#006d38]">
+          <span className="text-xl font-bold leading-6 text-[#047857]">
             {formatPrice(item.price)}
           </span>
 
@@ -59,7 +66,7 @@ export function CartItemRow({ item, checked, onToggle, onDecrease, onIncrease, o
               <button
                 type="button"
                 onClick={() => onDecrease(item)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[#005229] transition hover:bg-[#ebeef2]"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#065F46] transition hover:bg-[#ebeef2]"
               >
                 <Minus size={16} />
               </button>
@@ -69,7 +76,7 @@ export function CartItemRow({ item, checked, onToggle, onDecrease, onIncrease, o
               <button
                 type="button"
                 onClick={() => onIncrease(item)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[#005229] transition hover:bg-[#ebeef2]"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#065F46] transition hover:bg-[#ebeef2]"
               >
                 <Plus size={16} />
               </button>

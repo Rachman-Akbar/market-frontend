@@ -77,18 +77,41 @@ export function SellerStoreSettingsPanel({ store }) {
   const saveAddressMutation = useSaveSellerStoreAddress();
   const pending = updateMutation.isPending || saveAddressMutation.isPending;
 
-  useEffect(() => setForm(fromStore(store, storeAddress)), [store, storeAddress]);
+  useEffect(
+    () => setForm(fromStore(store, storeAddress)),
+    [store, storeAddress],
+  );
 
   const detailKeys = useMemo(
-    () => ["owner_name", "owner_phone", "open_days", "open_time", "close_time", "shipping_policy", "return_policy", "website_url", "instagram_url"],
-    []
+    () => [
+      "owner_name",
+      "owner_phone",
+      "open_days",
+      "open_time",
+      "close_time",
+      "shipping_policy",
+      "return_policy",
+      "website_url",
+      "instagram_url",
+    ],
+    [],
   );
   const addressOnlyKeys = useMemo(
-    () => ["country", "district", "subdistrict", "postal_code", "komerce_destination_id", "latitude", "longitude", "address_notes"],
-    []
+    () => [
+      "country",
+      "district",
+      "subdistrict",
+      "postal_code",
+      "komerce_destination_id",
+      "latitude",
+      "longitude",
+      "address_notes",
+    ],
+    [],
   );
 
-  const change = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const change = (key) => (event) =>
+    setForm((current) => ({ ...current, [key]: event.target.value }));
 
   const buildAddress = () => ({
     label: "Alamat Toko",
@@ -124,24 +147,28 @@ export function SellerStoreSettingsPanel({ store }) {
       address.fullAddress,
       address.latitude,
       address.longitude,
-      address.komerceDestinationId,
     ];
 
     if (requiredAddress.some((value) => String(value ?? "").trim() === "")) {
-      setMessage("Lengkapi seluruh data alamat toko, koordinat, dan Komerce Destination ID.");
+      setMessage("Lengkapi seluruh data alamat toko dan koordinat.");
       return;
     }
 
     const data = new FormData();
     Object.entries(form).forEach(([key, value]) => {
       if (addressOnlyKeys.includes(key)) return;
-      data.append(detailKeys.includes(key) ? `detail[${key}]` : key, value || "");
+      data.append(
+        detailKeys.includes(key) ? `detail[${key}]` : key,
+        value || "",
+      );
     });
     if (logo) data.append("logo", logo);
     if (banner) data.append("banner", banner);
 
     if (!store?.id) {
-      setMessage("Data toko tidak ditemukan. Selesaikan onboarding seller terlebih dahulu.");
+      setMessage(
+        "Data toko tidak ditemukan. Selesaikan onboarding seller terlebih dahulu.",
+      );
       return;
     }
 
@@ -160,7 +187,9 @@ export function SellerStoreSettingsPanel({ store }) {
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-extrabold text-slate-950">Informasi operasional</h2>
+        <h2 className="text-base font-extrabold text-slate-950">
+          Informasi operasional
+        </h2>
         <div className="mt-4 grid gap-3">
           {[
             ["owner_name", "Nama pemilik"],
@@ -171,22 +200,41 @@ export function SellerStoreSettingsPanel({ store }) {
           ].map(([key, label, type]) => (
             <label key={key} className="space-y-1.5">
               <span className="text-xs font-bold text-slate-500">{label}</span>
-              <input type={type || "text"} value={form[key]} onChange={change(key)} className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white" />
+              <input
+                type={type || "text"}
+                value={form[key]}
+                onChange={change(key)}
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              />
             </label>
           ))}
           <label className="space-y-1.5">
-            <span className="text-xs font-bold text-slate-500">Kebijakan pengiriman</span>
-            <textarea value={form.shipping_policy} onChange={change("shipping_policy")} className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white" />
+            <span className="text-xs font-bold text-slate-500">
+              Kebijakan pengiriman
+            </span>
+            <textarea
+              value={form.shipping_policy}
+              onChange={change("shipping_policy")}
+              className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+            />
           </label>
           <label className="space-y-1.5">
-            <span className="text-xs font-bold text-slate-500">Kebijakan retur</span>
-            <textarea value={form.return_policy} onChange={change("return_policy")} className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white" />
+            <span className="text-xs font-bold text-slate-500">
+              Kebijakan retur
+            </span>
+            <textarea
+              value={form.return_policy}
+              onChange={change("return_policy")}
+              className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+            />
           </label>
         </div>
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-extrabold text-slate-950">Pengaturan toko</h2>
+        <h2 className="text-base font-extrabold text-slate-950">
+          Pengaturan toko
+        </h2>
         <div className="mt-4 grid gap-3">
           {[
             ["store_name", "Nama toko", true],
@@ -199,7 +247,7 @@ export function SellerStoreSettingsPanel({ store }) {
             ["district", "Kecamatan", true],
             ["subdistrict", "Kelurahan / Desa", true],
             ["postal_code", "Kode Pos", true],
-            ["komerce_destination_id", "Komerce Destination ID", true],
+            ["komerce_destination_id", "Komerce Destination ID (opsional)"],
             ["latitude", "Latitude", true, "number"],
             ["longitude", "Longitude", true, "number"],
             ["address", "Alamat Lengkap", true],
@@ -207,27 +255,55 @@ export function SellerStoreSettingsPanel({ store }) {
           ].map(([key, label, required, type]) => (
             <label key={key} className="space-y-1.5">
               <span className="text-xs font-bold text-slate-500">{label}</span>
-              <input type={type || "text"} step={type === "number" ? "any" : undefined} required={Boolean(required)} value={form[key]} onChange={change(key)} className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white" />
+              <input
+                type={type || "text"}
+                step={type === "number" ? "any" : undefined}
+                required={Boolean(required)}
+                value={form[key]}
+                onChange={change(key)}
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              />
             </label>
           ))}
           <label className="space-y-1.5">
             <span className="text-xs font-bold text-slate-500">Deskripsi</span>
-            <textarea value={form.description} onChange={change("description")} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white" />
+            <textarea
+              value={form.description}
+              onChange={change("description")}
+              className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+            />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5">
               <span className="text-xs font-bold text-slate-500">Logo</span>
-              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setLogo(event.target.files?.[0] || null)} className="block w-full text-xs text-slate-500" />
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => setLogo(event.target.files?.[0] || null)}
+                className="block w-full text-xs text-slate-500"
+              />
             </label>
             <label className="space-y-1.5">
               <span className="text-xs font-bold text-slate-500">Banner</span>
-              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setBanner(event.target.files?.[0] || null)} className="block w-full text-xs text-slate-500" />
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => setBanner(event.target.files?.[0] || null)}
+                className="block w-full text-xs text-slate-500"
+              />
             </label>
           </div>
         </div>
-        {message ? <p className="mt-4 text-sm font-semibold text-slate-600">{message}</p> : null}
+        {message ? (
+          <p className="mt-4 text-sm font-semibold text-slate-600">{message}</p>
+        ) : null}
         <div className="mt-4 flex justify-end">
-          <button disabled={pending} className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60">{pending ? "Menyimpan..." : "Simpan Perubahan"}</button>
+          <button
+            disabled={pending}
+            className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {pending ? "Menyimpan..." : "Simpan Perubahan"}
+          </button>
         </div>
       </div>
     </form>

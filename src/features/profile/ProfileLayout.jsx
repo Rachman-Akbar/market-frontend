@@ -1,5 +1,12 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { BellRing, Heart, MessageCircle, Package, TicketPercent, UserRound, UsersRound, WalletCards } from "lucide-react";
+import {
+  BellRing,
+  MessageCircle,
+  TicketPercent,
+  UserRound,
+  UsersRound,
+  WalletCards,
+} from "lucide-react";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import { cn } from "@/shared/utils/utils";
@@ -10,8 +17,6 @@ const NAV_ITEMS = [
   { href: "/profile/notifications", label: "Notifikasi", icon: BellRing },
   { href: "/profile/payments", label: "Pembayaran", icon: WalletCards },
   { href: "/profile/vouchers", label: "Voucher", icon: TicketPercent },
-  { href: "/profile/orders", label: "Pesanan", icon: Package },
-  { href: "/profile/wishlist", label: "Wishlist", icon: Heart },
 ];
 
 function isActive(pathname, href) {
@@ -22,10 +27,13 @@ export default function ProfileLayout() {
   const { pathname } = useLocation();
   const { user } = useAuth();
   const initial = user?.name?.slice(0, 1)?.toUpperCase() || "R";
-  const profileActive = pathname === "/profile" || pathname.startsWith("/profile/addresses") || pathname.startsWith("/profile/security");
+  const profileActive =
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/addresses") ||
+    pathname.startsWith("/profile/security");
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-[#f7f8fa] text-slate-900">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-white text-slate-900">
       <aside className={profileLayout.rail}>
         <nav className="flex w-full flex-col items-center gap-2">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -39,11 +47,15 @@ export default function ProfileLayout() {
                 aria-label={label}
                 className={cn(
                   "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
-                  active ? "bg-[#e9fbea] text-[#03ac0e]" : "text-slate-500 hover:bg-[#f4fff8] hover:text-[#03ac0e]"
+                  active
+                    ? "bg-emerald-50 text-[#10B981]"
+                    : "text-slate-500 hover:bg-emerald-50 hover:text-[#10B981]",
                 )}
               >
                 <Icon size={20} />
-                {active && <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#03ac0e]" />}
+                {active && (
+                  <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#10B981]" />
+                )}
               </Link>
             );
           })}
@@ -55,11 +67,19 @@ export default function ProfileLayout() {
           aria-label="Profile"
           className={cn(
             "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
-            profileActive ? "bg-[#03ac0e] text-white" : "bg-[#111b21] text-white hover:bg-[#03ac0e]"
+            profileActive
+              ? "bg-[#10B981] text-white"
+              : "bg-slate-900 text-white hover:bg-[#10B981]",
           )}
         >
-          {profileActive ? <UserRound size={20} /> : <span className="text-sm font-bold">{initial}</span>}
-          {profileActive && <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#03ac0e]" />}
+          {profileActive ? (
+            <UserRound size={20} />
+          ) : (
+            <span className="text-sm font-bold">{initial}</span>
+          )}
+          {profileActive && (
+            <span className="absolute -right-[10px] top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#10B981]" />
+          )}
         </Link>
       </aside>
 
