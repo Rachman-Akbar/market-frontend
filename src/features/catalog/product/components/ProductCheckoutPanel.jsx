@@ -1,58 +1,139 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { formatPrice } from "@/shared/utils/utils";
 import { useCart } from "@/features/order/cart/context/CartContext";
 import { useWishlist } from "@/features/order/wishlist/context/WishlistContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getApiMessage } from "@/core/utils/apiClient";
 
-export function ProductCheckoutPanel({ product, variant }) {
+export function ProductCheckoutPanel({
+  product,
+  variant,
+}) {
   const [qty, setQty] = useState(1);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
   const [buyingNow, setBuyingNow] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
+
   const { isAuthenticated } = useAuth();
-  const { addItem, mutating: cartMutating } = useCart();
-  const { toggleItem, hasItem, mutating: wishlistMutating } = useWishlist();
-  const activeVariant = variant || product?.default_variant || null;
-  const variantId = Number(activeVariant?.id || activeVariant?.variant_id || 0);
+
+  const {
+    addItem,
+    mutating: cartMutating,
+  } = useCart();
+
+  const {
+    toggleItem,
+    hasItem,
+    mutating: wishlistMutating,
+  } = useWishlist();
+
+  const activeVariant =
+    variant ||
+    product?.default_variant ||
+    null;
+
+  const hasVariants =
+    Array.isArray(product?.variants) &&
+    product.variants.length > 0;
+
+  const variantId = Number(
+    activeVariant?.id ||
+      activeVariant?.variant_id ||
+      0,
+  );
+
   const productId = Number(product?.id || 0);
-  const price = Number(activeVariant?.price || product?.price || 0);
-  const stock = Number(activeVariant?.stock ?? product?.stock ?? 0);
-  const image = product?.image || product?.thumbnail;
-  const variantName = activeVariant?.name || product?.name || "Produk";
+
+  const price = Number(
+    activeVariant?.price ||
+      product?.price ||
+      0,
+  );
+
+  const stock = Number(
+    activeVariant?.stock ??
+      product?.stock ??
+      0,
+  );
+
+  const image =
+    product?.image ||
+    product?.thumbnail;
+
+  const variantName =
+    activeVariant?.name ||
+    product?.name ||
+    "Produk";
+
   const wished = hasItem(productId);
 
   const requireLogin = () => {
-    if (isAuthenticated) return true;
+    if (isAuthenticated) {
+      return true;
+    }
+
     navigate("/auth/login", {
-      state: { from: { pathname: location.pathname, search: location.search } },
+      state: {
+        from: {
+          pathname: location.pathname,
+          search: location.search,
+        },
+      },
     });
+
     return false;
   };
 
   const handleAddCart = async () => {
-    if (!requireLogin()) return;
-    if (!variantId) {
+    if (!requireLogin()) {
+      return;
+    }
+
+    if (hasVariants && !variantId) {
+      setMessageType("error");
       setMessage("Pilih varian produk terlebih dahulu.");
       return;
     }
 
     try {
       setMessage("");
-      await addItem({ productId, variantId, quantity: qty });
-      setMessage("Produk berhasil ditambahkan ke keranjang.");
-    } catch (error) {
+      setMessageType("");
+
+      await addItem({
+        productId,
+        variantId,
+        quantity: qty,
+      });
+
+      setMessageType("success");
       setMessage(
-        getApiMessage(error, "Produk gagal ditambahkan ke keranjang."),
+        "Produk berhasil ditambahkan ke keranjang.",
+      );
+    } catch (error) {
+      setMessageType("error");
+      setMessage(
+        getApiMessage(
+          error,
+          "Produk gagal ditambahkan ke keranjang.",
+        ),
       );
     }
   };
 
   const handleBuyNow = async () => {
-    if (!requireLogin()) return;
-    if (!variantId) {
+    if (!requireLogin()) {
+      return;
+    }
+
+    if (hasVariants && !variantId) {
+      setMessageType("error");
       setMessage("Pilih varian produk terlebih dahulu.");
       return;
     }
@@ -60,118 +141,197 @@ export function ProductCheckoutPanel({ product, variant }) {
     try {
       setBuyingNow(true);
       setMessage("");
-      const cart = await addItem({ productId, variantId, quantity: qty });
-      const cartItem = cart.items.find(
-        (item) => Number(item.variantId) === variantId,
-      );
-
-      if (!cartItem?.cartItemId) {
-        navigate("/cart");
-        return;
-      }
+      setMessageType("");
 
       navigate("/checkout", {
         state: {
-          cartItemIds: [cartItem.cartItemId],
           buyNow: true,
+          directItems: [
+            {
+              productId,
+              variantId,
+              productName:
+                product?.name || "Produk",
+              variantLabel:
+                activeVariant?.name || "",
+              price,
+              quantity: qty,
+              subtotal: price * qty,
+              stock,
+              imageUrl: image || "",
+              storeId: Number(
+                product?.store_id ||
+                  product?.store?.id ||
+                  0,
+              ),
+              storeName:
+                product?.store_name ||
+                product?.store?.name ||
+                product?.brand ||
+                "Toko",
+            },
+          ],
         },
       });
     } catch (error) {
-      setMessage(getApiMessage(error, "Checkout langsung gagal diproses."));
+      setMessageType("error");
+      setMessage(
+        getApiMessage(
+          error,
+          "Checkout langsung gagal diproses.",
+        ),
+      );
     } finally {
       setBuyingNow(false);
     }
   };
 
   const handleWishlist = async () => {
-    if (!requireLogin()) return;
+    if (!requireLogin()) {
+      return;
+    }
 
     try {
       setMessage("");
-      await toggleItem({ productId });
-      setMessage(
-        wished
-          ? "Produk dihapus dari wishlist."
-          : "Produk ditambahkan ke wishlist.",
-      );
+      setMessageType("");
+
+      await toggleItem({
+        productId,
+      });
     } catch (error) {
-      setMessage(getApiMessage(error, "Wishlist gagal diperbarui."));
+      setMessageType("error");
+      setMessage(
+        getApiMessage(
+          error,
+          "Wishlist gagal diperbarui.",
+        ),
+      );
     }
   };
 
   return (
-    <div className="sticky border border-gray-200 rounded-xl p-4 shadow-sm top-20">
-      <h2 className="font-bold text-sm mb-4">Atur jumlah dan catatan</h2>
+    <div className="sticky top-20 rounded-xl border border-gray-200 p-4 shadow-sm">
+      <h2 className="mb-4 text-sm font-bold">
+        Atur jumlah dan catatan
+      </h2>
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="mb-4 flex items-center gap-3">
         <img
           src={image}
           alt={variantName}
-          className="w-12 h-12 rounded-md object-cover"
+          className="h-12 w-12 rounded-md object-cover"
         />
-        <span className="text-sm text-gray-700 truncate">{variantName}</span>
+
+        <span className="truncate text-sm text-gray-700">
+          {variantName}
+        </span>
       </div>
 
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center border border-gray-200 rounded-lg h-9">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-9 items-center rounded-lg border border-gray-200">
           <button
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            className="px-3 text-gray-300 font-bold hover:text-[#10B981]"
+            type="button"
+            onClick={() =>
+              setQty((current) =>
+                Math.max(1, current - 1),
+              )
+            }
+            className="px-3 font-bold text-gray-300 hover:text-[#10B981]"
           >
             -
           </button>
+
           <input
             type="text"
             value={qty}
             readOnly
-            className="w-10 text-center border-none text-sm p-0 focus:ring-0"
+            className="w-10 border-none p-0 text-center text-sm focus:ring-0"
           />
+
           <button
+            type="button"
             onClick={() =>
-              setQty((q) => (stock ? Math.min(stock, q + 1) : q + 1))
+              setQty((current) =>
+                stock
+                  ? Math.min(stock, current + 1)
+                  : current + 1,
+              )
             }
-            className="px-3 text-[#10B981] font-bold"
+            className="px-3 font-bold text-[#10B981]"
           >
             +
           </button>
         </div>
+
         <span className="text-sm">
-          Stok: <span className="font-bold">{stock}</span>
+          Stok:{" "}
+          <span className="font-bold">
+            {stock}
+          </span>
         </span>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <span className="text-sm text-gray-500">Subtotal</span>
-        <span className="text-lg font-bold">{formatPrice(price * qty)}</span>
+      <div className="mb-6 flex items-center justify-between">
+        <span className="text-sm text-gray-500">
+          Subtotal
+        </span>
+
+        <span className="text-lg font-bold">
+          {formatPrice(price * qty)}
+        </span>
       </div>
 
-      <div className="space-y-2 mb-6">
+      <div className="mb-6 space-y-2">
         <button
           type="button"
-          disabled={cartMutating || buyingNow || !stock}
+          disabled={
+            cartMutating ||
+            buyingNow ||
+            !stock
+          }
           onClick={handleBuyNow}
           className="w-full rounded-lg bg-[#10B981] py-2.5 font-bold text-white transition-colors hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {buyingNow ? "Menyiapkan Checkout..." : "Beli Sekarang"}
+          {buyingNow
+            ? "Menyiapkan Checkout..."
+            : "Beli Sekarang"}
         </button>
+
         <button
           type="button"
-          disabled={cartMutating || buyingNow || !stock}
+          disabled={
+            cartMutating ||
+            buyingNow ||
+            !stock
+          }
           onClick={handleAddCart}
           className="w-full rounded-lg border border-[#10B981] bg-white py-2.5 font-bold text-[#047857] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {cartMutating && !buyingNow ? "Menambahkan..." : "+ Keranjang"}
+          {cartMutating && !buyingNow
+            ? "Menambahkan..."
+            : "+ Keranjang"}
         </button>
-        {message ? <p className="text-xs text-gray-600">{message}</p> : null}
+
+        {message ? (
+          <p
+            className={`text-xs ${
+              messageType === "error"
+                ? "text-red-500"
+                : "text-[#047857]"
+            }`}
+          >
+            {message}
+          </p>
+        ) : null}
       </div>
 
-      <div className="flex justify-around items-center text-xs font-bold text-gray-600">
+      <div className="flex items-center justify-around text-xs font-bold">
         <button
           type="button"
-          className="flex items-center gap-1.5 hover:text-[#10B981]"
+          className="flex items-center gap-1.5 text-gray-600 hover:text-[#10B981]"
         >
           <svg
-            className="w-4 h-4"
+            className="h-4 w-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -183,17 +343,24 @@ export function ProductCheckoutPanel({ product, variant }) {
               strokeWidth={2}
             />
           </svg>
+
           Chat
         </button>
+
         <div className="h-4 w-px bg-gray-200" />
+
         <button
           type="button"
           disabled={wishlistMutating}
           onClick={handleWishlist}
-          className="flex items-center gap-1.5 hover:text-[#10B981] disabled:opacity-60"
+          className={`flex items-center gap-1.5 transition-colors disabled:opacity-60 ${
+            wished
+              ? "text-[#f87171]"
+              : "text-gray-600 hover:text-[#f87171]"
+          }`}
         >
           <svg
-            className="w-4 h-4"
+            className="h-4 w-4"
             fill={wished ? "currentColor" : "none"}
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -205,15 +372,18 @@ export function ProductCheckoutPanel({ product, variant }) {
               strokeWidth={2}
             />
           </svg>
+
           Wishlist
         </button>
+
         <div className="h-4 w-px bg-gray-200" />
+
         <button
           type="button"
-          className="flex items-center gap-1.5 hover:text-[#10B981]"
+          className="flex items-center gap-1.5 text-gray-600 hover:text-[#10B981]"
         >
           <svg
-            className="w-4 h-4"
+            className="h-4 w-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -225,6 +395,7 @@ export function ProductCheckoutPanel({ product, variant }) {
               strokeWidth={2}
             />
           </svg>
+
           Share
         </button>
       </div>

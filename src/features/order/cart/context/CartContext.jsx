@@ -1,17 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useMemo,
-} from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import {
-  apiClient,
-  unwrapApiData,
-} from "@/core/utils/apiClient";
+import { createContext, useContext, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient, unwrapApiData } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
   getProductById,
@@ -23,34 +12,18 @@ const CART_KEY = ["order", "cart"];
 
 function normalizeCartItem(item = {}) {
   const attributes =
-    item.attributes &&
-    typeof item.attributes === "object"
+    item.attributes && typeof item.attributes === "object"
       ? item.attributes
       : {};
 
-  const variantLabel = Object.values(attributes)
-    .filter(Boolean)
-    .join(", ");
+  const variantLabel = Object.values(attributes).filter(Boolean).join(", ");
 
   return {
-    cartItemId: Number(
-      item.cart_item_id ?? item.id ?? 0,
-    ),
+    cartItemId: Number(item.cart_item_id ?? item.id ?? 0),
     productId: Number(item.product_id ?? 0),
-    variantId: Number(
-      item.variant_id ??
-        item.product_variant_id ??
-        0,
-    ),
-    productName:
-      item.product_name ||
-      item.name ||
-      "Produk",
-    variantLabel:
-      item.variant_label ||
-      variantLabel ||
-      item.sku ||
-      "",
+    variantId: Number(item.variant_id ?? item.product_variant_id ?? 0),
+    productName: item.product_name || item.name || "Produk",
+    variantLabel: item.variant_label || variantLabel || item.sku || "",
     storeId: Number(item.store_id ?? 0),
     storeName: item.store_name || "Toko",
     sku: item.sku || "",
@@ -58,11 +31,7 @@ function normalizeCartItem(item = {}) {
     quantity: Number(item.quantity || 0),
     subtotal: Number(item.subtotal || 0),
     stock: Number(item.stock ?? 0),
-    imageUrl:
-      item.thumbnail ||
-      item.image ||
-      item.image_url ||
-      "",
+    imageUrl: item.thumbnail || item.image || item.image_url || "",
     attributes,
   };
 }
@@ -85,11 +54,7 @@ function normalizeCart(payload = {}) {
     totalItems: Number(
       source.total_items ??
         source.totalItems ??
-        items.reduce(
-          (sum, item) =>
-            sum + Number(item.quantity || 0),
-          0,
-        ),
+        items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
     ),
     totalPrice: Number(
       source.total_price ??
@@ -97,9 +62,7 @@ function normalizeCart(payload = {}) {
         source.subtotal ??
         items.reduce(
           (sum, item) =>
-            sum +
-            Number(item.price || 0) *
-              Number(item.quantity || 0),
+            sum + Number(item.price || 0) * Number(item.quantity || 0),
           0,
         ),
     ),
@@ -108,38 +71,24 @@ function normalizeCart(payload = {}) {
 
 async function resolveVariantId(item = {}) {
   const directVariantId = Number(
-    item.variantId ??
-      item.variant_id ??
-      item.product_variant_id ??
-      0,
+    item.variantId ?? item.variant_id ?? item.product_variant_id ?? 0,
   );
 
   if (directVariantId > 0) {
     return directVariantId;
   }
 
-  const productId = Number(
-    item.productId ??
-      item.product_id ??
-      item.id ??
-      0,
-  );
+  const productId = Number(item.productId ?? item.product_id ?? item.id ?? 0);
 
   if (!productId) {
-    throw new Error(
-      "Produk tidak valid karena product ID tidak ditemukan.",
-    );
+    throw new Error("Produk tidak valid karena product ID tidak ditemukan.");
   }
 
   try {
     const product = await getProductById(productId);
-
     const productVariantId = Number(
       product?.default_variant?.id ??
-        product?.variants?.find(
-          (variant) =>
-            Boolean(variant.is_default),
-        )?.id ??
+        product?.variants?.find((variant) => Boolean(variant.is_default))?.id ??
         product?.variants?.[0]?.id ??
         0,
     );
@@ -147,27 +96,21 @@ async function resolveVariantId(item = {}) {
     if (productVariantId > 0) {
       return productVariantId;
     }
-  } catch {
-    const variantsResponse =
-      await getProductVariants(productId);
+  } catch {}
 
+  try {
+    const variantsResponse = await getProductVariants(productId);
     const variants = variantsResponse?.data || [];
-
     const defaultVariant =
-      variants.find((variant) =>
-        Boolean(variant.is_default),
-      ) ||
+      variants.find((variant) => Boolean(variant.is_default)) ||
       variants[0] ||
       null;
-
-    const fallbackVariantId = Number(
-      defaultVariant?.id || 0,
-    );
+    const fallbackVariantId = Number(defaultVariant?.id || 0);
 
     if (fallbackVariantId > 0) {
       return fallbackVariantId;
     }
-  }
+  } catch {}
 
   throw new Error(
     "Varian produk tidak ditemukan. Silakan buka detail produk dan pilih varian terlebih dahulu.",
@@ -175,39 +118,28 @@ async function resolveVariantId(item = {}) {
 }
 
 async function fetchCart() {
-  const response = await apiClient.get(
-    "/api/v1/order/carts",
-  );
+  const response = await apiClient.get("/api/v1/order/carts");
 
   return normalizeCart(response.data);
 }
 
 async function addCartItem(item) {
   const variantId = await resolveVariantId(item);
-  const quantity = Math.max(
-    1,
-    Number(item.quantity || 1),
-  );
+  const quantity = Math.max(1, Number(item.quantity || 1));
 
-  const response = await apiClient.post(
-    "/api/v1/order/carts/items",
-    {
-      items: [
-        {
-          product_variant_id: variantId,
-          quantity,
-        },
-      ],
-    },
-  );
+  const response = await apiClient.post("/api/v1/order/carts/items", {
+    items: [
+      {
+        product_variant_id: variantId,
+        quantity,
+      },
+    ],
+  });
 
   return response.data;
 }
 
-async function updateCartItem({
-  variantId,
-  quantity,
-}) {
+async function updateCartItem({ variantId, quantity }) {
   const response = await apiClient.patch(
     `/api/v1/order/carts/items/${Number(variantId)}`,
     {
@@ -227,9 +159,7 @@ async function removeCartItem(variantId) {
 }
 
 async function clearRemoteCart() {
-  const response = await apiClient.delete(
-    "/api/v1/order/carts",
-  );
+  const response = await apiClient.delete("/api/v1/order/carts");
 
   return response.data;
 }
@@ -284,21 +214,15 @@ export function CartProvider({ children }) {
       totalItems: cart.totalItems,
       loading: cartQuery.isLoading,
       error: cartQuery.error,
-      addItem: (item) =>
-        addMutation.mutateAsync(item),
-      updateQty: (
-        _productId,
-        variantId,
-        quantity,
-      ) =>
+      addItem: (item) => addMutation.mutateAsync(item),
+      updateQty: (_productId, variantId, quantity) =>
         updateMutation.mutateAsync({
           variantId,
           quantity,
         }),
       removeItem: (_productId, variantId) =>
         removeMutation.mutateAsync(variantId),
-      clearCart: () =>
-        clearMutation.mutateAsync(),
+      clearCart: () => clearMutation.mutateAsync(),
       refreshCart: () => cartQuery.refetch(),
       mutating:
         addMutation.isPending ||
@@ -320,20 +244,14 @@ export function CartProvider({ children }) {
     ],
   );
 
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
-  );
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {
   const context = useContext(CartContext);
 
   if (!context) {
-    throw new Error(
-      "useCart harus digunakan di dalam CartProvider",
-    );
+    throw new Error("useCart harus digunakan di dalam CartProvider");
   }
 
   return context;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ImageGallery } from "@/features/catalog/product/components/ImageGallery";
-import { VariantSelector } from "./VariantSelector";
+import { VariantSelector } from "../components/VariantSelector";
 import { ProductCheckoutPanel } from "@/features/catalog/product/components/ProductCheckoutPanel";
 import { ReviewSection } from "@/features/order/review/components/ReviewSection";
 import { formatPrice } from "@/shared/utils/utils";
@@ -19,6 +20,49 @@ function getProductCategories(product) {
   return [];
 }
 
+function getVariantId(variant) {
+  return Number(variant?.id ?? variant?.variant_id ?? 0);
+}
+
+function getVariantStock(variant) {
+  const value =
+    variant?.stock ??
+    variant?.stock_quantity ??
+    variant?.quantity ??
+    variant?.available_stock;
+
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isVariantAvailable(variant) {
+  const stock = getVariantStock(variant);
+  return stock === null || stock > 0;
+}
+
+function getInitialVariant(product) {
+  const variants = Array.isArray(product?.variants) ? product.variants : [];
+  const defaultId = getVariantId(product?.default_variant);
+  const matchedDefault = variants.find(
+    (variant) => getVariantId(variant) === defaultId,
+  );
+
+  return (
+    (matchedDefault && isVariantAvailable(matchedDefault)
+      ? matchedDefault
+      : null) ||
+    variants.find(
+      (variant) => variant.is_default && isVariantAvailable(variant),
+    ) ||
+    variants.find(isVariantAvailable) ||
+    null
+  );
+}
+
 export function ProductDetailClient({ slug }) {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -27,11 +71,16 @@ export function ProductDetailClient({ slug }) {
   const variantsQuery = useProductVariants(baseProduct?.id, {
     enabled: Boolean(baseProduct?.id && !baseProduct?.variants?.length),
   });
+
   const product = useMemo(() => {
     if (!baseProduct) return null;
-    if (baseProduct.variants?.length || !variantsQuery.data?.data?.length)
+
+    if (baseProduct.variants?.length || !variantsQuery.data?.data?.length) {
       return baseProduct;
+    }
+
     const variants = variantsQuery.data.data;
+
     return {
       ...baseProduct,
       variants,
@@ -41,10 +90,8 @@ export function ProductDetailClient({ slug }) {
   }, [baseProduct, variantsQuery.data]);
 
   useEffect(() => {
-    setSelectedVariant(
-      product?.default_variant || product?.variants?.[0] || null,
-    );
-  }, [product?.id, product?.default_variant?.id]);
+    setSelectedVariant(getInitialVariant(product));
+  }, [product?.id, product?.variants, product?.default_variant]);
 
   const loading = productQuery.isLoading || variantsQuery.isLoading;
   const error =
@@ -55,12 +102,15 @@ export function ProductDetailClient({ slug }) {
   }, []);
 
   const categories = useMemo(() => getProductCategories(product), [product]);
-  const activePrice = Number(selectedVariant?.price || product?.price || 0);
-  const activeStock = Number(selectedVariant?.stock ?? product?.stock ?? 0);
+  const activePrice = Number(selectedVariant?.price ?? product?.price ?? 0);
+  const selectedVariantStock = getVariantStock(selectedVariant);
+  const activeStock = selectedVariant
+    ? selectedVariantStock ?? "-"
+    : Number(product?.stock ?? 0);
 
   if (loading) {
     return (
-      <main className="max-w-[1200px] mx-auto px-4 py-8">
+      <main className="mx-auto max-w-[1200px] px-4 py-8">
         <div className="text-sm text-gray-500">Memuat detail produk...</div>
       </main>
     );
@@ -68,7 +118,7 @@ export function ProductDetailClient({ slug }) {
 
   if (error) {
     return (
-      <main className="max-w-[1200px] mx-auto px-4 py-8">
+      <main className="mx-auto max-w-[1200px] px-4 py-8">
         <div className="text-sm text-red-500">{error}</div>
       </main>
     );
@@ -76,61 +126,65 @@ export function ProductDetailClient({ slug }) {
 
   if (!product) {
     return (
-      <main className="max-w-[1200px] mx-auto px-4 py-8">
+      <main className="mx-auto max-w-[1200px] px-4 py-8">
         <div className="text-sm text-gray-500">Produk tidak ditemukan.</div>
       </main>
     );
   }
 
   return (
-    <main className="max-w-[1200px] mx-auto px-4 py-4">
-      <nav className="mb-6 text-xs text-[#10B981] font-semibold">
-        <div className="flex items-center flex-wrap gap-1">
-          <span className="after:content-['>'] after:mx-2 after:text-gray-400">
-            <a href="#" className="hover:underline">
+    <main className="mx-auto max-w-[1200px] px-4 py-4">
+      <nav className="mb-6 text-xs font-semibold text-[#10B981]">
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="after:mx-2 after:text-gray-400 after:content-['>']">
+            <Link to="/" className="hover:underline">
               Home
-            </a>
+            </Link>
           </span>
+
           {categories.slice(0, 3).map((crumb) => (
             <span
               key={crumb.id || crumb.slug || crumb.name}
-              className="after:content-['>'] after:mx-2 after:text-gray-400"
+              className="after:mx-2 after:text-gray-400 after:content-['>']"
             >
-              <a href={getCategoryHref(crumb)} className="hover:underline">
+              <Link to={getCategoryHref(crumb)} className="hover:underline">
                 {crumb.name}
-              </a>
+              </Link>
             </span>
           ))}
+
           <span className="text-gray-400">{product.name}</span>
         </div>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <section className="lg:col-span-4">
           <ImageGallery images={product.images} alt={product.name} />
         </section>
 
         <section className="lg:col-span-5">
-          <h1 className="text-xl font-bold leading-tight mb-1">
+          <h1 className="mb-1 text-xl font-bold leading-tight">
             {product.name}
           </h1>
 
-          <div className="flex items-center text-sm mb-4 gap-2">
+          <div className="mb-4 flex items-center gap-2 text-sm">
             {!!product.sold && (
               <span className="text-gray-500">
                 Terjual{" "}
-                <span className="text-gray-800 font-semibold">
+                <span className="font-semibold text-gray-800">
                   {product.sold}
                 </span>
               </span>
             )}
+
             {!!product.sold && !!product.rating && (
               <span className="text-gray-300">•</span>
             )}
+
             {!!product.rating && (
               <div className="flex items-center gap-1">
                 <svg
-                  className="w-4 h-4 text-yellow-400"
+                  className="h-4 w-4 text-yellow-400"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -141,25 +195,28 @@ export function ProductDetailClient({ slug }) {
             )}
           </div>
 
-          <div className="text-3xl font-bold mb-6">
+          <div className="mb-6 text-3xl font-bold">
             {formatPrice(activePrice)}
           </div>
+
           <hr className="mb-6 border-gray-100" />
 
           <VariantSelector
             variants={product.variants}
+            value={selectedVariant}
             onVariantChange={handleVariantChange}
           />
 
-          <div className="border-b border-gray-200 mb-4">
+          <div className="mb-4 border-b border-gray-200">
             <div className="flex gap-8">
-              {DETAIL_TABS.map((tab, i) => (
+              {DETAIL_TABS.map((tab, index) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(i)}
-                  className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
-                    i === activeTab
-                      ? "border-[#10B981] text-[#10B981] font-bold"
+                  type="button"
+                  onClick={() => setActiveTab(index)}
+                  className={`border-b-2 pb-3 text-sm font-semibold transition-colors ${
+                    index === activeTab
+                      ? "border-[#10B981] font-bold text-[#10B981]"
                       : "border-transparent text-gray-500 hover:text-[#10B981]"
                   }`}
                 >
@@ -180,19 +237,20 @@ export function ProductDetailClient({ slug }) {
                     ["Kategori:", categories[0]?.name || "-"],
                   ].map(([label, val]) => (
                     <div key={label} className="flex gap-2">
-                      <span className="text-gray-500 w-24">{label}</span>
+                      <span className="w-24 text-gray-500">{label}</span>
                       <span className="font-bold">{val}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="space-y-4">
-                  <p className="leading-relaxed whitespace-pre-line">
+                  <p className="whitespace-pre-line leading-relaxed">
                     {product.description || "Deskripsi produk belum tersedia."}
                   </p>
                 </div>
               </>
             )}
+
             {activeTab === 1 && (
               <div className="space-y-4">
                 <p className="leading-relaxed">
@@ -205,30 +263,33 @@ export function ProductDetailClient({ slug }) {
 
             <div className="flex items-center justify-between py-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
+                <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
                   <img
                     src={product.image}
                     alt={product.brand || product.name}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
                 </div>
+
                 <div>
                   <div className="flex items-center gap-1">
                     <span className="font-bold">{product.brand || "Toko"}</span>
                     <svg
-                      className="w-4 h-4 text-[#10B981]"
+                      className="h-4 w-4 text-[#10B981]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
                       <path d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
                     </svg>
                   </div>
-                  <div className="text-xs text-gray-500 flex items-center gap-1">
+
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
                     {product.location || "Lokasi toko belum tersedia"}
                   </div>
                 </div>
               </div>
-              <button className="px-6 py-1.5 border border-[#10B981] text-[#10B981] font-bold rounded-lg hover:bg-gray-50">
+
+              <button className="rounded-lg border border-[#10B981] px-6 py-1.5 font-bold text-[#10B981] hover:bg-gray-50">
                 Follow
               </button>
             </div>

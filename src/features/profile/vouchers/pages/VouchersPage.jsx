@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Gift, Search, TicketPercent, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
+import VoucherDetailModal from "@/features/order/voucher/components/VoucherDetailModal";
 import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
 import { formatPrice } from "@/shared/utils/utils";
 
@@ -22,8 +23,10 @@ function getVoucherValue(voucher) {
   if (
     voucher.discountType === "percentage" ||
     voucher.discountType === "shipping_percentage"
-  )
+  ) {
     return `${voucher.discountValue}%`;
+  }
+
   if (voucher.discountType === "free_shipping") return "Gratis";
   return formatPrice(voucher.discountValue);
 }
@@ -32,6 +35,7 @@ export default function VouchersPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
   const vouchersQuery = useActiveVouchers();
   const vouchers = vouchersQuery.data || [];
   const filteredVouchers = useMemo(() => {
@@ -49,6 +53,18 @@ export default function VouchersPage() {
       return categoryMatch && keywordMatch;
     });
   }, [filter, keyword, vouchers]);
+
+  const closeVoucher = useCallback(() => setSelectedVoucher(null), []);
+
+  const useVoucher = useCallback(
+    (voucher) => {
+      closeVoucher();
+      navigate("/cart?tab=cart", {
+        state: { voucherCode: voucher.code },
+      });
+    },
+    [closeVoucher, navigate],
+  );
 
   return (
     <section className={profileLayout.contentShell}>
@@ -81,7 +97,11 @@ export default function VouchersPage() {
                 key={item.key}
                 type="button"
                 onClick={() => setFilter(item.key)}
-                className={`h-9 shrink-0 rounded-full px-4 text-xs font-semibold transition ${filter === item.key ? "bg-[#10B981] text-white" : "bg-white text-slate-500 ring-1 ring-[#e5e7eb] hover:text-[#10B981]"}`}
+                className={`h-9 shrink-0 rounded-full px-4 text-xs font-semibold transition ${
+                  filter === item.key
+                    ? "bg-[#10B981] text-white"
+                    : "bg-white text-slate-500 ring-1 ring-[#e5e7eb] hover:text-[#10B981]"
+                }`}
               >
                 {item.label}
               </button>
@@ -105,23 +125,32 @@ export default function VouchersPage() {
           return (
             <div
               key={voucher.id}
-              className="grid min-h-[128px] gap-4 py-6 md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center"
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedVoucher(voucher)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setSelectedVoucher(voucher);
+                }
+              }}
+              className="grid min-h-[128px] w-full cursor-pointer gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center"
             >
-              <div className="flex items-center gap-3 text-[#10B981] md:block md:text-center">
+              <div className="h-24 w-full overflow-hidden rounded-xl text-[#10B981] ring-1 ring-[#e5e7eb] md:h-[104px]">
                 {voucher.imageUrl ? (
                   <img
                     src={voucher.imageUrl}
                     alt={voucher.name}
-                    className="h-16 w-24 rounded-xl object-cover ring-1 ring-[#e5e7eb] md:mx-auto md:mb-2"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-[#e5e7eb] md:mx-auto md:mb-2">
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-white text-center">
                     <Icon size={22} />
+                    <b className="block text-xl font-light">
+                      {getVoucherValue(voucher)}
+                    </b>
                   </div>
                 )}
-                <b className="block text-2xl font-light">
-                  {getVoucherValue(voucher)}
-                </b>
               </div>
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -136,7 +165,8 @@ export default function VouchersPage() {
                   Kode: {voucher.code}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  Min. belanja {formatPrice(voucher.minSpend)}
+                  Diskon {getVoucherValue(voucher)} · Min. belanja{" "}
+                  {formatPrice(voucher.minSpend)}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
                   Berlaku sampai{" "}
@@ -147,11 +177,10 @@ export default function VouchersPage() {
               </div>
               <button
                 type="button"
-                onClick={() =>
-                  navigate(`/cart?tab=cart`, {
-                    state: { voucherCode: voucher.code },
-                  })
-                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  useVoucher(voucher);
+                }}
                 className="inline-flex h-10 items-center justify-center rounded-full bg-[#10B981] px-5 text-sm font-semibold text-white transition hover:bg-[#059669]"
               >
                 Pakai
@@ -175,6 +204,13 @@ export default function VouchersPage() {
           </div>
         ) : null}
       </div>
+
+      <VoucherDetailModal
+        voucher={selectedVoucher}
+        open={Boolean(selectedVoucher)}
+        onClose={closeVoucher}
+        onUse={useVoucher}
+      />
     </section>
   );
 }

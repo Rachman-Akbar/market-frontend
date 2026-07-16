@@ -1,10 +1,9 @@
-import { Link } from "react-router-dom";
-
-export function PromotionHighlightCard({ promotion }) {
+export function PromotionHighlightCard({ promotion, onClick }) {
   return (
-    <Link
-      to={promotion.href}
-      className={`group relative min-h-[260px] overflow-hidden bg-gradient-to-br ${promotion.color} text-white`}
+    <button
+      type="button"
+      onClick={() => onClick?.(promotion)}
+      className={`group relative min-h-[260px] overflow-hidden bg-gradient-to-br text-left ${promotion.color} text-white`}
       style={{ borderRadius: 12 }}
     >
       {promotion.image ? (
@@ -20,7 +19,7 @@ export function PromotionHighlightCard({ promotion }) {
           <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">
             {promotion.badge}
           </span>
-          <h2 className="mt-4 max-w-[360px] text-3xl font-extrabold leading-tight">
+          <h2 className="mt-4 max-w-[360px] text-3xl font-extrabold leading-tight text-white">
             {promotion.title}
           </h2>
           <p className="mt-2 max-w-[420px] text-sm text-white/85">
@@ -29,9 +28,11 @@ export function PromotionHighlightCard({ promotion }) {
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900 transition group-hover:translate-x-1">
           {promotion.cta}
-          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          <span className="material-symbols-outlined text-[18px]">
+            arrow_forward
+          </span>
         </span>
       </div>
-    </Link>
+    </button>
   );
 }

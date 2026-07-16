@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient, getApiMessage, unwrapApiData } from "@/core/utils/apiClient";
+import {
+  API_BASE_URL,
+  apiClient,
+  getApiMessage,
+  unwrapApiData,
+} from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
   addressKeys,
@@ -55,9 +60,7 @@ export function assetUrl(path) {
   if (/^https?:\/\//i.test(path)) return path;
 
   const base = String(
-    import.meta.env.VITE_ASSET_BASE_URL ||
-      import.meta.env.VITE_API_BASE_URL ||
-      ""
+    import.meta.env.VITE_ASSET_BASE_URL || API_BASE_URL || "",
   ).replace(/\/$/, "");
   const normalizedPath = String(path).replace(/^\/+/, "");
 
@@ -74,7 +77,10 @@ export async function getSellerStoreData(id) {
 }
 
 export async function updateSellerStore({ id, formData }) {
-  const response = await apiClient.post(`/api/v1/seller/stores/${id}`, formData);
+  const response = await apiClient.post(
+    `/api/v1/seller/stores/${id}`,
+    formData,
+  );
   return normalizeStore(unwrapApiData(response.data));
 }
 

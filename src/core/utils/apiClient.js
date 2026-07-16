@@ -5,9 +5,52 @@ export const BASE_SESSION_KEY = "marketku_auth_session";
 export const WINDOW_TOKEN_KEY = "marketku_window_auth_token";
 export const WINDOW_SESSION_KEY = "marketku_window_auth_session";
 
-const rawBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "")
-  .trim()
-  .replace(/\/+$/, "");
+function normalizeBaseUrl(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
+function resolveApiBaseUrl() {
+  const configured = normalizeBaseUrl(
+    import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_BACKEND_URL ||
+      import.meta.env.VITE_LARAVEL_BASE_URL ||
+      "",
+  );
+
+  if (configured) {
+    return configured;
+  }
+
+  if (import.meta.env.DEV) {
+    if (String(import.meta.env.VITE_USE_API_PROXY || "") === "true") {
+      return "";
+    }
+
+    if (typeof window !== "undefined") {
+      const protocol =
+        String(import.meta.env.VITE_API_PROTOCOL || "").trim() ||
+        window.location.protocol ||
+        "http:";
+      const port = String(import.meta.env.VITE_API_PORT || "8000").trim();
+      const host = window.location.hostname || "127.0.0.1";
+
+      return normalizeBaseUrl(`${protocol}//${host}:${port}`);
+    }
+
+    return "http://127.0.0.1:8000";
+  }
+
+  if (typeof window !== "undefined") {
+    return normalizeBaseUrl(window.location.origin);
+  }
+
+  return "";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 function migrateLegacySession() {
   if (typeof window === "undefined") {
@@ -68,11 +111,12 @@ function hasAuthorizationHeader(headers) {
 }
 
 export const apiClient = axios.create({
-  baseURL: rawBaseUrl,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 30000,
   headers: {
     Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
@@ -108,18 +152,22 @@ apiClient.interceptors.response.use(
       url.includes("/firebase-login") ||
       url.includes("/forgot-password");
 
-    if (status === 401 && !isPublicAuthRequest && typeof window !== "undefined") {
+    if (
+      status === 401 &&
+      !isPublicAuthRequest &&
+      typeof window !== "undefined"
+    ) {
       window.dispatchEvent(
         new CustomEvent("marketku:unauthorized", {
           detail: {
             scope: getStoredSessionScope(),
           },
-        })
+        }),
       );
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export function unwrapApiData(payload) {
@@ -148,7 +196,10 @@ export function unwrapCollection(payload) {
   return [];
 }
 
-export function getApiMessage(error, fallback = "Terjadi kesalahan. Silakan coba lagi.") {
+export function getApiMessage(
+  error,
+  fallback = "Terjadi kesalahan. Silakan coba lagi.",
+) {
   const data = error?.response?.data;
 
   if (typeof data?.message === "string" && data.message.trim()) {

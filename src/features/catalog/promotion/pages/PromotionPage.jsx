@@ -1,9 +1,24 @@
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PromotionHighlightCard } from "@/features/catalog/promotion/components/PromotionHighlightCard";
 import { usePromotionHighlights } from "@/features/catalog/promotion/services/promotionService";
+import VoucherDetailModal from "@/features/order/voucher/components/VoucherDetailModal";
 
 export default function PromotionPage() {
+  const navigate = useNavigate();
+  const [selectedPromotion, setSelectedPromotion] = useState(null);
   const promotionsQuery = usePromotionHighlights();
   const promotions = promotionsQuery.data || [];
+  const closePromotion = useCallback(() => setSelectedPromotion(null), []);
+  const useVoucher = useCallback(
+    (promotion) => {
+      closePromotion();
+      navigate("/cart?tab=cart", {
+        state: { voucherCode: promotion.code },
+      });
+    },
+    [closePromotion, navigate],
+  );
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8">
@@ -31,7 +46,11 @@ export default function PromotionPage() {
       ) : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {promotions.map((promotion) => (
-          <PromotionHighlightCard key={promotion.id} promotion={promotion} />
+          <PromotionHighlightCard
+            key={promotion.id}
+            promotion={promotion}
+            onClick={setSelectedPromotion}
+          />
         ))}
       </div>
       {!promotionsQuery.isLoading && !promotions.length ? (
@@ -39,6 +58,13 @@ export default function PromotionPage() {
           Belum ada voucher aktif.
         </div>
       ) : null}
+
+      <VoucherDetailModal
+        voucher={selectedPromotion}
+        open={Boolean(selectedPromotion)}
+        onClose={closePromotion}
+        onUse={useVoucher}
+      />
     </main>
   );
 }

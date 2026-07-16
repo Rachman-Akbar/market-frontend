@@ -11,6 +11,11 @@ export const sellerOnboardingKeys = {
   address: ["order", "addresses", "store"],
 };
 
+function resolveStoreSource(payload = {}) {
+  const source = unwrapApiData(payload) || {};
+  return source.store || source.data?.store || source.data || source;
+}
+
 function normalizeStore(row = {}) {
   return {
     id: Number(row.id || 0),
@@ -100,6 +105,31 @@ function buildStoreAddressPayload(values = {}) {
   };
 }
 
+function isEmailVerificationError(error) {
+  const status = Number(error?.response?.status || 0);
+  const message = String(error?.response?.data?.message || error?.message || "")
+    .toLowerCase()
+    .trim();
+
+  return status === 403 && message.includes("email verification");
+}
+
+function isSessionEmailVerified(session) {
+  const user = session?.user || {};
+  const explicit =
+    user.email_verified ?? user.emailVerified ?? session?.email_verified;
+
+  if (explicit === true || explicit === 1 || explicit === "1") {
+    return true;
+  }
+
+  return Boolean(
+    user.email_verified_at ||
+    user.emailVerifiedAt ||
+    session?.email_verified_at,
+  );
+}
+
 async function registerSellerStore(values, files) {
   const formData = buildStoreFormData(values, files);
   const response = await apiClient.post(
@@ -111,8 +141,15 @@ async function registerSellerStore(values, files) {
       },
     },
   );
+  const store = normalizeStore(resolveStoreSource(response.data));
 
-  return normalizeStore(unwrapApiData(response.data));
+  if (!store.id) {
+    throw new Error(
+      "Backend tidak mengembalikan data toko setelah pendaftaran.",
+    );
+  }
+
+  return store;
 }
 
 async function createStoreAddress(values) {
@@ -135,19 +172,51 @@ export function useSellerOnboarding() {
 
   return useMutation({
     mutationFn: async ({ values, files }) => {
-      const store = await registerSellerStore(values, files);
+      await refreshMe();
+      let store;
 
+      try {
+        store = await registerSellerStore(values, files);
+      } catch (error) {
+        if (!isEmailVerificationError(error)) {
+          throw error;
+        }
+
+        const currentSession = await refreshMe();
+
+        if (!isSessionEmailVerified(currentSession)) {
+          throw new Error(
+            "Email akun belum terverifikasi di backend. Verifikasi email terlebih dahulu, lalu buka kembali pendaftaran seller.",
+          );
+        }
+
+        store = await registerSellerStore(values, files);
+      }
+
+      await refreshMe();
       await switchRole("seller", {
         deviceName: "marketplace-web-seller",
         storageScope: "window",
       });
 
-      const address = await createStoreAddress(values);
+      let address = null;
+      let addressError = "";
+
+      try {
+        address = await createStoreAddress(values);
+      } catch (error) {
+        addressError = getApiMessage(
+          error,
+          "Toko berhasil dibuat, tetapi alamat toko belum berhasil disimpan.",
+        );
+      }
+
       await refreshMe();
 
       return {
         store,
         address,
+        addressError,
       };
     },
     onSuccess: ({ store, address }) => {
@@ -155,7 +224,11 @@ export function useSellerOnboarding() {
         ["seller", "stores", "detail", String(store.id)],
         store,
       );
-      queryClient.setQueryData(sellerOnboardingKeys.address, [address]);
+
+      if (address) {
+        queryClient.setQueryData(sellerOnboardingKeys.address, [address]);
+      }
+
       queryClient.invalidateQueries({ queryKey: sellerOnboardingKeys.store });
       queryClient.invalidateQueries({ queryKey: sellerOnboardingKeys.address });
     },

@@ -1,47 +1,90 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiClient, unwrapCollection } from "@/core/utils/apiClient";
+import {
+  API_BASE_URL,
+  apiClient,
+  unwrapCollection,
+} from "@/core/utils/apiClient";
 import { formatPrice } from "@/shared/utils/utils";
 
 const promotionKeys = {
   all: ["catalog", "promotions"],
 };
 
-
 function resolveAssetUrl(path) {
   if (!path) return "";
   if (/^https?:\/\//i.test(path)) return path;
-  const base = String(import.meta.env.VITE_ASSET_BASE_URL || import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+  const base = String(
+    import.meta.env.VITE_ASSET_BASE_URL || API_BASE_URL || "",
+  ).replace(/\/$/, "");
   const normalized = String(path).replace(/^\/+/, "");
-  return normalized.startsWith("storage/") ? `${base}/${normalized}` : `${base}/storage/${normalized}`;
+  return normalized.startsWith("storage/")
+    ? `${base}/${normalized}`
+    : `${base}/storage/${normalized}`;
 }
 
 function labelValue(row = {}) {
   const type = row.discount_type || row.discountType || "fixed";
   const value = Number(row.discount_value ?? row.discountValue ?? 0);
-  if (type === "percentage" || type === "shipping_percentage") return `${value}%`;
+  if (type === "percentage" || type === "shipping_percentage") {
+    return `${value}%`;
+  }
   if (type === "free_shipping") return "Gratis Ongkir";
   return formatPrice(value);
 }
 
 function normalizePromotion(row = {}, index = 0) {
   const type = row.discount_type || row.discountType || "fixed";
-  const gradients = ["from-emerald-600 to-lime-500", "from-sky-600 to-teal-500", "from-slate-800 to-emerald-700"];
+  const gradients = [
+    "from-emerald-600 to-lime-500",
+    "from-sky-600 to-teal-500",
+    "from-slate-800 to-emerald-700",
+  ];
+  const minSpend = Number(row.min_spend ?? row.minSpend ?? 0);
+  const maxDiscountValue = row.max_discount ?? row.maxDiscount;
+
   return {
     id: row.id,
     title: row.name || row.title || row.code || "Promo",
-    subtitle: `Potongan ${labelValue(row)}${Number(row.min_spend || 0) > 0 ? `, minimum belanja ${formatPrice(Number(row.min_spend))}` : ""}`,
-    badge: row.ends_at ? `Sampai ${new Date(row.ends_at).toLocaleDateString("id-ID")}` : "Voucher aktif",
-    cta: "Gunakan Voucher",
-    image: resolveAssetUrl(row.imageUrl || row.image_url || row.image || row.banner_url || ""),
-    href: `/cart?voucher=${encodeURIComponent(row.code || "")}`,
+    name: row.name || row.title || row.code || "Promo",
+    subtitle: `Potongan ${labelValue(row)}${
+      minSpend > 0 ? `, minimum belanja ${formatPrice(minSpend)}` : ""
+    }`,
+    badge: row.ends_at
+      ? `Sampai ${new Date(row.ends_at).toLocaleDateString("id-ID")}`
+      : "Voucher aktif",
+    cta: "Lihat Voucher",
+    image: resolveAssetUrl(
+      row.imageUrl || row.image_url || row.image || row.banner_url || "",
+    ),
+    imageUrl: resolveAssetUrl(
+      row.imageUrl || row.image_url || row.image || row.banner_url || "",
+    ),
     color: gradients[index % gradients.length],
     code: row.code || "",
     type,
+    discountType: type,
+    discountValue: Number(row.discount_value ?? row.discountValue ?? 0),
+    minSpend,
+    maxDiscount:
+      maxDiscountValue === null || maxDiscountValue === undefined
+        ? null
+        : Number(maxDiscountValue || 0),
+    startsAt: row.starts_at || row.startsAt || null,
+    endsAt: row.ends_at || row.endsAt || null,
+    description: row.description || row.detail || "",
+    terms:
+      row.terms ||
+      row.terms_and_conditions ||
+      row.termsAndConditions ||
+      row.conditions ||
+      "",
   };
 }
 
 export async function getPromotionHighlights() {
-  const response = await apiClient.get("/api/v1/order/vouchers", { params: { is_active: 1 } });
+  const response = await apiClient.get("/api/v1/order/vouchers", {
+    params: { is_active: 1 },
+  });
   return unwrapCollection(response.data).map(normalizePromotion);
 }
 
