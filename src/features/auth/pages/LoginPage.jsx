@@ -44,7 +44,7 @@ const PORTALS = {
 
 export default function LoginPage({ portal = "buyer" }) {
   const config = useMemo(() => PORTALS[portal] || PORTALS.buyer, [portal]);
-  const { loginWithPassword, loginWithGoogle, loading, error, clearError } =
+  const { loginWithPassword, loginWithGoogle, logout, loading, error, clearError } =
     useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +54,29 @@ export default function LoginPage({ portal = "buyer" }) {
   });
   const [localError, setLocalError] = useState("");
   const message = localError || error;
+
+
+  const ensurePortalAccess = async (session) => {
+    const activeRole = String(
+      session?.activeRole || session?.active_role || session?.user?.role || "",
+    ).toLowerCase();
+    const roles = Array.isArray(session?.roles || session?.user?.roles)
+      ? (session?.roles || session?.user?.roles).map((role) =>
+          String(role?.name || role || "").toLowerCase(),
+        )
+      : [];
+
+    if (activeRole === config.role || roles.includes(config.role)) {
+      return;
+    }
+
+    await logout();
+    throw new Error(
+      config.role === "admin"
+        ? "Akun ini tidak memiliki akses Admin."
+        : "Akun tidak memiliki akses ke portal yang dipilih.",
+    );
+  };
 
   const getRedirectPath = () => {
     const query = new URLSearchParams(location.search);
@@ -85,12 +108,13 @@ export default function LoginPage({ portal = "buyer" }) {
     }
 
     try {
-      await loginWithPassword({
+      const session = await loginWithPassword({
         ...form,
         role: config.role,
         deviceName: config.deviceName,
         storageScope: config.storageScope,
       });
+      await ensurePortalAccess(session);
       navigate(getRedirectPath(), { replace: true });
     } catch (submitError) {
       setLocalError(submitError.message);
@@ -102,11 +126,12 @@ export default function LoginPage({ portal = "buyer" }) {
     clearError();
 
     try {
-      await loginWithGoogle({
+      const session = await loginWithGoogle({
         role: config.role,
         deviceName: config.deviceName,
         storageScope: config.storageScope,
       });
+      await ensurePortalAccess(session);
       navigate(getRedirectPath(), { replace: true });
     } catch (submitError) {
       setLocalError(submitError.message);

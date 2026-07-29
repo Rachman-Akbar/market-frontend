@@ -10,6 +10,7 @@ import {
   useProductVariants,
 } from "@/features/catalog/product/services/productService";
 import { getCategoryHref } from "@/features/catalog/category/services/categoryService";
+import { toTitleCase } from "@/shared/utils/textFormatter";
 
 const DETAIL_TABS = ["Detail Produk", "Panduan"];
 
@@ -107,6 +108,16 @@ export function ProductDetailClient({ slug }) {
   const activeStock = selectedVariant
     ? selectedVariantStock ?? "-"
     : Number(product?.stock ?? 0);
+  const store = product?.store || {};
+  const storeName = store.name || product?.store_name || "Toko";
+  const storeLocation = [store.city, store.province]
+    .filter(Boolean)
+    .join(", ") || store.location || product?.location || "Marketplace Indonesia";
+  const storeHref = store.slug
+    ? `/stores/${encodeURIComponent(store.slug)}`
+    : store.id
+      ? `/stores/id/${encodeURIComponent(store.id)}`
+      : "/stores";
 
   if (loading) {
     return (
@@ -153,7 +164,7 @@ export function ProductDetailClient({ slug }) {
             </span>
           ))}
 
-          <span className="text-gray-400">{product.name}</span>
+          <span className="text-gray-400">{toTitleCase(product.name)}</span>
         </div>
       </nav>
 
@@ -164,7 +175,7 @@ export function ProductDetailClient({ slug }) {
 
         <section className="lg:col-span-5">
           <h1 className="mb-1 text-xl font-bold leading-tight">
-            {product.name}
+            {toTitleCase(product.name)}
           </h1>
 
           <div className="mb-4 flex items-center gap-2 text-sm">
@@ -261,21 +272,27 @@ export function ProductDetailClient({ slug }) {
 
             <hr className="border-gray-100" />
 
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                  <img
-                    src={product.image}
-                    alt={product.brand || product.name}
-                    className="h-full w-full object-cover"
-                  />
+            <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-50 font-black text-emerald-700">
+                  {store.logo ? (
+                    <img
+                      src={store.logo}
+                      alt={storeName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    storeName.slice(0, 1).toUpperCase()
+                  )}
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-1">
-                    <span className="font-bold">{product.brand || "Toko"}</span>
+                    <span className="truncate font-bold">
+                      {toTitleCase(storeName)}
+                    </span>
                     <svg
-                      className="h-4 w-4 text-[#10B981]"
+                      className="h-4 w-4 shrink-0 text-[#10B981]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -283,15 +300,18 @@ export function ProductDetailClient({ slug }) {
                     </svg>
                   </div>
 
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    {product.location || "Lokasi toko belum tersedia"}
+                  <div className="truncate text-xs text-gray-500">
+                    {storeLocation}
                   </div>
                 </div>
               </div>
 
-              <button className="rounded-lg border border-[#10B981] px-6 py-1.5 font-bold text-[#10B981] hover:bg-gray-50">
-                Follow
-              </button>
+              <Link
+                to={storeHref}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-[#10B981] px-5 text-sm font-bold text-[#047857] transition hover:bg-emerald-50"
+              >
+                Kunjungi Toko
+              </Link>
             </div>
           </div>
         </section>

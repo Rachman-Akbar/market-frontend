@@ -3,12 +3,19 @@ import {
   apiClient,
   getApiMessage,
   unwrapApiData,
+  unwrapCollection,
 } from "@/core/utils/apiClient";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
 export const sellerOnboardingKeys = {
   store: ["seller", "stores"],
-  address: ["order", "addresses", "store"],
+  address: (storeId) => [
+    "order",
+    "addresses",
+    "store",
+    String(storeId || ""),
+  ],
 };
 
 function resolveStoreSource(payload = {}) {
@@ -17,13 +24,35 @@ function resolveStoreSource(payload = {}) {
 }
 
 function normalizeStore(row = {}) {
+  const detail = row.detail || {};
+
   return {
     id: Number(row.id || 0),
-    userId: row.user_id ? String(row.user_id) : "",
+    userId: String(row.user_id || row.userId || ""),
     name: row.name || row.store_name || "",
     slug: row.slug || "",
-    logo: row.logo || "",
-    bannerUrl: row.banner_url || "",
+    description: row.description || "",
+    shortDescription: row.short_description || row.shortDescription || "",
+    phone: row.phone || "",
+    email: row.email || "",
+    city: row.city || "",
+    province: row.province || "",
+    address: row.address || "",
+    status: String(row.status || "pending").toLowerCase(),
+    isActive: Boolean(row.is_active ?? row.isActive),
+    logo: resolveMediaUrl(row.logo || ""),
+    bannerUrl: resolveMediaUrl(row.banner_url || row.bannerUrl || ""),
+    detail: {
+      ownerName: detail.owner_name || detail.ownerName || "",
+      ownerPhone: detail.owner_phone || detail.ownerPhone || "",
+      shippingPolicy: detail.shipping_policy || detail.shippingPolicy || "",
+      returnPolicy: detail.return_policy || detail.returnPolicy || "",
+      openDays: detail.open_days || detail.openDays || "",
+      openTime: detail.open_time || detail.openTime || "",
+      closeTime: detail.close_time || detail.closeTime || "",
+      instagramUrl: detail.instagram_url || detail.instagramUrl || "",
+      websiteUrl: detail.website_url || detail.websiteUrl || "",
+    },
   };
 }
 
@@ -130,6 +159,18 @@ function isSessionEmailVerified(session) {
   );
 }
 
+function resolveSessionStore(session = {}) {
+  return normalizeStore(session?.store || session?.user?.store || {});
+}
+
+function isStoreAlreadyExistsError(error) {
+  const message = String(
+    error?.response?.data?.message || error?.message || "",
+  ).toLowerCase();
+
+  return message.includes("sudah memiliki toko");
+}
+
 async function registerSellerStore(values, files) {
   const formData = buildStoreFormData(values, files);
   const response = await apiClient.post(
@@ -152,16 +193,48 @@ async function registerSellerStore(values, files) {
   return store;
 }
 
-async function createStoreAddress(values) {
+async function updateRegisteredStore(id, values, files) {
   const response = await apiClient.post(
-    "/api/v1/order/addresses",
-    buildStoreAddressPayload(values),
-    {
-      params: {
-        scope: "store",
-      },
-    },
+    `/api/v1/seller/stores/${id}`,
+    buildStoreFormData(values, files),
   );
+  const store = normalizeStore(resolveStoreSource(response.data));
+
+  if (!store.id) {
+    throw new Error("Data toko belum berhasil diperbarui.");
+  }
+
+  return store;
+}
+
+async function getRegisteredStore(id) {
+  const response = await apiClient.get(`/api/v1/seller/stores/${id}/manage`);
+  return normalizeStore(resolveStoreSource(response.data));
+}
+
+async function upsertStoreAddress(values) {
+  const config = {
+    params: {
+      scope: "store",
+    },
+  };
+  const listResponse = await apiClient.get(
+    "/api/v1/order/addresses",
+    config,
+  );
+  const currentAddress = unwrapCollection(listResponse.data)[0] || null;
+  const payload = buildStoreAddressPayload(values);
+  const response = currentAddress?.id
+    ? await apiClient.put(
+        `/api/v1/order/addresses/${currentAddress.id}`,
+        payload,
+        config,
+      )
+    : await apiClient.post(
+        "/api/v1/order/addresses",
+        payload,
+        config,
+      );
 
   return unwrapApiData(response.data);
 }
@@ -172,25 +245,37 @@ export function useSellerOnboarding() {
 
   return useMutation({
     mutationFn: async ({ values, files }) => {
-      await refreshMe();
-      let store;
+      let currentSession = await refreshMe();
+      let store = resolveSessionStore(currentSession);
+      let shouldUpdateExistingStore = Boolean(store.id);
 
-      try {
-        store = await registerSellerStore(values, files);
-      } catch (error) {
-        if (!isEmailVerificationError(error)) {
-          throw error;
+      if (!store.id) {
+        try {
+          store = await registerSellerStore(values, files);
+        } catch (error) {
+          if (isEmailVerificationError(error)) {
+            currentSession = await refreshMe();
+
+            if (!isSessionEmailVerified(currentSession)) {
+              throw new Error(
+                "Email akun belum terverifikasi di backend. Verifikasi email terlebih dahulu, lalu buka kembali pendaftaran seller.",
+              );
+            }
+
+            store = await registerSellerStore(values, files);
+          } else if (isStoreAlreadyExistsError(error)) {
+            currentSession = await refreshMe();
+            store = resolveSessionStore(currentSession);
+
+            if (!store.id) {
+              throw error;
+            }
+
+            shouldUpdateExistingStore = true;
+          } else {
+            throw error;
+          }
         }
-
-        const currentSession = await refreshMe();
-
-        if (!isSessionEmailVerified(currentSession)) {
-          throw new Error(
-            "Email akun belum terverifikasi di backend. Verifikasi email terlebih dahulu, lalu buka kembali pendaftaran seller.",
-          );
-        }
-
-        store = await registerSellerStore(values, files);
       }
 
       await refreshMe();
@@ -199,24 +284,35 @@ export function useSellerOnboarding() {
         storageScope: "window",
       });
 
-      let address = null;
-      let addressError = "";
+      if (shouldUpdateExistingStore) {
+        store = await updateRegisteredStore(store.id, values, files);
+      }
+
+      let address;
 
       try {
-        address = await createStoreAddress(values);
+        address = await upsertStoreAddress(values);
       } catch (error) {
-        addressError = getApiMessage(
-          error,
-          "Toko berhasil dibuat, tetapi alamat toko belum berhasil disimpan.",
+        throw new Error(
+          getApiMessage(
+            error,
+            "Toko sudah tercatat, tetapi alamat onboarding belum berhasil disimpan. Data belum dianggap selesai dan Anda belum dialihkan ke Seller Panel.",
+          ),
         );
       }
 
+      const finalStore = await getRegisteredStore(store.id);
       await refreshMe();
 
+      if (!finalStore.id || !address?.id) {
+        throw new Error(
+          "Onboarding seller belum lengkap. Data toko dan alamat wajib tersedia sebelum masuk ke Seller Panel.",
+        );
+      }
+
       return {
-        store,
+        store: finalStore,
         address,
-        addressError,
       };
     },
     onSuccess: ({ store, address }) => {
@@ -224,13 +320,14 @@ export function useSellerOnboarding() {
         ["seller", "stores", "detail", String(store.id)],
         store,
       );
-
-      if (address) {
-        queryClient.setQueryData(sellerOnboardingKeys.address, [address]);
-      }
-
+      queryClient.setQueryData(
+        sellerOnboardingKeys.address(store.id),
+        address,
+      );
       queryClient.invalidateQueries({ queryKey: sellerOnboardingKeys.store });
-      queryClient.invalidateQueries({ queryKey: sellerOnboardingKeys.address });
+      queryClient.invalidateQueries({
+        queryKey: sellerOnboardingKeys.address(store.id),
+      });
     },
   });
 }

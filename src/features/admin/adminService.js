@@ -42,7 +42,7 @@ function flattenCategories(rows = [], parents = new Map(), groups = new Map(), r
 async function getAdminDashboardData() {
   const [usersResponse, storesResponse, ordersResponse] = await Promise.all([
     apiClient.get("/api/v1/identity/users", { params: { per_page: 100 } }),
-    apiClient.get("/api/v1/seller/stores", { params: { per_page: 100 } }),
+    apiClient.get("/api/v1/seller/stores/manage", { params: { per_page: 100 } }),
     apiClient.get("/api/v1/order/orderings", { params: { per_page: 100 } }),
   ]);
 
@@ -74,7 +74,7 @@ async function getAdminDashboardData() {
     ],
     revenueSeries,
     moderationQueue: stores
-      .filter((store) => store.is_active === false || String(store.status || "").toLowerCase() === "review")
+      .filter((store) => ["pending", "suspended"].includes(String(store.status || "").toLowerCase()) || store.is_active === false)
       .slice(0, 6)
       .map((store) => ({
         id: String(store.id),
@@ -82,7 +82,7 @@ async function getAdminDashboardData() {
         title: store.name || store.store_name || "Toko",
         owner: store.email || store.owner_name || "Seller",
         priority: "Normal",
-        status: store.is_active === false ? "Nonaktif" : "Perlu Review",
+        status: String(store.status || "").toLowerCase() === "pending" ? "Menunggu Persetujuan" : String(store.status || "").toLowerCase() === "suspended" ? "Ditangguhkan" : "Nonaktif",
       })),
     recentOrders: orders.slice(0, 10).map((order) => ({
       id: order.order_number || String(order.id),

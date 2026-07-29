@@ -12,11 +12,17 @@ function formatRupiah(value) {
 }
 
 function formatDiscount(voucher) {
-  if (voucher.discountType === "percentage") {
-    return `${Number(voucher.discountValue || 0).toLocaleString("id-ID")}%`;
+  const value = voucher.discountType === "percentage"
+    ? `${Number(voucher.discountValue || 0).toLocaleString("id-ID")}%`
+    : formatRupiah(voucher.discountValue);
+
+  if (voucher.discountTarget === "shipping") {
+    return voucher.discountType === "percentage" && Number(voucher.discountValue || 0) === 100
+      ? "Gratis ongkir"
+      : `Diskon ongkir ${value}`;
   }
 
-  return formatRupiah(voucher.discountValue);
+  return value;
 }
 
 function getVoucherDescription(voucher) {
@@ -27,7 +33,7 @@ function getVoucherDescription(voucher) {
   }
 
   if (voucher.discountValue) {
-    parts.push(`Diskon ${formatDiscount(voucher)}`);
+    parts.push(formatDiscount(voucher));
   }
 
   if (voucher.minSpend) {

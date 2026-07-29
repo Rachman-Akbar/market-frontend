@@ -5,6 +5,9 @@ import {
   useSellerStoreAddress,
   useUpdateSellerStore,
 } from "@/features/seller/store/services/sellerStoreService";
+import { toTitleCase } from "@/shared/utils/textFormatter";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 
 const emptyForm = {
   store_name: "",
@@ -38,7 +41,7 @@ function fromStore(store, storeAddress) {
   if (!store) return { ...emptyForm };
 
   return {
-    store_name: store.name,
+    store_name: toTitleCase(store.name),
     description: store.description,
     short_description: store.shortDescription,
     phone: store.phone,
@@ -73,6 +76,10 @@ export function SellerStoreSettingsPanel({ store }) {
   const [logo, setLogo] = useState(null);
   const [banner, setBanner] = useState(null);
   const [message, setMessage] = useState("");
+  const logoObjectUrl = useObjectUrl(logo);
+  const bannerObjectUrl = useObjectUrl(banner);
+  const logoPreviewUrl = logoObjectUrl || resolveMediaUrl(store?.logo || "");
+  const bannerPreviewUrl = bannerObjectUrl || resolveMediaUrl(store?.bannerUrl || "");
   const updateMutation = useUpdateSellerStore();
   const saveAddressMutation = useSaveSellerStoreAddress();
   const pending = updateMutation.isPending || saveAddressMutation.isPending;
@@ -186,7 +193,7 @@ export function SellerStoreSettingsPanel({ store }) {
 
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5">
         <h2 className="text-base font-extrabold text-slate-950">
           Informasi operasional
         </h2>
@@ -231,7 +238,7 @@ export function SellerStoreSettingsPanel({ store }) {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5">
         <h2 className="text-base font-extrabold text-slate-950">
           Pengaturan toko
         </h2>
@@ -282,6 +289,9 @@ export function SellerStoreSettingsPanel({ store }) {
                 onChange={(event) => setLogo(event.target.files?.[0] || null)}
                 className="block w-full text-xs text-slate-500"
               />
+              <div className="aspect-square w-full max-w-40 overflow-hidden rounded-2xl bg-slate-100">
+                {logoPreviewUrl ? <img src={logoPreviewUrl} alt="Preview logo toko" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><span className="material-symbols-outlined text-4xl">image</span></div>}
+              </div>
             </label>
             <label className="space-y-1.5">
               <span className="text-xs font-bold text-slate-500">Banner</span>
@@ -291,6 +301,9 @@ export function SellerStoreSettingsPanel({ store }) {
                 onChange={(event) => setBanner(event.target.files?.[0] || null)}
                 className="block w-full text-xs text-slate-500"
               />
+              <div className="aspect-[3/1] w-full overflow-hidden rounded-2xl bg-slate-100">
+                {bannerPreviewUrl ? <img src={bannerPreviewUrl} alt="Preview banner toko" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><span className="material-symbols-outlined text-4xl">image</span></div>}
+              </div>
             </label>
           </div>
         </div>

@@ -384,8 +384,18 @@ export function normalizeShippingOption(option = {}, index = 0) {
         ? "Ambil Sendiri"
         : "");
 
+  const rawBreakdown = option.store_breakdown || option.storeBreakdown || option.breakdown || null;
+  const storeBreakdown = Array.isArray(rawBreakdown)
+    ? rawBreakdown.map((row) => ({
+        ...row,
+        storeId: Number(row.storeId ?? row.store_id ?? row.id ?? 0),
+        price: Number(row.price ?? row.cost ?? row.shipping_cost ?? 0),
+      })).filter((row) => row.storeId)
+    : rawBreakdown;
+
   return {
     ...option,
+    storeBreakdown,
     id:
       option.id ||
       `${courier || "shipping"}:${service || index}:${cost || index}`,
@@ -526,13 +536,28 @@ export async function getShippingOptions(payload) {
     );
   }
 
-  const response = await apiClient.post(
-    "/api/v1/order/orderings/shipping-options",
-    {
-      address_id: payload.addressId,
-      cart_item_ids: cartItemIds,
-    },
-  );
+  let response;
+
+  try {
+    response = await apiClient.post(
+      "/api/v1/order/orderings/shipping-options",
+      {
+        address_id: payload.addressId,
+        cart_item_ids: cartItemIds,
+      },
+    );
+  } catch (error) {
+    if (isIgnoredShippingError(error)) {
+      return {
+        options: [],
+        warnings: ["Ongkir tidak tersedia untuk area ini."],
+        cartItemIds,
+      };
+    }
+
+    throw error;
+  }
+
   const source = unwrapApiData(response.data) || {};
   const rows = Array.isArray(source?.options)
     ? source.options

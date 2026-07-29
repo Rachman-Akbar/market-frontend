@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Banknote,
@@ -22,7 +22,12 @@ import {
 } from "@/features/order/ordering/orderService";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
-import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
+import { useCheckoutVouchers } from "@/features/order/voucher/services/voucherService";
+import {
+  calculateCheckoutVoucherDiscount,
+  getAvailableCheckoutVouchers,
+  getBestCheckoutVoucher,
+} from "@/features/order/voucher/utils/checkoutVoucher";
 import { Button } from "@/shared/components/ui/Button";
 import { Separator } from "@/shared/components/ui/Separator";
 import { formatPrice } from "@/shared/utils/utils";
@@ -113,90 +118,21 @@ function normalizeDirectItem(item = {}) {
   };
 }
 
-function calculateVoucherDiscount({
-  voucher,
-  eligibleSubtotal,
-  shippingPrice,
-}) {
-  const subtotalValue = Math.max(0, Number(eligibleSubtotal || 0));
-  const shippingValue = Math.max(0, Number(shippingPrice || 0));
-
-  if (!voucher) {
-    return {
-      discount: 0,
-      eligible: false,
-      message: "",
-    };
-  }
-
-  const minimumSpend = Math.max(0, Number(voucher.minSpend || 0));
-
-  if (minimumSpend > 0 && subtotalValue < minimumSpend) {
-    return {
-      discount: 0,
-      eligible: false,
-      message: `Minimal belanja ${formatPrice(minimumSpend)} untuk menggunakan voucher ini.`,
-    };
-  }
-
-  const discountType = String(voucher.discountType || "fixed")
-    .trim()
-    .toLowerCase();
-  const discountValue = Math.max(0, Number(voucher.discountValue || 0));
-  const maximumDiscount = Math.max(0, Number(voucher.maxDiscount || 0));
-  let discount = 0;
-
-  if (discountType === "free_shipping") {
-    discount = shippingValue;
-  } else if (discountType === "shipping_percentage") {
-    discount = shippingValue * (discountValue / 100);
-  } else if (
-    discountType === "percentage" ||
-    discountType === "percent" ||
-    discountType === "persen"
-  ) {
-    discount = subtotalValue * (discountValue / 100);
-  } else {
-    discount = discountValue;
-  }
-
-  if (maximumDiscount > 0) {
-    discount = Math.min(discount, maximumDiscount);
-  }
-
-  const maximumApplicableDiscount =
-    discountType === "free_shipping" ||
-    discountType === "shipping_percentage"
-      ? shippingValue
-      : subtotalValue;
-
-  discount = Math.min(
-    Math.max(0, discount),
-    Math.max(0, maximumApplicableDiscount),
-  );
-
-  return {
-    discount,
-    eligible: discount > 0,
-    message:
-      discount > 0
-        ? ""
-        : "Voucher belum memberikan potongan untuk pesanan ini.",
-  };
-}
-
 export default function CheckoutPage() {
   const { items, refreshCart } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const addressesQuery = useAddresses();
-  const vouchersQuery = useActiveVouchers();
   const createOrderMutation = useCreateOrder();
   const [addressId, setAddressId] = useState(null);
   const [shippingId, setShippingId] = useState(PICKUP_OPTION.id);
   const [payment, setPayment] = useState("midtrans");
-  const [voucherCode, setVoucherCode] = useState(
-    location.state?.voucherCode || "",
+  const initialVoucherCode = String(location.state?.voucherCode || "")
+    .trim()
+    .toUpperCase();
+  const [voucherCode, setVoucherCode] = useState(initialVoucherCode);
+  const [voucherSelectionMode, setVoucherSelectionMode] = useState(
+    initialVoucherCode ? "manual" : "auto",
   );
   const [error, setError] = useState("");
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -242,40 +178,16 @@ export default function CheckoutPage() {
       ),
     [selectedItems],
   );
+  const checkoutStoreIds = useMemo(
+    () =>
+      [...new Set(selectedItems.map((item) => String(item.storeId || "")))]
+        .filter(Boolean),
+    [selectedItems],
+  );
+  const vouchersQuery = useCheckoutVouchers(checkoutStoreIds, {
+    enabled: selectedItems.length > 0,
+  });
   const vouchers = vouchersQuery.data || [];
-  const selectedVoucher = useMemo(() => {
-    const normalizedCode = String(voucherCode || "")
-      .trim()
-      .toUpperCase();
-
-    if (!normalizedCode) {
-      return null;
-    }
-
-    return (
-      vouchers.find(
-        (voucher) =>
-          String(voucher.code || "")
-            .trim()
-            .toUpperCase() === normalizedCode,
-      ) || null
-    );
-  }, [voucherCode, vouchers]);
-  const voucherEligibleSubtotal = useMemo(() => {
-    if (!selectedVoucher?.storeId) {
-      return subtotal;
-    }
-
-    return selectedItems.reduce((sum, item) => {
-      if (String(item.storeId) !== String(selectedVoucher.storeId)) {
-        return sum;
-      }
-
-      return (
-        sum + Number(item.price || 0) * Number(item.quantity || 0)
-      );
-    }, 0);
-  }, [selectedItems, selectedVoucher, subtotal]);
   const selectedAddress =
     addresses.find((address) => String(address.id) === String(addressId)) ||
     null;
@@ -332,6 +244,60 @@ export default function CheckoutPage() {
 
     return PAYMENT_METHODS.filter((method) => method.id !== "tunai_toko");
   }, [shipping?.courier]);
+  const shippingPrice = Number(shipping?.price || shipping?.cost || 0);
+  const shippingBreakdown = shipping?.storeBreakdown || shipping?.store_breakdown || null;
+  const availableVouchers = useMemo(
+    () => getAvailableCheckoutVouchers(vouchers, selectedItems),
+    [selectedItems, vouchers],
+  );
+  const bestVoucherResult = useMemo(
+    () =>
+      getBestCheckoutVoucher({
+        vouchers: availableVouchers,
+        items: selectedItems,
+        shippingPrice,
+        shippingBreakdown,
+      }),
+    [availableVouchers, selectedItems, shippingBreakdown, shippingPrice],
+  );
+  const bestVoucher = bestVoucherResult?.voucher || null;
+  const selectedVoucher = useMemo(() => {
+    const normalizedCode = String(voucherCode || "")
+      .trim()
+      .toUpperCase();
+
+    if (!normalizedCode) return null;
+
+    return (
+      availableVouchers.find(
+        (voucher) =>
+          String(voucher.code || "")
+            .trim()
+            .toUpperCase() === normalizedCode,
+      ) || null
+    );
+  }, [availableVouchers, voucherCode]);
+  const voucherCalculation = useMemo(
+    () =>
+      calculateCheckoutVoucherDiscount({
+        voucher: selectedVoucher,
+        items: selectedItems,
+        shippingPrice,
+        shippingBreakdown,
+      }),
+    [selectedItems, selectedVoucher, shippingBreakdown, shippingPrice],
+  );
+  const voucherDiscount = voucherCalculation.discount;
+  const totalBeforeVoucher = subtotal + shippingPrice;
+  const total = Math.max(0, totalBeforeVoucher - voucherDiscount);
+  const handleVoucherChange = useCallback((code) => {
+    setVoucherSelectionMode("manual");
+    setVoucherCode(String(code || "").trim().toUpperCase());
+  }, []);
+  const handleUseRecommendedVoucher = useCallback(() => {
+    setVoucherSelectionMode("auto");
+    setVoucherCode(String(bestVoucher?.code || "").toUpperCase());
+  }, [bestVoucher?.code]);
 
   useEffect(() => {
     if (!addresses.length || addressId) {
@@ -361,6 +327,17 @@ export default function CheckoutPage() {
     setPayment(availablePaymentMethods[0]?.id || "midtrans");
   }, [availablePaymentMethods, payment]);
 
+  useEffect(() => {
+    if (voucherSelectionMode !== "auto" || vouchersQuery.isLoading) {
+      return;
+    }
+
+    const nextCode = String(bestVoucher?.code || "").toUpperCase();
+    setVoucherCode((current) =>
+      String(current || "").toUpperCase() === nextCode ? current : nextCode,
+    );
+  }, [bestVoucher?.code, voucherSelectionMode, vouchersQuery.isLoading]);
+
   if (selectedItems.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
@@ -380,16 +357,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
-  const shippingPrice = Number(shipping?.price || shipping?.cost || 0);
-  const voucherCalculation = calculateVoucherDiscount({
-    voucher: selectedVoucher,
-    eligibleSubtotal: voucherEligibleSubtotal,
-    shippingPrice,
-  });
-  const voucherDiscount = voucherCalculation.discount;
-  const totalBeforeVoucher = subtotal + shippingPrice;
-  const total = Math.max(0, totalBeforeVoucher - voucherDiscount);
 
   const handleConfirmOrder = async () => {
     if (!shipping) {
@@ -420,7 +387,7 @@ export default function CheckoutPage() {
         courier: shipping.courier,
         service: shipping.service,
         paymentMethod: payment,
-        voucherCode,
+        voucherCode: selectedVoucher?.code || null,
       });
     } catch (requestError) {
       setError(getOrderError(requestError));
@@ -578,21 +545,33 @@ export default function CheckoutPage() {
               <div className="mt-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
                 <Info size={16} className="mt-0.5 shrink-0" />
                 <span>
-                  Komerce Destination ID belum tersedia. Haversine tetap dapat
-                  digunakan jika koordinat toko dan alamat penerima lengkap.
+                  Ongkir kurir nasional tidak tersedia untuk area ini. Kamu
+                  tetap dapat memilih metode pengiriman lain atau Ambil Sendiri.
                 </span>
               </div>
             ) : null}
 
             {shippingWarnings.length ? (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
-                {shippingWarnings.join(" ")}
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
+                {shippingWarnings.join(" ")} Metode Ambil Sendiri tetap tersedia.
+              </div>
+            ) : null}
+
+            {selectedAddress &&
+            !shippingQuery.isLoading &&
+            !shippingQuery.error &&
+            !shippingWarnings.length &&
+            !remoteShippingOptions.length ? (
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
+                Ongkir tidak tersedia untuk area ini. Kamu tetap dapat melanjutkan
+                checkout dengan metode Ambil Sendiri.
               </div>
             ) : null}
 
             {shippingQuery.error && shippingErrorMessage ? (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
-                {shippingErrorMessage} Metode Ambil Sendiri tetap tersedia.
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
+                Ongkir sementara tidak tersedia untuk area ini. Metode Ambil
+                Sendiri tetap dapat digunakan.
               </div>
             ) : null}
 
@@ -718,8 +697,15 @@ export default function CheckoutPage() {
             <div className="mt-4">
               <VoucherSearchSelect
                 value={voucherCode}
-                onChange={setVoucherCode}
+                onChange={handleVoucherChange}
                 label="Cari dan pilih voucher"
+                vouchers={availableVouchers}
+                loading={vouchersQuery.isLoading}
+                error={vouchersQuery.error}
+                recommendedVoucher={bestVoucher}
+                onUseRecommended={handleUseRecommendedVoucher}
+                allowManualInput={false}
+                emptyMessage="Belum ada voucher yang aktif dan memenuhi syarat untuk toko dalam pesanan ini."
               />
             </div>
           </section>
@@ -736,23 +722,23 @@ export default function CheckoutPage() {
               <span>Ongkir</span>
               <span>{formatPrice(shippingPrice)}</span>
             </div>
-            {selectedVoucher ? (
-              <div className="flex justify-between gap-3">
-                <span className="min-w-0">
-                  Voucher
+            <div className="flex justify-between gap-3">
+              <span className="min-w-0">
+                Diskon Voucher
+                {selectedVoucher ? (
                   <span className="ml-1 font-semibold text-slate-800">
                     ({selectedVoucher.code})
                   </span>
-                </span>
-                <span
-                  className={`shrink-0 font-semibold ${
-                    voucherDiscount > 0 ? "text-[#047857]" : "text-slate-500"
-                  }`}
-                >
-                  -{formatPrice(voucherDiscount)}
-                </span>
-              </div>
-            ) : null}
+                ) : null}
+              </span>
+              <span
+                className={`shrink-0 font-semibold ${
+                  voucherDiscount > 0 ? "text-[#047857]" : "text-slate-500"
+                }`}
+              >
+                -{formatPrice(voucherDiscount)}
+              </span>
+            </div>
             <div className="flex justify-between gap-3">
               <span>Pengiriman</span>
               <span className="text-right font-semibold text-slate-800">

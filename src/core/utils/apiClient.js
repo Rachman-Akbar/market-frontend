@@ -12,42 +12,13 @@ function normalizeBaseUrl(value = "") {
 }
 
 function resolveApiBaseUrl() {
-  const configured = normalizeBaseUrl(
+  return normalizeBaseUrl(
     import.meta.env.VITE_API_BASE_URL ||
       import.meta.env.VITE_API_URL ||
       import.meta.env.VITE_BACKEND_URL ||
       import.meta.env.VITE_LARAVEL_BASE_URL ||
       "",
   );
-
-  if (configured) {
-    return configured;
-  }
-
-  if (import.meta.env.DEV) {
-    if (String(import.meta.env.VITE_USE_API_PROXY || "") === "true") {
-      return "";
-    }
-
-    if (typeof window !== "undefined") {
-      const protocol =
-        String(import.meta.env.VITE_API_PROTOCOL || "").trim() ||
-        window.location.protocol ||
-        "http:";
-      const port = String(import.meta.env.VITE_API_PORT || "8000").trim();
-      const host = window.location.hostname || "127.0.0.1";
-
-      return normalizeBaseUrl(`${protocol}//${host}:${port}`);
-    }
-
-    return "http://127.0.0.1:8000";
-  }
-
-  if (typeof window !== "undefined") {
-    return normalizeBaseUrl(window.location.origin);
-  }
-
-  return "";
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

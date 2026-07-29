@@ -1,111 +1,107 @@
+import { memo } from "react";
 import { formatPrice } from "@/shared/utils/utils";
+import { StatusBadge } from "@/shared/components/feedback/StatusBadge";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
+import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
+import { formatTableValue } from "@/shared/utils/tableData";
+import { toTitleCase } from "@/shared/utils/textFormatter";
 
-const statusClass = {
-  active: "border-emerald-200 text-emerald-700",
-  review: "border-amber-200 text-amber-700",
-  inactive: "border-slate-200 text-slate-500",
-};
+export const PRODUCT_TABLE_COLUMNS = [
+  { key: "product", label: "Produk" },
+  { key: "store", label: "Toko", defaultVisible: false },
+  { key: "mode", label: "Mode" },
+  { key: "price", label: "Harga" },
+  { key: "stock", label: "Stok" },
+  { key: "status", label: "Status Admin" },
+  { key: "active", label: "Status Seller" },
+];
 
-const statusLabel = {
-  active: "Aktif",
-  review: "Review",
-  inactive: "Nonaktif",
-};
+function isVisible(visibleSet, key) {
+  return !visibleSet || visibleSet.has(key);
+}
 
-export function SellerProductTable({
-  rows = [],
+export const SellerProductTable = memo(function SellerProductTable({
+  rows,
   onEdit,
-  onDelete,
-  deletingId,
+  onToggleActive,
+  onStatusChange,
+  pendingId,
+  portal = "seller",
+  columns = PRODUCT_TABLE_COLUMNS,
+  visibleSet,
+  selectionEnabled = false,
+  selectedIds = new Set(),
+  allSelected = false,
+  onToggleRow,
+  onToggleAll,
 }) {
-  if (!rows.length) {
-    return (
-      <div className="flex min-h-72 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 text-center text-sm text-slate-500">
-        Belum ada produk seller yang tersedia.
-      </div>
-    );
-  }
+  const admin = portal === "admin";
+  const rawColumns = columns.filter((column) => column.rawKey && isVisible(visibleSet, column.key));
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="overflow-hidden bg-white ring-1 ring-slate-200">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-slate-100 text-xs font-extrabold text-slate-600">
             <tr>
-              <th className="px-5 py-3 font-bold">Produk</th>
-              <th className="px-5 py-3 font-bold">SKU</th>
-              <th className="px-5 py-3 font-bold">Kategori</th>
-              <th className="px-5 py-3 text-right font-bold">Harga</th>
-              <th className="px-5 py-3 text-center font-bold">Stok</th>
-              <th className="px-5 py-3 font-bold">Status</th>
-              <th className="px-5 py-3 text-right font-bold">Aksi</th>
+              <TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />
+              {isVisible(visibleSet, "product") ? <th className="px-4 py-3">Produk</th> : null}
+              {admin && isVisible(visibleSet, "store") ? <th className="px-4 py-3">Toko</th> : null}
+              {isVisible(visibleSet, "mode") ? <th className="px-4 py-3">Mode</th> : null}
+              {isVisible(visibleSet, "price") ? <th className="px-4 py-3">Harga</th> : null}
+              {isVisible(visibleSet, "stock") ? <th className="px-4 py-3">Stok</th> : null}
+              {admin && isVisible(visibleSet, "status") ? <th className="px-4 py-3">Status Admin</th> : null}
+              {isVisible(visibleSet, "active") ? <th className="px-4 py-3">Status Seller</th> : null}
+              {rawColumns.map((column) => <th key={column.key} className="whitespace-nowrap px-4 py-3">{column.label}</th>)}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.map((row) => (
-              <tr key={row.id} className="transition hover:bg-emerald-50/40">
-                <td className="px-5 py-4">
-                  <div className="flex min-w-[240px] items-center gap-3">
-                    {row.thumbnail ? (
-                      <img
-                        src={row.thumbnail}
-                        alt={row.name}
-                        className="h-12 w-12 rounded-xl border border-slate-100 object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-[#10B981]">
-                        <span className="material-symbols-outlined">
-                          inventory_2
-                        </span>
+            {rows.map((product) => (
+              <tr key={product.id} onClick={() => onEdit(product)} className="cursor-pointer hover:bg-slate-50" title="Klik untuk edit">
+                <TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(product.id))} onToggle={() => onToggleRow?.(product.id)} />
+                {isVisible(visibleSet, "product") ? (
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 overflow-hidden bg-slate-100">
+                        {product.thumbnail ? <img src={product.thumbnail} alt={product.name} className="h-full w-full object-cover" loading="lazy" /> : null}
                       </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="line-clamp-2 font-extrabold text-slate-900">
-                        {row.name}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        Terjual {row.sold.toLocaleString("id-ID")} • Rating{" "}
-                        {row.rating}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="max-w-[320px] truncate font-extrabold text-slate-900">{toTitleCase(product.name)}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{product.sku || "SKU otomatis"}</p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-5 py-4 font-semibold text-slate-500">
-                  {row.sku || "-"}
-                </td>
-                <td className="px-5 py-4 text-slate-600">{row.category}</td>
-                <td className="px-5 py-4 text-right font-bold text-slate-900">
-                  {formatPrice(row.price)}
-                </td>
-                <td className="px-5 py-4 text-center font-bold text-slate-700">
-                  {row.stock}
-                </td>
-                <td className="px-5 py-4">
-                  <span
-                    className={`rounded-full border px-3 py-1 text-xs font-bold ${statusClass[row.status] || statusClass.inactive}`}
-                  >
-                    {statusLabel[row.status] || row.status}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(row)}
-                      className="rounded-lg px-3 py-1.5 text-xs font-bold text-[#047857] transition hover:bg-emerald-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(row)}
-                      disabled={deletingId === row.id}
-                      className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                    >
-                      {deletingId === row.id ? "Menghapus..." : "Hapus"}
-                    </button>
-                  </div>
-                </td>
+                  </td>
+                ) : null}
+                {admin && isVisible(visibleSet, "store") ? <td className="px-4 py-3 font-bold text-slate-700">{toTitleCase(product.storeName) || "-"}</td> : null}
+                {isVisible(visibleSet, "mode") ? <td className="px-4 py-3 text-slate-600">{product.mode === "variant" ? `${product.variants.length} variant` : "Tanpa variant"}</td> : null}
+                {isVisible(visibleSet, "price") ? <td className="px-4 py-3 font-bold text-slate-800">{formatPrice(product.price)}</td> : null}
+                {isVisible(visibleSet, "stock") ? <td className="px-4 py-3 text-slate-600">{product.stock.toLocaleString("id-ID")}</td> : null}
+                {admin && isVisible(visibleSet, "status") ? (
+                  <td className="px-4 py-3">
+                    <div onClick={(event) => event.stopPropagation()} className="w-36">
+                      <SearchableSelect
+                        value={product.status}
+                        disabled={pendingId === product.id}
+                        onChange={(nextValue) => onStatusChange?.(product, nextValue)}
+                        options={[
+                          { value: "draft", label: "Draft" },
+                          { value: "published", label: "Published" },
+                          { value: "archived", label: "Archived" },
+                        ]}
+                        clearable={false}
+                        buttonClassName="h-8 px-2 text-xs"
+                      />
+                    </div>
+                  </td>
+                ) : null}
+                {isVisible(visibleSet, "active") ? (
+                  <td className="px-4 py-3">
+                    <InlineActiveSwitch checked={product.isActive} pending={pendingId === product.id} onChange={(checked) => onToggleActive?.(product, checked)} compact />
+                    {!admin ? <div className="mt-1"><StatusBadge status={product.status} /></div> : null}
+                  </td>
+                ) : null}
+                {rawColumns.map((column) => <td key={column.key} className="max-w-72 truncate px-4 py-3 text-slate-600">{formatTableValue(product.raw?.[column.rawKey])}</td>)}
               </tr>
             ))}
           </tbody>
@@ -113,4 +109,4 @@ export function SellerProductTable({
       </div>
     </div>
   );
-}
+});

@@ -1,37 +1,71 @@
-import { useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerPanelShell";
-import { useTableSearch } from "@/core/hooks/useTableSearch";
-import { SellerProductToolbar } from "@/features/seller/product/components/SellerProductToolbar";
-import { SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
+import { PRODUCT_TABLE_COLUMNS, SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
 import { SellerProductEditor } from "@/features/seller/product/components/SellerProductEditor";
+import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { AsyncState } from "@/shared/components/feedback/AsyncState";
+import { Pagination } from "@/shared/components/ui/Pagination";
+import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
+import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
+import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
+import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { useRefreshOnListActivation } from "@/shared/hooks/useRefreshOnListActivation";
 import {
   getSellerProductError,
   useDeleteSellerProduct,
   useSellerProducts,
+  useUpdateSellerProduct,
 } from "@/features/seller/product/services/sellerProductService";
 
-export default function SellerProductsPage() {
-  const productsQuery = useSellerProducts({ per_page: 100 });
-  const deleteMutation = useDeleteSellerProduct();
-  const rows = productsQuery.data?.rows || [];
-  const { query, setQuery, filteredRows } = useTableSearch(rows, [
-    "name",
-    "sku",
-    "category",
-  ]);
-  const [editorState, setEditorState] = useState(null);
-  const [message, setMessage] = useState("");
-  const deletingId = deleteMutation.isPending ? deleteMutation.variables : null;
+const PER_PAGE = 20;
 
-  const removeProduct = async (product) => {
-    const confirmed = window.confirm(`Hapus produk "${product.name}"?`);
-    if (!confirmed) return;
+export default function SellerProductsPage() {
+  const [status, setStatus] = useState("");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [message, setMessage] = useState("");
+  const deferredQuery = useDeferredValue(query.trim());
+  const editor = useEntityEditor();
+  const productsQuery = useSellerProducts({
+    page,
+    per_page: PER_PAGE,
+    ...(deferredQuery ? { search: deferredQuery } : {}),
+    ...(status ? { is_active: status === "active" } : {}),
+  });
+  const deleteMutation = useDeleteSellerProduct();
+  const quickUpdateMutation = useUpdateSellerProduct();
+  useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
+  const rows = productsQuery.data?.rows || [];
+  const meta = productsQuery.data?.meta || {};
+  const columns = mergeColumns(PRODUCT_TABLE_COLUMNS.filter((column) => column.key !== "store" && column.key !== "status"), buildRawColumns(rows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"]));
+  const columnVisibility = useColumnVisibility(columns, "seller-products");
+  const selection = useTableSelection(rows);
+
+  useEffect(() => {
+    setPage(1);
+  }, [deferredQuery, status]);
+
+  const bulkDelete = async () => {
+    if (!selection.selectedRows.length) return;
+    try {
+      for (const product of selection.selectedRows) await deleteMutation.mutateAsync(product.id);
+      selection.clear();
+      setMessage("Produk terpilih berhasil dihapus. Tekan Refresh untuk memperbarui daftar.");
+    } catch (error) {
+      setMessage(getSellerProductError(error));
+    }
+  };
+
+  const remove = async () => {
+    if (!deleteTarget) return;
 
     try {
-      setMessage("");
-      await deleteMutation.mutateAsync(product.id);
-      if (editorState?.product?.id === product.id) setEditorState(null);
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      editor.markListDirty();
       setMessage("Produk berhasil dihapus.");
+      setDeleteTarget(null);
     } catch (error) {
       setMessage(getSellerProductError(error));
     }
@@ -40,57 +74,104 @@ export default function SellerProductsPage() {
   return (
     <SellerPanelShell
       title="Produk Toko"
-      subtitle="Kelola produk seller langsung dari database Laravel, termasuk gambar, kategori, harga, stok, dan status."
+      subtitle="Kelola produk tanpa variant maupun dengan variant, gambar utama, galeri, harga, stok, dan status."
     >
-      <SellerProductToolbar
+      {editor.isListActive ? (<>
+
+      <EntityToolbar
         query={query}
         onQueryChange={setQuery}
-        onCreate={() => setEditorState({ mode: "create", product: null })}
-        refreshing={productsQuery.isFetching}
+        onCreate={editor.create}
         onRefresh={() => productsQuery.refetch()}
+        refreshing={productsQuery.isFetching}
+        createLabel="Tambah Produk"
+        placeholder="Cari nama, SKU, brand, atau variant"
+        selectionEnabled={selection.enabled}
+        selectedCount={selection.selectedCount}
+        onToggleSelection={selection.toggleEnabled}
+        bulkActions={[{ key: "delete", label: "Hapus data terpilih", icon: "delete", danger: true, onClick: bulkDelete }]}
+        columns={columns}
+        visibleColumns={columnVisibility.visibleKeys}
+        onToggleColumn={columnVisibility.toggleColumn}
+        onShowAllColumns={columnVisibility.showAll}
+        onResetColumns={columnVisibility.reset}
+        filters={(
+          <SearchableSelect
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Non-Active" },
+            ]}
+            placeholder="Semua status"
+            className="w-40"
+            buttonClassName="h-10"
+          />
+        )}
       />
 
-      {productsQuery.isLoading ? (
-        <p className="mb-4 text-sm text-slate-500">Memuat produk...</p>
-      ) : null}
-      {productsQuery.error ? (
-        <p className="mb-4 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600">
-          {getSellerProductError(productsQuery.error)}
-        </p>
-      ) : null}
       {message ? (
-        <p className="mb-4 rounded-xl border border-emerald-200 px-4 py-3 text-sm font-semibold text-[#047857]">
+        <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
           {message}
         </p>
       ) : null}
 
-      <div
-        className={`grid gap-6 ${editorState ? "xl:grid-cols-[minmax(0,1fr)_430px]" : "grid-cols-1"}`}
-      >
-        <SellerProductTable
-          rows={filteredRows}
-          onEdit={(product) => setEditorState({ mode: "edit", product })}
-          onDelete={removeProduct}
-          deletingId={deletingId}
-        />
+      <AsyncState
+        loading={productsQuery.isLoading}
+        error={productsQuery.error ? getSellerProductError(productsQuery.error) : ""}
+        empty={!productsQuery.isLoading && !rows.length}
+        emptyText="Produk belum tersedia."
+      />
 
-        {editorState ? (
-          <SellerProductEditor
-            key={`${editorState.mode}-${editorState.product?.id || "new"}`}
-            mode={editorState.mode}
-            product={editorState.product}
-            onClose={() => setEditorState(null)}
-            onSaved={() => {
-              setEditorState(null);
-              setMessage(
-                editorState.mode === "edit"
-                  ? "Produk berhasil diperbarui."
-                  : "Produk berhasil ditambahkan.",
-              );
-            }}
+      {rows.length ? (
+        <>
+          <SellerProductTable
+            rows={rows}
+            onEdit={editor.edit}
+            onToggleActive={(product, isActive) => quickUpdateMutation.mutate({ id: product.id, values: { ...product, isActive } })}
+            pendingId={quickUpdateMutation.variables?.id}
+            portal="seller"
+            columns={columns}
+            visibleSet={columnVisibility.visibleSet}
+            selectionEnabled={selection.enabled}
+            selectedIds={selection.selectedIds}
+            allSelected={selection.allSelected}
+            onToggleRow={selection.toggleRow}
+            onToggleAll={selection.toggleAll}
           />
-        ) : null}
-      </div>
+          <Pagination
+            current={meta.current_page || page}
+            total={meta.last_page || 1}
+            onChange={setPage}
+          />
+        </>
+      ) : null}
+
+      
+      </>) : null}
+      <SellerProductEditor
+        open={editor.open}
+        product={editor.entity}
+        onClose={editor.close}
+        onDelete={(product) => { setDeleteTarget(product); editor.close(); }}
+        onSaved={() => {
+          editor.markListDirty();
+          setMessage(
+          editor.entity
+            ? "Produk berhasil diperbarui."
+            : "Produk berhasil ditambahkan.",
+          );
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Produk"
+        message={`Produk “${deleteTarget?.name || ""}” akan dihapus. Tindakan ini tidak dapat dibatalkan.`}
+        pending={deleteMutation.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={remove}
+      />
     </SellerPanelShell>
   );
 }

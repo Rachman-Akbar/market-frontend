@@ -13,21 +13,21 @@ const FILTERS = [
   { key: "fixed", label: "Potongan Tetap" },
 ];
 
-function getVoucherIcon(type) {
-  if (String(type).includes("shipping")) return Truck;
-  if (type === "percentage") return Gift;
+function getVoucherIcon(voucher) {
+  if (voucher.discountTarget === "shipping") return Truck;
+  if (voucher.discountType === "percentage") return Gift;
   return TicketPercent;
 }
 
 function getVoucherValue(voucher) {
-  if (
-    voucher.discountType === "percentage" ||
-    voucher.discountType === "shipping_percentage"
-  ) {
+  if (voucher.discountTarget === "shipping" && voucher.discountType === "percentage" && Number(voucher.discountValue) >= 100) {
+    return "Gratis Ongkir";
+  }
+
+  if (voucher.discountType === "percentage") {
     return `${voucher.discountValue}%`;
   }
 
-  if (voucher.discountType === "free_shipping") return "Gratis";
   return formatPrice(voucher.discountValue);
 }
 
@@ -44,9 +44,8 @@ export default function VouchersPage() {
       const categoryMatch =
         filter === "all" ||
         (filter === "shipping"
-          ? voucher.discountType.includes("shipping") ||
-            voucher.discountType === "free_shipping"
-          : voucher.discountType === filter);
+          ? voucher.discountTarget === "shipping"
+          : voucher.discountTarget === "product" && voucher.discountType === filter);
       const keywordMatch =
         !search ||
         `${voucher.name} ${voucher.code}`.toLowerCase().includes(search);
@@ -121,7 +120,7 @@ export default function VouchersPage() {
           </p>
         ) : null}
         {filteredVouchers.map((voucher) => {
-          const Icon = getVoucherIcon(voucher.discountType);
+          const Icon = getVoucherIcon(voucher);
           return (
             <div
               key={voucher.id}
@@ -165,7 +164,7 @@ export default function VouchersPage() {
                   Kode: {voucher.code}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  Diskon {getVoucherValue(voucher)} · Min. belanja{" "}
+                  {voucher.discountTarget === "shipping" ? "Potongan ongkir" : "Diskon produk"} {getVoucherValue(voucher)} · Min. belanja{" "}
                   {formatPrice(voucher.minSpend)}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">

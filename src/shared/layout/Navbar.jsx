@@ -5,6 +5,8 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { useCart } from "@/features/order/cart/context/CartContext";
 import { useSellerStore } from "@/features/seller/store/services/sellerStoreService";
 import { useSellerOrders } from "@/features/order/ordering/orderService";
+import { useSellerProducts } from "@/features/seller/product/services/sellerProductService";
+import { useStoreProducts } from "@/features/catalog/store/services/storefrontService";
 import { formatPrice } from "@/shared/utils/utils";
 import { CategoryDropdown } from "@/features/catalog/category/components/CategoryDropdown";
 
@@ -30,13 +32,20 @@ function openSellerPortal() {
   return sellerWindow;
 }
 
-function StoreTooltip({ onOpenSeller, canReadSellerData }) {
-  const storeQuery = useSellerStore();
-  const store = storeQuery.data;
+function StoreTooltip({ onOpenSeller, canReadSellerData, sessionStore }) {
+  const storeQuery = useSellerStore({ enabled: canReadSellerData });
+  const store = storeQuery.data || sessionStore || null;
   const ordersQuery = useSellerOrders(canReadSellerData ? store?.id : 0, {
     per_page: 100,
   });
+  const productsQuery = useSellerProducts({ per_page: 100 });
+  const publicProductsQuery = useStoreProducts(store?.slug, { per_page: 100 });
   const orders = ordersQuery.data?.data || [];
+  const products = canReadSellerData
+    ? productsQuery.data?.rows || []
+    : publicProductsQuery.data?.rows || [];
+  const activeProducts = products.filter((product) => product.isActive).length;
+  const lowStock = products.filter((product) => product.isActive && Number(product.stock || 0) <= 5).length;
   const paidOrders = orders.filter((order) =>
     ["paid", "success", "settlement"].includes(
       String(order.paymentStatus || "").toLowerCase(),
@@ -57,8 +66,20 @@ function StoreTooltip({ onOpenSeller, canReadSellerData }) {
   );
   const max = Math.max(...sales, 1);
 
+  if (!store?.id) {
+    return (
+      <div className="absolute right-0 top-full z-[95] mt-2 w-64 border border-slate-200 bg-white p-4">
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-2xl text-slate-400">storefront</span>
+          <div><p className="text-sm font-extrabold text-slate-800">Belum mempunyai toko</p><p className="mt-1 text-xs text-slate-500">Lengkapi onboarding untuk mulai berjualan.</p></div>
+        </div>
+        <button type="button" onClick={onOpenSeller} className="mt-4 h-9 w-full bg-emerald-600 text-xs font-extrabold text-white">Buat Toko</button>
+      </div>
+    );
+  }
+
   return (
-    <div className="absolute right-0 top-full z-[95] mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+    <div className="absolute right-0 top-full z-[95] mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="border-b border-slate-100 px-4 py-3">
         <p className="text-xs font-bold text-[#047857]">
           Performa Toko Minggu Ini
@@ -70,9 +91,9 @@ function StoreTooltip({ onOpenSeller, canReadSellerData }) {
       <div className="px-4 py-3">
         <div className="mb-3 grid grid-cols-3 gap-2">
           {[
-            { label: "Pesanan", value: orders.length.toLocaleString("id-ID") },
-            { label: "Pendapatan", value: formatPrice(revenue) },
-            { label: "Status", value: store?.isActive ? "Aktif" : "-" },
+            { label: "Penjualan", value: formatPrice(revenue) },
+            { label: "Produk Aktif", value: activeProducts.toLocaleString("id-ID") },
+            { label: "Stok Rendah", value: lowStock.toLocaleString("id-ID") },
           ].map((item) => (
             <div key={item.label} className="text-center">
               <p className="truncate text-[11px] font-bold text-slate-800">
@@ -134,7 +155,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
   }
 
   return (
-    <div className="absolute right-0 top-full z-[95] mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+    <div className="absolute right-0 top-full z-[95] mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1">
       {sharedItems.map((item) => (
         <Link
           key={item.label}
@@ -185,7 +206,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
 export function Navbar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, roles, activeRole, logout, loading } = useAuth();
+  const { user, roles, activeRole, store, logout, loading } = useAuth();
   const { totalItems } = useCart();
   const [query, setQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -239,17 +260,10 @@ export function Navbar() {
             </span>
           </div>
           <div className="hidden items-center gap-5 lg:flex">
-            {["Tentang Ziip", "Pusat Edukasi Seller", "Promo", "Ziip Care"].map(
-              (item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="whitespace-nowrap transition-colors hover:text-[#10B981]"
-                >
-                  {item}
-                </a>
-              ),
-            )}
+            <Link to="/stores" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Daftar Toko</Link>
+            <Link to="/promotions" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Promo</Link>
+            <span className="whitespace-nowrap">Pusat Edukasi Seller</span>
+            <span className="whitespace-nowrap">Ziip Care</span>
           </div>
         </div>
       </div>
@@ -298,6 +312,7 @@ export function Navbar() {
           </form>
 
           <div className="flex flex-shrink-0 items-center gap-2">
+            <Link to="/stores" className="hidden items-center gap-1 rounded-lg px-2 py-2 text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-[#10B981] md:flex"><span className="material-symbols-outlined text-[20px]">storefront</span><span className="hidden xl:inline">Toko</span></Link>
             <Link
               to="/cart"
               className="relative rounded-lg p-2 text-slate-600 transition hover:bg-emerald-50 hover:text-[#10B981]"
@@ -307,7 +322,7 @@ export function Navbar() {
                 shopping_cart
               </span>
               {totalItems > 0 ? (
-                <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-black leading-none text-white shadow-sm">
+                <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-black leading-none text-white">
                   {totalItems > 99 ? "99+" : totalItems}
                 </span>
               ) : null}
@@ -331,7 +346,7 @@ export function Navbar() {
                     <span className="material-symbols-outlined text-[18px]">
                       storefront
                     </span>
-                    <span className="hidden lg:inline">Toko</span>
+                    <span className="hidden lg:inline">Seller</span>
                   </button>
                   <div
                     className={`origin-top-right transition-all duration-200 ${storeHover ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0"}`}
@@ -339,6 +354,7 @@ export function Navbar() {
                     <StoreTooltip
                       onOpenSeller={handleOpenSeller}
                       canReadSellerData={activeRole === "seller"}
+                      sessionStore={store}
                     />
                   </div>
                 </div>

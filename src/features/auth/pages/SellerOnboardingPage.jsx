@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AddressMapTracker from "@/features/profile/address/components/AddressMapTracker";
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
 import {
@@ -7,8 +7,13 @@ import {
   useSellerOnboarding,
 } from "@/features/auth/services/sellerOnboardingService";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import {
+  useSellerStore,
+  useSellerStoreAddress,
+} from "@/features/seller/store/services/sellerStoreService";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 
 const STEPS = [
   {
@@ -47,9 +52,9 @@ const initialForm = {
   latitude: "",
   longitude: "",
   komerce_destination_id: "",
-  open_days: "Senin - Sabtu",
-  open_time: "08:00",
-  close_time: "17:00",
+  open_days: "",
+  open_time: "",
+  close_time: "",
   shipping_policy: "",
   return_policy: "",
   website_url: "",
@@ -84,22 +89,24 @@ function TextArea({ value, onChange, placeholder, rows = 4 }) {
 }
 
 function UploadField({ label, accept, file, onChange, helper }) {
+  const previewUrl = useObjectUrl(file);
+
   return (
     <Field label={label} helper={helper}>
-      <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition hover:border-[#10B981] hover:bg-[#ECFDF5]">
-        <span className="material-symbols-outlined text-3xl text-[#10B981]">
-          add_photo_alternate
-        </span>
-        <span className="mt-2 text-sm font-black text-slate-700">
-          {file ? file.name : `Pilih ${label.toLowerCase()}`}
-        </span>
-        <span className="mt-1 text-xs text-slate-400">JPG, PNG, atau WebP</span>
-        <input
-          type="file"
-          accept={accept}
-          onChange={onChange}
-          className="hidden"
-        />
+      <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-center transition hover:border-[#10B981] hover:bg-[#ECFDF5]">
+        {previewUrl ? (
+          <div className="relative aspect-[3/1] w-full bg-slate-100">
+            <img src={previewUrl} alt={`Preview ${label.toLowerCase()}`} className="h-full w-full object-cover" />
+            <span className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-3 py-2 text-xs font-bold text-white">{file.name}</span>
+          </div>
+        ) : (
+          <div className="flex min-h-28 w-full flex-col items-center justify-center px-4 py-5">
+            <span className="material-symbols-outlined text-3xl text-[#10B981]">add_photo_alternate</span>
+            <span className="mt-2 text-sm font-black text-slate-700">{`Pilih ${label.toLowerCase()}`}</span>
+            <span className="mt-1 text-xs text-slate-400">JPG, PNG, atau WebP</span>
+          </div>
+        )}
+        <input type="file" accept={accept} onChange={onChange} className="hidden" />
       </label>
     </Field>
   );
@@ -124,9 +131,14 @@ function StepHeader({ step }) {
 }
 
 export default function SellerOnboardingPage() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { user, roles, store, initializing } = useAuth();
+  const { user } = useAuth();
   const onboardingMutation = useSellerOnboarding();
+  const existingStoreQuery = useSellerStore();
+  const existingAddressQuery = useSellerStoreAddress({
+    enabled: Boolean(existingStoreQuery.data?.id && !existingStoreQuery.isError),
+  });
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialForm);
   const [logo, setLogo] = useState(null);
@@ -136,6 +148,9 @@ export default function SellerOnboardingPage() {
     loading: false,
     message: "",
   });
+  const hasInteractedRef = useRef(false);
+  const isSubmittingRef = useRef(false);
+  const prefilledStoreIdRef = useRef(0);
 
   useEffect(() => {
     if (!user) {
@@ -150,14 +165,84 @@ export default function SellerOnboardingPage() {
   }, [user]);
 
   useEffect(() => {
-    if (initializing) {
+    const existingStore = existingStoreQuery.data;
+
+    if (!existingStore?.id || prefilledStoreIdRef.current === existingStore.id) {
       return;
     }
 
-    if (roles.includes("seller") && store?.id) {
-      navigate("/auth/role-switch?redirect=%2Fseller", { replace: true });
+    const detail = existingStore.detail || {};
+    const addressCandidate = existingAddressQuery.data || {};
+    const address =
+      String(addressCandidate.storeId || "") === String(existingStore.id)
+        ? addressCandidate
+        : {};
+    prefilledStoreIdRef.current = existingStore.id;
+    setForm((current) => ({
+      ...current,
+      store_name: current.store_name || existingStore.name || "",
+      short_description:
+        current.short_description || existingStore.shortDescription || "",
+      description: current.description || existingStore.description || "",
+      phone: current.phone || existingStore.phone || "",
+      email: current.email || existingStore.email || user?.email || "",
+      owner_name: current.owner_name || detail.ownerName || user?.name || "",
+      owner_phone: current.owner_phone || detail.ownerPhone || "",
+      country: current.country || address.country || "Indonesia",
+      province: current.province || address.province || existingStore.province || "",
+      city_or_regency:
+        current.city_or_regency || address.cityOrRegency || existingStore.city || "",
+      district: current.district || address.district || "",
+      subdistrict: current.subdistrict || address.subdistrict || "",
+      postal_code: current.postal_code || address.postalCode || "",
+      full_address:
+        current.full_address || address.fullAddress || existingStore.address || "",
+      address_notes: current.address_notes || address.notes || "",
+      latitude: current.latitude || address.latitude || "",
+      longitude: current.longitude || address.longitude || "",
+      komerce_destination_id:
+        current.komerce_destination_id || address.komerceDestinationId || "",
+      open_days: current.open_days || detail.openDays || "",
+      open_time: current.open_time || detail.openTime || "",
+      close_time: current.close_time || detail.closeTime || "",
+      shipping_policy:
+        current.shipping_policy || detail.shippingPolicy || "",
+      return_policy: current.return_policy || detail.returnPolicy || "",
+      website_url: current.website_url || detail.websiteUrl || "",
+      instagram_url: current.instagram_url || detail.instagramUrl || "",
+    }));
+  }, [
+    existingAddressQuery.data,
+    existingStoreQuery.data,
+    user?.email,
+    user?.name,
+  ]);
+
+  useEffect(() => {
+    const reason = location.state?.reason;
+
+    if (reason === "store_missing") {
+      setMessage(
+        "Toko sebelumnya sudah tidak tersedia. Isi kembali data toko untuk membuat toko baru.",
+      );
+      return;
     }
-  }, [initializing, navigate, roles, store?.id]);
+
+    if (reason === "seller_access_unavailable") {
+      setMessage(
+        "Akses Seller belum dapat digunakan. Periksa dan lengkapi kembali data toko.",
+      );
+      return;
+    }
+
+    if (reason === "onboarding_incomplete") {
+      setMessage(
+        "Lengkapi seluruh proses pendaftaran toko sebelum masuk ke Seller Panel.",
+      );
+    }
+  }, [location.state?.reason]);
+
+
 
   const addressValues = useMemo(
     () => ({
@@ -181,6 +266,7 @@ export default function SellerOnboardingPage() {
   );
 
   const change = (key) => (event) => {
+    hasInteractedRef.current = true;
     setMessage("");
     const resetDestination = [
       "province",
@@ -198,6 +284,7 @@ export default function SellerOnboardingPage() {
   };
 
   const selectFile = (type, maxSizeMb) => (event) => {
+    hasInteractedRef.current = true;
     setMessage("");
     const file = event.target.files?.[0] || null;
 
@@ -220,6 +307,7 @@ export default function SellerOnboardingPage() {
   };
 
   const resolveAddress = (address) => {
+    hasInteractedRef.current = true;
     setForm((current) => ({
       ...current,
       country: address.country || current.country,
@@ -234,6 +322,7 @@ export default function SellerOnboardingPage() {
   };
 
   const setCoordinate = ({ latitude, longitude }) => {
+    hasInteractedRef.current = true;
     setForm((current) => ({
       ...current,
       latitude,
@@ -297,8 +386,8 @@ export default function SellerOnboardingPage() {
     step,
   ]);
 
-  const validateStep = () => {
-    if (step === 1) {
+  const validateStep = (targetStep = step) => {
+    if (targetStep === 1) {
       if (form.store_name.trim().length < 3) {
         return "Nama toko minimal 3 karakter.";
       }
@@ -312,7 +401,7 @@ export default function SellerOnboardingPage() {
       }
     }
 
-    if (step === 2) {
+    if (targetStep === 2) {
       const required = [
         form.country,
         form.province,
@@ -330,20 +419,54 @@ export default function SellerOnboardingPage() {
       }
     }
 
-    if (
-      step === 3 &&
-      form.open_time &&
-      form.close_time &&
-      form.open_time >= form.close_time
-    ) {
-      return "Jam tutup harus lebih besar dari jam buka.";
+    if (targetStep === 3) {
+      const requiredOperations = [
+        form.open_days,
+        form.open_time,
+        form.close_time,
+        form.shipping_policy,
+        form.return_policy,
+      ];
+
+      if (
+        requiredOperations.some((value) => !String(value || "").trim())
+      ) {
+        return "Lengkapi hari dan jam operasional, kebijakan pengiriman, serta kebijakan retur.";
+      }
+
+      if (
+        form.shipping_policy.trim().length < 10 ||
+        form.return_policy.trim().length < 10
+      ) {
+        return "Kebijakan pengiriman dan retur minimal 10 karakter.";
+      }
+
+      if (form.open_time >= form.close_time) {
+        return "Jam tutup harus lebih besar dari jam buka.";
+      }
     }
 
     return "";
   };
 
-  const nextStep = async () => {
-    const validationMessage = validateStep();
+  const validateAllSteps = () => {
+    for (const item of STEPS) {
+      const validationMessage = validateStep(item.number);
+
+      if (validationMessage) {
+        return {
+          step: item.number,
+          message: validationMessage,
+        };
+      }
+    }
+
+    return null;
+  };
+
+  const nextStep = () => {
+    hasInteractedRef.current = true;
+    const validationMessage = validateStep(step);
 
     if (validationMessage) {
       setMessage(validationMessage);
@@ -356,6 +479,7 @@ export default function SellerOnboardingPage() {
   };
 
   const previousStep = () => {
+    hasInteractedRef.current = true;
     setMessage("");
     setStep((current) => Math.max(1, current - 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -363,26 +487,67 @@ export default function SellerOnboardingPage() {
 
   const submit = async (event) => {
     event.preventDefault();
-    const validationMessage = validateStep();
+    hasInteractedRef.current = true;
 
-    if (validationMessage) {
-      setMessage(validationMessage);
+    if (step < STEPS.length) {
+      nextStep();
+      return;
+    }
+
+    if (isSubmittingRef.current || onboardingMutation.isPending) {
+      return;
+    }
+
+    const validation = validateAllSteps();
+
+    if (validation) {
+      setStep(validation.step);
+      setMessage(validation.message);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    let destinationId = form.komerce_destination_id;
+
+    if (!destinationId) {
+      destinationId = await ensureDestination();
+    }
+
+    if (!destinationId) {
+      setStep(2);
+      setMessage(
+        "Tujuan logistik belum berhasil dikenali. Periksa kembali alamat toko lalu coba lagi.",
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setMessage("");
+    isSubmittingRef.current = true;
 
     try {
-      await onboardingMutation.mutateAsync({
-        values: { ...form },
+      const result = await onboardingMutation.mutateAsync({
+        values: {
+          ...form,
+          komerce_destination_id: destinationId,
+        },
         files: {
           logo,
           banner,
         },
       });
+
+      if (!result?.store?.id || !result?.address?.id) {
+        throw new Error(
+          "Onboarding belum selesai. Data toko dan alamat harus tersimpan sebelum masuk ke Seller Panel.",
+        );
+      }
+
       navigate("/seller", { replace: true });
     } catch (error) {
       setMessage(getSellerOnboardingError(error));
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -642,7 +807,7 @@ export default function SellerOnboardingPage() {
             {step === 3 ? (
               <div className="space-y-6">
                 <div className="grid gap-5 sm:grid-cols-3">
-                  <Field label="Hari operasional">
+                  <Field label="Hari operasional" required>
                     <Input
                       value={form.open_days}
                       onChange={change("open_days")}
@@ -650,7 +815,7 @@ export default function SellerOnboardingPage() {
                       className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
-                  <Field label="Jam buka">
+                  <Field label="Jam buka" required>
                     <Input
                       type="time"
                       value={form.open_time}
@@ -658,7 +823,7 @@ export default function SellerOnboardingPage() {
                       className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
                     />
                   </Field>
-                  <Field label="Jam tutup">
+                  <Field label="Jam tutup" required>
                     <Input
                       type="time"
                       value={form.close_time}
@@ -690,7 +855,7 @@ export default function SellerOnboardingPage() {
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Kebijakan pengiriman">
+                  <Field label="Kebijakan pengiriman" required>
                     <TextArea
                       value={form.shipping_policy}
                       onChange={change("shipping_policy")}
@@ -698,7 +863,7 @@ export default function SellerOnboardingPage() {
                       rows={5}
                     />
                   </Field>
-                  <Field label="Kebijakan retur">
+                  <Field label="Kebijakan retur" required>
                     <TextArea
                       value={form.return_policy}
                       onChange={change("return_policy")}

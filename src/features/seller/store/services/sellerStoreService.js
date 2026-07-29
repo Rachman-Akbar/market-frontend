@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  API_BASE_URL,
   apiClient,
   getApiMessage,
   unwrapApiData,
 } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import {
   addressKeys,
   createAddress,
@@ -16,6 +16,7 @@ import {
 export const sellerStoreKeys = {
   all: ["seller", "stores"],
   detail: (id) => ["seller", "stores", "detail", String(id || "")],
+  address: (id) => ["order", "addresses", "store", String(id || "")],
 };
 
 export function normalizeStore(row = {}) {
@@ -33,9 +34,10 @@ export function normalizeStore(row = {}) {
     city: row.city || "",
     province: row.province || "",
     address: row.address || "",
+    status: row.status || "pending",
     isActive: Boolean(row.is_active ?? row.isActive),
-    logo: row.logo || "",
-    bannerUrl: row.banner_url || row.bannerUrl || "",
+    logo: resolveMediaUrl(row.logo || ""),
+    bannerUrl: resolveMediaUrl(row.banner_url || row.bannerUrl || ""),
     createdAt: row.created_at || row.createdAt || null,
     updatedAt: row.updated_at || row.updatedAt || null,
     detail: {
@@ -56,23 +58,11 @@ export function normalizeStore(row = {}) {
 }
 
 export function assetUrl(path) {
-  if (!path) return "";
-  if (/^https?:\/\//i.test(path)) return path;
-
-  const base = String(
-    import.meta.env.VITE_ASSET_BASE_URL || API_BASE_URL || "",
-  ).replace(/\/$/, "");
-  const normalizedPath = String(path).replace(/^\/+/, "");
-
-  if (normalizedPath.startsWith("storage/")) {
-    return `${base}/${normalizedPath}`;
-  }
-
-  return `${base}/storage/${normalizedPath}`;
+  return resolveMediaUrl(path);
 }
 
 export async function getSellerStoreData(id) {
-  const response = await apiClient.get(`/api/v1/seller/stores/${id}`);
+  const response = await apiClient.get(`/api/v1/seller/stores/${id}/manage`);
   return normalizeStore(unwrapApiData(response.data));
 }
 
@@ -93,26 +83,33 @@ export async function saveSellerStoreAddress(values) {
     : createAddress(values, "store");
 }
 
-export function useSellerStore() {
-  const { store, isAuthenticated } = useAuth();
+export function useSellerStore(options = {}) {
+  const { store, isAuthenticated, activeRole } = useAuth();
   const id = store?.id || 0;
+  const { enabled = true, ...queryOptions } = options;
 
   return useQuery({
     queryKey: sellerStoreKeys.detail(id),
     queryFn: () => getSellerStoreData(id),
-    enabled: Boolean(isAuthenticated && id),
+    enabled: Boolean(enabled && isAuthenticated && activeRole === "seller" && id),
     staleTime: 120000,
+    ...queryOptions,
   });
 }
 
-export function useSellerStoreAddress() {
+export function useSellerStoreAddress(options = {}) {
   const { isAuthenticated, activeRole, store } = useAuth();
+  const id = store?.id || 0;
+  const { enabled = true, ...queryOptions } = options;
 
   return useQuery({
-    queryKey: addressKeys.store,
+    queryKey: sellerStoreKeys.address(id),
     queryFn: async () => (await getAddresses("store"))[0] || null,
-    enabled: Boolean(isAuthenticated && activeRole === "seller" && store?.id),
+    enabled: Boolean(
+      enabled && isAuthenticated && activeRole === "seller" && id,
+    ),
     staleTime: 300000,
+    ...queryOptions,
   });
 }
 
@@ -124,16 +121,23 @@ export function useUpdateSellerStore() {
     onSuccess: (store) => {
       queryClient.setQueryData(sellerStoreKeys.detail(store.id), store);
       queryClient.invalidateQueries({ queryKey: sellerStoreKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["storefront", "stores"] });
+      queryClient.invalidateQueries({ queryKey: ["management", "stores"] });
     },
   });
 }
 
 export function useSaveSellerStoreAddress() {
   const queryClient = useQueryClient();
+  const { store } = useAuth();
 
   return useMutation({
     mutationFn: saveSellerStoreAddress,
     onSuccess: (address) => {
+      queryClient.setQueryData(
+        sellerStoreKeys.address(store?.id),
+        address,
+      );
       queryClient.setQueryData(addressKeys.store, [address]);
     },
   });

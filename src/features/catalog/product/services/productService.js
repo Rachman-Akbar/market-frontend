@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
 import { catalogRequest, safeArray, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 import { formatPrice } from "@/shared/utils/utils";
@@ -48,13 +49,15 @@ export function normalizeVariant(variant = {}) {
 function normalizeImages(product = {}) {
   const images = safeArray(product.images || product.product_images).map((image) => ({
     id: image.id,
-    url: image.url || image.image_url || image.src || "",
+    url: resolveMediaUrl(image.url || image.image_url || image.src || ""),
     alt_text: image.alt_text || image.alt || product.name || "Product",
     is_primary: Boolean(image.is_primary),
     sort_order: Number(image.sort_order || 0),
   })).filter((image) => image.url);
 
-  const directImage = firstValue(product.thumbnail, product.image, product.image_url, product.picture_url);
+  const directImage = resolveMediaUrl(
+    firstValue(product.thumbnail, product.image, product.image_url, product.picture_url),
+  );
   const sorted = [...images].sort((a, b) => {
     if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
     return a.sort_order - b.sort_order;
@@ -81,10 +84,41 @@ export function normalizeProduct(product = {}) {
     raw: category,
   }));
   const primaryCategory = product.primary_category || categories.find((category) => category.is_primary) || categories[0] || null;
+  const storeSource = product.store || product.seller_store || product.storefront || {};
+  const store = {
+    id: Number(firstValue(storeSource.id, product.store_id, product.storeId, 0)),
+    name: firstValue(
+      storeSource.name,
+      product.store_name,
+      product.storeName,
+      "Toko",
+    ),
+    slug: firstValue(
+      storeSource.slug,
+      product.store_slug,
+      product.storeSlug,
+      "",
+    ),
+    logo: resolveMediaUrl(
+      firstValue(storeSource.logo, product.store_logo, product.storeLogo, ""),
+    ),
+    city: firstValue(storeSource.city, product.store_city, ""),
+    province: firstValue(storeSource.province, product.store_province, ""),
+    location: firstValue(
+      storeSource.location,
+      storeSource.city,
+      product.store_location,
+      product.location,
+      "",
+    ),
+  };
 
   return {
     id: product.id,
-    store_id: product.store_id,
+    store_id: store.id || product.store_id,
+    store,
+    store_name: store.name,
+    store_slug: store.slug,
     primary_category_id: product.primary_category_id,
     slug: product.slug || String(product.id ?? ""),
     name: product.name || product.title || "Produk",
@@ -105,7 +139,7 @@ export function normalizeProduct(product = {}) {
     primary_category: primaryCategory,
     rating: firstValue(product.rating, product.average_rating, product.rating_average, ""),
     sold: formatSold(firstValue(product.sold, product.sold_count, product.total_sold, "")),
-    location: firstValue(product.location, product.city, product.store?.city, product.store?.location, ""),
+    location: firstValue(product.location, product.city, store.location, ""),
     raw: product,
   };
 }
@@ -120,8 +154,12 @@ export async function getProducts(params = {}) {
     cacheTtl: CATALOG_CACHE_TTL.short,
   });
   const { items, meta } = unwrapCollection(payload);
+  const products = items
+    .map(normalizeProduct)
+    .filter((product) => product.is_active !== false && (!product.status || product.status === "published"));
+
   return {
-    data: items.map(normalizeProduct),
+    data: products,
     meta,
     facets: payload?.facets || payload?.data?.facets || meta?.facets || {},
   };

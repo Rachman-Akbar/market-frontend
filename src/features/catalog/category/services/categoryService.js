@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
 import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 import { getCatalogGroups } from "@/features/catalog/cataloggroup/services/catalogGroupService";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 
 let navigationCache = null;
 let navigationCacheExpiresAt = 0;
 let navigationPromise = null;
+let navigationCacheVersion = 0;
 
 function slugify(value = "") {
   return String(value)
@@ -50,6 +52,13 @@ function getCategoryChildren(category = {}) {
 
 function navigationIsFresh() {
   return navigationCache && navigationCacheExpiresAt > Date.now();
+}
+
+export function invalidateCategoryNavigationCache() {
+  navigationCache = null;
+  navigationCacheExpiresAt = 0;
+  navigationPromise = null;
+  navigationCacheVersion += 1;
 }
 
 export function extractCategories(value) {
@@ -111,8 +120,8 @@ export function normalizeCategory(category = {}, fallback = {}) {
     name,
     slug,
     full_slug: fullSlug,
-    image_url: category.image_url ?? category.imageUrl ?? null,
-    icon_url: category.icon_url ?? category.iconUrl ?? null,
+    image_url: resolveMediaUrl(category.image_url ?? category.imageUrl ?? "") || null,
+    icon_url: resolveMediaUrl(category.icon_url ?? category.iconUrl ?? "") || null,
     children: [],
     raw: category,
   };
@@ -346,6 +355,8 @@ export async function getCategoryNavigation({ forceRefresh = false } = {}) {
   if (!forceRefresh && navigationIsFresh()) return navigationCache;
   if (!forceRefresh && navigationPromise) return navigationPromise;
 
+  const requestVersion = navigationCacheVersion;
+
   navigationPromise = getCatalogGroups({ is_active: 1, include_categories: 1 })
     .then(async (groupsResult) => {
       const groups = Array.isArray(groupsResult?.data)
@@ -414,8 +425,11 @@ export async function getCategoryNavigation({ forceRefresh = false } = {}) {
       };
     })
     .then((result) => {
-      navigationCache = result;
-      navigationCacheExpiresAt = Date.now() + CATALOG_CACHE_TTL.long;
+      if (requestVersion === navigationCacheVersion) {
+        navigationCache = result;
+        navigationCacheExpiresAt = Date.now() + CATALOG_CACHE_TTL.long;
+      }
+
       return result;
     })
     .finally(() => {

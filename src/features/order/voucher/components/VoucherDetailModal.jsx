@@ -21,18 +21,16 @@ function formatDate(value) {
 }
 
 function formatDiscount(voucher = {}) {
-  const type = String(voucher.discountType || "").toLowerCase();
+  const type = String(voucher.discountType || "fixed").toLowerCase();
+  const target = String(voucher.discountTarget || "product").toLowerCase();
   const value = Number(voucher.discountValue || 0);
+  const amount = type === "percentage" ? `${value.toLocaleString("id-ID")}%` : formatPrice(value);
 
-  if (type === "percentage" || type === "shipping_percentage") {
-    return `${value.toLocaleString("id-ID")}%`;
+  if (target === "shipping") {
+    return type === "percentage" && value === 100 ? "Gratis Ongkir" : `Diskon Ongkir ${amount}`;
   }
 
-  if (type === "free_shipping") {
-    return "Gratis Ongkir";
-  }
-
-  return formatPrice(value);
+  return `Diskon Produk ${amount}`;
 }
 
 function getTerms(voucher = {}) {
