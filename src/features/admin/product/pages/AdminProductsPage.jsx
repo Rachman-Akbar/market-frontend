@@ -55,7 +55,10 @@ export default function AdminProductsPage() {
     }));
   }, [rows, storesQuery.data]);
 
-  const columns = mergeColumns(PRODUCT_TABLE_COLUMNS, buildRawColumns(displayRows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"]));
+  const columns = useMemo(
+    () => mergeColumns(PRODUCT_TABLE_COLUMNS, buildRawColumns(displayRows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"])),
+    [displayRows],
+  );
   const columnVisibility = useColumnVisibility(columns, "admin-products");
   const selection = useTableSelection(displayRows);
 

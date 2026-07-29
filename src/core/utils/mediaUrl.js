@@ -33,25 +33,40 @@ export function getAssetBaseUrl() {
   return trimTrailingSlash(localBackendOrigin());
 }
 
+function resolveLocalAbsoluteUrl(raw) {
+  try {
+    const parsed = new URL(raw);
+    const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+
+    if (!localHosts.has(parsed.hostname)) {
+      return raw;
+    }
+
+    const storageIndex = parsed.pathname.indexOf("/storage/");
+
+    if (storageIndex >= 0) {
+      return `${getAssetBaseUrl()}${parsed.pathname.slice(storageIndex)}${parsed.search}${parsed.hash}`;
+    }
+
+    return raw;
+  } catch {
+    const storageIndex = raw.indexOf("/storage/");
+
+    if (storageIndex >= 0) {
+      return `${getAssetBaseUrl()}${raw.slice(storageIndex)}`;
+    }
+
+    return raw;
+  }
+}
+
 export function resolveMediaUrl(value = "") {
   const raw = String(value || "").trim();
   if (!raw) return "";
   if (/^(data:|blob:)/i.test(raw)) return raw;
 
   if (/^https?:\/\//i.test(raw)) {
-    try {
-      const parsed = new URL(raw);
-      const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
-      const legacyFrontendPort = ["3000", "3001", "4173", "5173", "5174"].includes(parsed.port);
-
-      if (localHosts.has(parsed.hostname) && legacyFrontendPort && parsed.pathname.startsWith("/storage/")) {
-        return `${getAssetBaseUrl()}${parsed.pathname}${parsed.search}${parsed.hash}`;
-      }
-    } catch {
-      return raw;
-    }
-
-    return raw;
+    return resolveLocalAbsoluteUrl(raw);
   }
 
   if (raw.startsWith("//")) {
@@ -61,14 +76,9 @@ export function resolveMediaUrl(value = "") {
 
   const base = getAssetBaseUrl();
   const normalized = raw.replace(/^\/+/, "");
+  const storagePath = normalized.startsWith("storage/")
+    ? normalized
+    : `storage/${normalized}`;
 
-  if (!base) {
-    return `/${normalized}`;
-  }
-
-  if (normalized.startsWith("storage/")) {
-    return `${base}/${normalized}`;
-  }
-
-  return `${base}/storage/${normalized}`;
+  return base ? `${base}/${storagePath}` : `/${storagePath}`;
 }

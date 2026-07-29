@@ -14,8 +14,13 @@ function readStored(storageKey) {
   }
 }
 
+function equalKeys(left, right) {
+  return left.length === right.length && left.every((key, index) => key === right[index]);
+}
+
 export function useColumnVisibility(columns = [], key = "") {
   const storageKey = getStorageKey(key);
+  const columnKeys = useMemo(() => columns.map((column) => column.key), [columns]);
   const defaultKeys = useMemo(
     () => columns.filter((column) => column.defaultVisible !== false).map((column) => column.key),
     [columns],
@@ -23,15 +28,14 @@ export function useColumnVisibility(columns = [], key = "") {
   const [visibleKeys, setVisibleKeys] = useState(() => readStored(storageKey) || defaultKeys);
 
   useEffect(() => {
-    const allowed = new Set(columns.map((column) => column.key));
+    const allowed = new Set(columnKeys);
+
     setVisibleKeys((current) => {
       const next = current.filter((columnKey) => allowed.has(columnKey));
-      defaultKeys.forEach((columnKey) => {
-        if (!next.length && !next.includes(columnKey)) next.push(columnKey);
-      });
-      return next.length ? next : defaultKeys;
+      const resolved = next.length ? next : defaultKeys;
+      return equalKeys(current, resolved) ? current : resolved;
     });
-  }, [columns, defaultKeys]);
+  }, [columnKeys, defaultKeys]);
 
   useEffect(() => {
     if (!storageKey || typeof window === "undefined") return;
@@ -48,8 +52,14 @@ export function useColumnVisibility(columns = [], key = "") {
     });
   }, []);
 
-  const showAll = useCallback(() => setVisibleKeys(columns.map((column) => column.key)), [columns]);
-  const reset = useCallback(() => setVisibleKeys(defaultKeys), [defaultKeys]);
+  const showAll = useCallback(() => {
+    setVisibleKeys((current) => (equalKeys(current, columnKeys) ? current : columnKeys));
+  }, [columnKeys]);
+
+  const reset = useCallback(() => {
+    setVisibleKeys((current) => (equalKeys(current, defaultKeys) ? current : defaultKeys));
+  }, [defaultKeys]);
+
   const visibleSet = useMemo(() => new Set(visibleKeys), [visibleKeys]);
 
   return { visibleKeys, visibleSet, toggleColumn, showAll, reset };

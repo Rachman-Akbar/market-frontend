@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export function useTableSelection(rows = [], getRowId = (row) => row.id) {
+function defaultGetRowId(row) {
+  return row.id;
+}
+
+function equalSets(left, right) {
+  if (left.size !== right.size) return false;
+  for (const value of left) {
+    if (!right.has(value)) return false;
+  }
+  return true;
+}
+
+export function useTableSelection(rows = [], getRowId = defaultGetRowId) {
   const [enabled, setEnabled] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
 
@@ -13,7 +25,7 @@ export function useTableSelection(rows = [], getRowId = (row) => row.id) {
     setSelectedIds((current) => {
       const allowed = new Set(rowIds);
       const next = new Set([...current].filter((id) => allowed.has(id)));
-      return next.size === current.size ? current : next;
+      return equalSets(current, next) ? current : next;
     });
   }, [rowIds]);
 
