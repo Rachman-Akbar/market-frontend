@@ -6,3 +6,4 @@ export { RowActions } from "./RowActions";
 export * from "./ColumnVisibilityMenu";
 export * from "./BulkActionsMenu";
 export * from "./TableSelectionCell";
+export * from "./TableHeaderFilter";

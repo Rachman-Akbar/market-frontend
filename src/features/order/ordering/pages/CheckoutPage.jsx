@@ -136,6 +136,7 @@ export default function CheckoutPage() {
   );
   const [error, setError] = useState("");
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const addresses = addressesQuery.data || [];
   const directItems = useMemo(
     () =>
@@ -358,24 +359,30 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleConfirmOrder = async () => {
+  const validateCheckout = () => {
     if (!shipping) {
       setError("Pilih layanan pengiriman terlebih dahulu.");
-      return;
+      return false;
     }
 
     if (shipping.courier !== "ambil_sendiri" && !addressId) {
       setError("Pilih alamat pengiriman untuk layanan kurir.");
-      return;
+      return false;
     }
 
     if (payment === "tunai_toko" && shipping.courier !== "ambil_sendiri") {
-      setError(
-        "Bayar tunai di toko hanya tersedia untuk metode ambil sendiri.",
-      );
-      return;
+      setError("Bayar tunai di toko hanya tersedia untuk metode ambil sendiri.");
+      return false;
     }
 
+    setError("");
+    return true;
+  };
+
+  const handleConfirmOrder = async () => {
+    if (!validateCheckout()) return;
+
+    setPreviewOpen(false);
     let order;
 
     try {
@@ -785,15 +792,13 @@ export default function CheckoutPage() {
           ) : null}
 
           <Button
-            disabled={createOrderMutation.isPending || !shipping}
-            onClick={handleConfirmOrder}
+            disabled={!shipping}
+            onClick={() => {
+              if (validateCheckout()) setPreviewOpen(true);
+            }}
             className="mt-5 w-full"
           >
-            {createOrderMutation.isPending
-              ? "Membuat Pesanan..."
-              : payment === "midtrans"
-                ? "Buat Pesanan & Bayar"
-                : "Buat Pesanan"}
+            Preview Pesanan
           </Button>
           <p className="mt-3 text-center text-[11px] leading-5 text-slate-500">
             Pesanan tetap tersimpan jika popup pembayaran Midtrans ditutup atau
@@ -801,6 +806,72 @@ export default function CheckoutPage() {
           </p>
         </aside>
       </div>
+
+      {previewOpen ? (
+        <div className="fixed inset-0 z-[120] overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm">
+          <div className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#10B981]">Tahap Preview</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Periksa pesanan sebelum dikirim</h2>
+                <p className="mt-1 text-sm text-slate-500">Pastikan produk, alamat, pengiriman, pembayaran, dan voucher sudah benar.</p>
+              </div>
+              <button type="button" onClick={() => setPreviewOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Tutup preview">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-5 sm:p-6 md:grid-cols-2">
+              <section className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Penerima</p>
+                <p className="mt-2 font-bold text-slate-900">{shipping?.courier === "ambil_sendiri" ? "Ambil sendiri di toko" : selectedAddress?.recipientName || "-"}</p>
+                <p className="mt-1 text-sm leading-5 text-slate-600">{shipping?.courier === "ambil_sendiri" ? "Tidak menggunakan alamat pengiriman." : selectedAddress ? formatAddress(selectedAddress) : "-"}</p>
+              </section>
+              <section className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Pengiriman dan Pembayaran</p>
+                <p className="mt-2 font-bold text-slate-900">{shipping?.courier_label || shipping?.courier} {shipping?.service}</p>
+                <p className="mt-1 text-sm text-slate-600">{PAYMENT_METHODS.find((method) => method.id === payment)?.label || payment}</p>
+              </section>
+
+              <section className="md:col-span-2 rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Produk</p>
+                <div className="mt-3 divide-y divide-slate-100">
+                  {selectedItems.map((item) => (
+                    <div key={`preview-${item.productId}-${item.variantId}`} className="flex items-center gap-3 py-3">
+                      {item.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-12 w-12 rounded-lg object-cover" /> : null}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-slate-900">{item.productName}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{item.variantLabel || "Varian utama"} ×{item.quantity}</p>
+                      </div>
+                      <strong className="text-sm text-slate-900">{formatPrice(item.price * item.quantity)}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="md:col-span-2 rounded-xl bg-slate-50 p-4">
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">Ongkir</span><strong>{formatPrice(shippingPrice)}</strong></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">Voucher</span><strong>{selectedVoucher?.code || "Tidak digunakan"}</strong></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">Diskon</span><strong className="text-[#047857]">-{formatPrice(voucherDiscount)}</strong></div>
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
+                  <span className="font-black text-slate-900">Total Pembayaran</span>
+                  <span className="text-xl font-black text-[#047857]">{formatPrice(total)}</span>
+                </div>
+              </section>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+              <Button variant="outline" onClick={() => setPreviewOpen(false)}>Kembali Perbaiki</Button>
+              <Button disabled={createOrderMutation.isPending} onClick={handleConfirmOrder}>
+                {createOrderMutation.isPending ? "Membuat Pesanan..." : payment === "midtrans" ? "Konfirmasi & Bayar" : "Konfirmasi Pesanan"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <InstantAddressModal
         open={showAddressModal}

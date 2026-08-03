@@ -15,6 +15,23 @@ function canUseStorage() {
   }
 }
 
+
+function clearLegacyCatalogStorage() {
+  if (!canUseStorage()) return;
+
+  try {
+    Object.keys(window.localStorage).forEach((key) => {
+      if (key.startsWith("kishamarket_catalog_cache_v2:")) {
+        window.localStorage.removeItem(key);
+      }
+    });
+  } catch {
+    return;
+  }
+}
+
+clearLegacyCatalogStorage();
+
 function storageKey(key) {
   return `${CATALOG_PERSIST_PREFIX}:${key}`;
 }

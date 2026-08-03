@@ -1,7 +1,9 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { normalizeSellerProduct, serializeSellerProduct } from "@/features/seller/product/services/sellerProductService";
 import { normalizeAdminStore } from "@/features/admin/store/services/adminStoreService";
+import { invalidateCatalogQueries } from "@/features/catalog/application/cache/catalogQueryClient";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminProductKeys = {
   all: ["admin", "products"],
@@ -44,19 +46,66 @@ export async function getAdminProductStores() {
   return rows.map(normalizeAdminStore);
 }
 
+function refreshAdminProductQueries(queryClient) {
+  invalidateCatalogQueries("products");
+  queryClient.invalidateQueries({ queryKey: adminProductKeys.all });
+  queryClient.invalidateQueries({ queryKey: ["seller", "products"] });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "products"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront"] });
+  queryClient.invalidateQueries({ queryKey: ["order", "wishlist"] });
+}
+
 export function useAdminProducts(params = {}) {
-  return useQuery({ queryKey: adminProductKeys.list(params), queryFn: () => getAdminProducts(params) });
+  return useQuery({
+    queryKey: adminProductKeys.list(params),
+    queryFn: () => getAdminProducts(params),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
 }
 
 export function useAdminProductStores() {
-  return useQuery({ queryKey: adminProductKeys.stores, queryFn: getAdminProductStores, staleTime: 5 * 60 * 1000 });
+  return useQuery({
+    queryKey: adminProductKeys.stores,
+    queryFn: getAdminProductStores,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
 }
 
-function useProductMutation(mutationFn) {
-  return useMutation({ mutationFn });
+export function useCreateAdminProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminProduct,
+    onSettled: () => refreshAdminProductQueries(queryClient),
+  });
 }
 
-export function useCreateAdminProduct() { return useProductMutation(createAdminProduct); }
-export function useUpdateAdminProduct() { return useProductMutation(({ id, values }) => updateAdminProduct(id, values)); }
-export function useDeleteAdminProduct() { return useProductMutation(deleteAdminProduct); }
-export function getAdminProductError(error) { return getApiMessage(error, "Produk gagal diproses oleh admin."); }
+export function useUpdateAdminProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminProduct(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      adminProductKeys.all,
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshAdminProductQueries(queryClient),
+  });
+}
+
+export function useDeleteAdminProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminProduct,
+    onSettled: () => refreshAdminProductQueries(queryClient),
+  });
+}
+
+export function getAdminProductError(error) {
+  return getApiMessage(error, "Produk gagal diproses oleh admin.");
+}

@@ -1,8 +1,11 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getCategories } from "@/features/catalog/category/services/categoryService";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
+import { invalidateCatalogQueries } from "@/features/catalog/application/cache/catalogQueryClient";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const sellerProductKeys = {
   all: ["seller", "products"],
@@ -58,7 +61,7 @@ export function normalizeSellerProduct(row = {}) {
     price: Number(row.price ?? defaultVariant.price ?? 0),
     stock: Number(row.stock ?? defaultVariant.stock ?? 0),
     status: row.status || "draft",
-    isActive: Boolean(row.is_active ?? true),
+    isActive: toBoolean(row.is_active, true),
     thumbnail: resolveMediaUrl(row.thumbnail || images.find((image) => image.isPrimary)?.url || images[0]?.url || ""),
     images,
     variants,
@@ -219,30 +222,58 @@ export function useSellerProducts(params = {}) {
       };
     },
     enabled: Boolean(isAuthenticated && activeRole === "seller" && storeId),
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }
 
 export function useSellerProductCategories(options = {}) {
-  return useQuery({ queryKey: sellerProductKeys.categories, queryFn: getSellerProductCategories, staleTime: 5 * 60 * 1000, ...options });
+  return useQuery({ queryKey: sellerProductKeys.categories, queryFn: getSellerProductCategories, staleTime: 30000, refetchOnWindowFocus: true, ...options });
 }
 
 export function useSellerProductAttributes(options = {}) {
-  return useQuery({ queryKey: sellerProductKeys.attributes, queryFn: getSellerProductAttributes, staleTime: 5 * 60 * 1000, ...options });
+  return useQuery({ queryKey: sellerProductKeys.attributes, queryFn: getSellerProductAttributes, staleTime: 30000, refetchOnWindowFocus: true, ...options });
+}
+
+function refreshSellerProductQueries(queryClient) {
+  invalidateCatalogQueries("products");
+  queryClient.invalidateQueries({ queryKey: sellerProductKeys.all });
+  queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "products"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront"] });
+  queryClient.invalidateQueries({ queryKey: ["order", "wishlist"] });
 }
 
 export function useCreateSellerProduct() {
-  return useMutation({ mutationFn: createSellerProduct });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createSellerProduct,
+    onSettled: () => refreshSellerProductQueries(queryClient),
+  });
 }
 
 export function useUpdateSellerProduct() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, values }) => updateSellerProduct(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      sellerProductKeys.all,
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshSellerProductQueries(queryClient),
   });
 }
 
 export function useDeleteSellerProduct() {
-  return useMutation({ mutationFn: deleteSellerProduct });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSellerProduct,
+    onSettled: () => refreshSellerProductQueries(queryClient),
+  });
 }
 
 export function getSellerProductError(error) {

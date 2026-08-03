@@ -1,7 +1,9 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { toSqlDateTime } from "@/core/utils/dateTime";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const voucherManagementKeys = {
   admin: ["admin", "vouchers"],
@@ -27,7 +29,7 @@ export function normalizeVoucher(row = {}) {
     usedCount: Number(row.usedCount ?? row.used_count ?? 0),
     storeId: row.storeId ?? row.store_id ?? row.store?.id ?? null,
     storeName: row.storeName || row.store_name || row.store?.name || "",
-    isActive: Boolean(row.isActive ?? row.is_active ?? true),
+    isActive: toBoolean(row.isActive ?? row.is_active, true),
     createdAt: row.createdAt || row.created_at || null,
     raw: row,
   };
@@ -64,9 +66,9 @@ function endpoints(portal) {
   }
 
   return {
-    list: "/api/v1/order/vouchers/manage/list",
-    create: "/api/v1/order/vouchers",
-    item: (id) => `/api/v1/order/vouchers/${id}`,
+    list: "/api/v1/order/vouchers/admin/manage/list",
+    create: "/api/v1/order/vouchers/admin",
+    item: (id) => `/api/v1/order/vouchers/admin/${id}`,
   };
 }
 
@@ -91,23 +93,51 @@ export async function deleteVoucher(portal, id) {
   return apiClient.delete(endpoints(portal).item(id));
 }
 
+function refreshVoucherQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: voucherManagementKeys.admin });
+  queryClient.invalidateQueries({ queryKey: voucherManagementKeys.seller });
+  queryClient.invalidateQueries({ queryKey: ["order", "vouchers"] });
+}
+
 export function useManagedVouchers(portal, params = {}) {
   return useQuery({
     queryKey: [...voucherManagementKeys[portal], params],
     queryFn: () => getManagedVouchers(portal, params),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }
 
 export function useCreateVoucher(portal) {
-  return useMutation({ mutationFn: (values) => createVoucher(portal, values) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (values) => createVoucher(portal, values),
+    onSettled: () => refreshVoucherQueries(queryClient),
+  });
 }
 
 export function useUpdateVoucher(portal) {
-  return useMutation({ mutationFn: ({ id, values }) => updateVoucher(portal, id, values) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateVoucher(portal, id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      voucherManagementKeys[portal],
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshVoucherQueries(queryClient),
+  });
 }
 
 export function useDeleteVoucher(portal) {
-  return useMutation({ mutationFn: (id) => deleteVoucher(portal, id) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => deleteVoucher(portal, id),
+    onSettled: () => refreshVoucherQueries(queryClient),
+  });
 }
 
 export function getVoucherManagementError(error) {

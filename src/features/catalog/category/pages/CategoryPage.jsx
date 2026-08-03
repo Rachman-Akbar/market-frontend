@@ -2,16 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { FilterSidebar } from "@/shared/components/ui/FilterSidebar";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import {
   getCategoryByPath,
-  getProductsByCategoryPath,
   getCategoryHref,
+  useInfiniteProductsByCategoryPath,
 } from "@/features/catalog/category/services/categoryService";
 import { normalizeProduct } from "@/features/catalog/product/services/productService";
 
-const DEFAULT_LIMIT = 20;
 const INITIAL_FILTERS = {
   categories: [],
   locations: [],
@@ -43,23 +42,16 @@ export default function CategoryPage() {
   const params = useParams();
   const slug = params["*"] || params.slug || "";
   const scrollerRef = useRef(null);
-  const [page, setPage] = useState(1);
+  const loadMoreRef = useRef(null);
   const [sort, setSort] = useState("relevance");
   const [filters, setFilters] = useState(INITIAL_FILTERS);
 
   useEffect(() => {
-    setPage(1);
     setFilters(INITIAL_FILTERS);
   }, [slug]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filters, sort]);
-
   const productParams = useMemo(
     () => ({
-      page,
-      per_page: DEFAULT_LIMIT,
       sort: mapSort(sort),
       category_ids: filters.categories.length
         ? filters.categories.join(",")
@@ -73,33 +65,39 @@ export default function CategoryPage() {
       min_price: filters.minPrice || undefined,
       max_price: filters.maxPrice || undefined,
     }),
-    [filters, page, sort],
+    [filters, sort],
   );
 
   const categoryQuery = useQuery({
     queryKey: ["catalog", "category", "path", slug],
     queryFn: () => getCategoryByPath(slug),
     enabled: Boolean(slug),
-    staleTime: 300000,
+    ...publicQueryOptions,
   });
 
-  const productsQuery = useQuery({
-    queryKey: ["catalog", "category", "products", slug, productParams],
-    queryFn: () => getProductsByCategoryPath(slug, productParams),
-    enabled: Boolean(slug),
-    staleTime: 60000,
-    placeholderData: (previous) => previous,
+  const productsQuery = useInfiniteProductsByCategoryPath(slug, {
+    per_page: 24,
+    ...productParams,
   });
 
   const category = categoryQuery.data || null;
-  const products = useMemo(
-    () => (productsQuery.data?.data || []).map(normalizeProduct),
-    [productsQuery.data],
-  );
-  const meta = productsQuery.data?.meta || null;
+  const products = useMemo(() => {
+    const rows = productsQuery.data?.pages?.flatMap((page) => page?.data || []) || [];
+    const seen = new Set();
+
+    return rows
+      .map(normalizeProduct)
+      .filter((product) => {
+        const key = String(product?.id ?? product?.slug ?? "");
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [productsQuery.data]);
+  const firstPage = productsQuery.data?.pages?.[0] || null;
   const rawFacets =
-    productsQuery.data?.raw?.facets ||
-    productsQuery.data?.raw?.data?.facets ||
+    firstPage?.raw?.facets ||
+    firstPage?.raw?.data?.facets ||
     {};
   const categoryName = category?.name || titleFromSlug(slug) || "Kategori";
   const childCategories = category?.children || [];
@@ -121,8 +119,24 @@ export default function CategoryPage() {
       ]),
     [products, rawFacets.locations],
   );
-  const totalProducts = meta?.total || meta?.total_items || products.length;
-  const totalPages = meta?.last_page || meta?.total_pages || 1;
+  const totalProducts = products.length;
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !productsQuery.hasNextPage) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || productsQuery.isFetchingNextPage) return;
+        productsQuery.fetchNextPage();
+      },
+      { rootMargin: "320px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [productsQuery.fetchNextPage, productsQuery.hasNextPage, productsQuery.isFetchingNextPage]);
+
   const loading = categoryQuery.isLoading || productsQuery.isLoading;
   const error =
     productsQuery.error?.message || categoryQuery.error?.message || "";
@@ -271,11 +285,15 @@ export default function CategoryPage() {
               </div>
             )}
 
-            <Pagination
-              current={meta?.current_page || page}
-              total={totalPages}
-              onChange={setPage}
-            />
+            <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
+              {productsQuery.isFetchingNextPage
+                ? "Memuat produk berikutnya..."
+                : productsQuery.hasNextPage
+                  ? "Geser ke bawah untuk memuat produk berikutnya"
+                  : products.length
+                    ? "Semua produk sudah ditampilkan"
+                    : ""}
+            </div>
           </div>
         </div>
       </div>

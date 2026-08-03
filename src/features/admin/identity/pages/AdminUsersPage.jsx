@@ -37,7 +37,7 @@ export default function AdminUsersPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
       editor.close();
-      setMessage("User berhasil dihapus. Tekan Refresh untuk memperbarui daftar.");
+      setMessage("User berhasil dihapus.");
     } catch (error) {
       setMessage(getAdminIdentityError(error));
     }
@@ -48,7 +48,7 @@ export default function AdminUsersPage() {
     try {
       for (const user of selection.selectedRows) await deleteMutation.mutateAsync(user.id);
       selection.clear();
-      setMessage("User terpilih berhasil dihapus. Tekan Refresh untuk memperbarui daftar.");
+      setMessage("User terpilih berhasil dihapus.");
     } catch (error) {
       setMessage(getAdminIdentityError(error));
     }
@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
         });
       }
       selection.clear();
-      setMessage(`User terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}. Tekan Refresh untuk memperbarui daftar.`);
+      setMessage(`User terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
     } catch (error) {
       setMessage(getAdminIdentityError(error));
     }
@@ -104,13 +104,14 @@ export default function AdminUsersPage() {
               rows={filteredRows}
               columns={columns}
               onEdit={editor.edit}
-              onToggleActive={async (row, isActive) => {
-                try {
-                  await quickUpdateMutation.mutateAsync({ id: row.id, values: { ...row, isActive, isBanned: false, roleIds: row.roles.map((role) => role.id) } });
-                  setMessage("Status user berhasil diperbarui. Tekan Refresh untuk melihat data terbaru.");
-                } catch (error) {
-                  setMessage(getAdminIdentityError(error));
-                }
+              onToggleActive={(row, isActive) => {
+                quickUpdateMutation.mutate(
+                  { id: row.id, values: { ...row, isActive, isBanned: false, roleIds: row.roles.map((role) => role.id) } },
+                  {
+                    onSuccess: () => setMessage("Status user berhasil diperbarui."),
+                    onError: (error) => setMessage(getAdminIdentityError(error)),
+                  },
+                );
               }}
               pendingId={quickUpdateMutation.variables?.id}
               visibleSet={columnVisibility.visibleSet}
@@ -129,7 +130,7 @@ export default function AdminUsersPage() {
         user={editor.entity}
         onDelete={setDeleteTarget}
         onClose={editor.close}
-        onSaved={() => setMessage(`${editor.entity ? "User berhasil diperbarui" : "User berhasil ditambahkan"}. Tekan Refresh pada tab List untuk melihat data terbaru.`)}
+        onSaved={() => setMessage(`${editor.entity ? "User berhasil diperbarui" : "User berhasil ditambahkan"}.`)}
       />
 
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus User" message={`User “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />

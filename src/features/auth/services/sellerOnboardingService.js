@@ -6,6 +6,7 @@ import {
   unwrapCollection,
 } from "@/core/utils/apiClient";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
 export const sellerOnboardingKeys = {
@@ -39,7 +40,7 @@ function normalizeStore(row = {}) {
     province: row.province || "",
     address: row.address || "",
     status: String(row.status || "pending").toLowerCase(),
-    isActive: Boolean(row.is_active ?? row.isActive),
+    isActive: toBoolean(row.is_active ?? row.isActive, false),
     logo: resolveMediaUrl(row.logo || ""),
     bannerUrl: resolveMediaUrl(row.banner_url || row.bannerUrl || ""),
     detail: {

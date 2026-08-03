@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { apiClient, unwrapCollection } from "@/core/utils/apiClient";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 
@@ -56,7 +57,7 @@ export async function getActiveVouchers(params = {}) {
 }
 
 export function useActiveVouchers(options = {}) {
-  return useQuery({ queryKey: voucherKeys.active(), queryFn: () => getActiveVouchers(), staleTime: 300000, ...options });
+  return useQuery({ queryKey: voucherKeys.active(), queryFn: () => getActiveVouchers(), ...publicQueryOptions, ...options });
 }
 
 export function useCheckoutVouchers(storeIds = [], options = {}) {
@@ -72,7 +73,7 @@ export function useCheckoutVouchers(storeIds = [], options = {}) {
     queryKey: voucherKeys.checkout(normalizedStoreIds),
     queryFn: () => getActiveVouchers(params),
     enabled: Boolean(enabled && normalizedStoreIds.length > 0),
-    staleTime: 120000,
+    ...publicQueryOptions,
     ...queryOptions,
   });
 }

@@ -1,6 +1,4 @@
 import { apiClient } from "@/core/utils/apiClient";
-import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
-import { buildCatalogCacheKey, runCatalogQuery } from "@/features/catalog/application/cache/catalogQueryClient";
 
 const CATALOG_API_PREFIX = "/api/v1/catalog";
 
@@ -23,45 +21,25 @@ export function buildCatalogUrl(path, params = {}) {
   return `${CATALOG_API_PREFIX}${cleanPath}${qs ? `${cleanPath.includes("?") ? "&" : "?"}${qs}` : ""}`;
 }
 
-function shouldCacheRequest(method, options = {}) {
-  if (options.cache === false) return false;
-  return String(method || "GET").toUpperCase() === "GET";
-}
-
 export async function catalogRequest(path, options = {}) {
   const {
     params,
-    cache,
-    cacheTtl = CATALOG_CACHE_TTL.short,
-    persistCache = false,
-    forceRefresh = false,
     method = "GET",
     body,
     headers,
+    signal,
   } = options;
   const normalizedMethod = String(method).toUpperCase();
   const url = buildCatalogUrl(path, params);
-  const cacheKey = buildCatalogCacheKey(normalizedMethod, url);
-  const cacheEnabled = shouldCacheRequest(normalizedMethod, { cache });
+  const response = await apiClient.request({
+    url,
+    method: normalizedMethod,
+    data: body,
+    headers,
+    signal,
+  });
 
-  return runCatalogQuery(
-    cacheKey,
-    async () => {
-      const response = await apiClient.request({
-        url,
-        method: normalizedMethod,
-        data: body,
-        headers,
-      });
-      return response.data;
-    },
-    {
-      cache: cacheEnabled,
-      ttl: cacheTtl,
-      persist: persistCache,
-      force: forceRefresh,
-    }
-  );
+  return response.data;
 }
 
 export function unwrapData(payload) {

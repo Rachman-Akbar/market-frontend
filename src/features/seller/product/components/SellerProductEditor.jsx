@@ -10,6 +10,9 @@ import { ProductStockFields } from "@/features/seller/product/components/Product
 import { ProductVariantFields } from "@/features/seller/product/components/ProductVariantFields";
 import { createClientId } from "@/core/utils/clientId";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
+import { getRelationQuickCreateError, useQuickCreateCategory, useQuickCreateProductAttribute } from "@/shared/services/relationQuickCreateService";
 import {
   getSellerProductError,
   useCreateSellerProduct,
@@ -40,8 +43,8 @@ function createInitialValues(product) {
 
   return {
     storeId: product.storeId || "",
-    name: toTitleCase(product.name),
-    brand: toTitleCase(product.brand),
+    name: product.name,
+    brand: product.brand,
     description: product.description,
     categoryId: product.categoryId || "",
     status: product.status,
@@ -63,7 +66,7 @@ function createInitialValues(product) {
             clientId: value.clientId || createClientId("attribute-value"),
           })),
         }))
-      : [{ clientId: createClientId("variant"), id: null, name: toTitleCase(product.name), sku: product.sku, price: product.price, stock: product.stock, values: [] }],
+      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, values: [] }],
   };
 }
 
@@ -115,6 +118,10 @@ export function SellerProductEditor({
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
   const [activeSection, setActiveSection] = useState("general");
+  const notifications = useNotificationCenter();
+  const openRelationCreateTab = useRelationCreateTab();
+  const quickCreateCategoryMutation = useQuickCreateCategory();
+  const quickCreateAttributeMutation = useQuickCreateProductAttribute();
   const categoriesQuery = useSellerProductCategories({ enabled: categories === null });
   const attributesQuery = useSellerProductAttributes({ enabled: attributes === null });
   const categoryOptions = categories || categoriesQuery.data || [];
@@ -137,6 +144,28 @@ export function SellerProductEditor({
     () => categoryOptions.find((category) => category.id === Number(values.categoryId)) || null,
     [categoryOptions, values.categoryId],
   );
+
+  const quickCreateCategory = async (name) => {
+    try {
+      const created = await quickCreateCategoryMutation.mutateAsync({ name, catalogGroupName: "Lainnya" });
+      notifications.push({ type: "success", title: "Category siap digunakan", message: `${created.name} berhasil tersedia dan langsung dipilih.` });
+      return { value: created.id, label: `L${created.level || 1} · ${toTitleCase(created.name)}` };
+    } catch (error) {
+      notifications.push({ type: "error", title: "Category gagal dibuat", message: getRelationQuickCreateError(error) });
+      throw error;
+    }
+  };
+
+  const quickCreateAttribute = async (name) => {
+    try {
+      const created = await quickCreateAttributeMutation.mutateAsync({ name, type: "text" });
+      notifications.push({ type: "success", title: "Atribut siap digunakan", message: `${created.name} berhasil dibuat dan langsung dipilih.` });
+      return { value: created.id, label: toTitleCase(created.name) };
+    } catch (error) {
+      notifications.push({ type: "error", title: "Atribut gagal dibuat", message: getRelationQuickCreateError(error) });
+      throw error;
+    }
+  };
 
   const sortedCategoryOptions = useMemo(() => categoryOptions, [categoryOptions]);
 
@@ -276,6 +305,8 @@ export function SellerProductEditor({
                         options={stores.map((store) => ({ value: store.id, label: toTitleCase(store.name), keywords: `${store.slug || ""} ${store.city || ""}` }))}
                         placeholder="Pilih toko"
                         searchPlaceholder="Cari toko"
+                        onCreate={(name) => openRelationCreateTab({ href: "/admin/stores", relationLabel: "Toko", searchName: name })}
+                        createLabel={(name) => `Data tidak ditemukan, buka Data Baru Toko untuk “${name}”`}
                       />
                     </FormField>
                   ) : null}
@@ -302,6 +333,9 @@ export function SellerProductEditor({
                       })}
                       placeholder="Pilih kategori"
                       searchPlaceholder="Cari kategori"
+                      onCreate={quickCreateCategory}
+                      creating={quickCreateCategoryMutation.isPending}
+                      createLabel={(name) => `Data tidak ditemukan, tambahkan “${name}” sebagai Category baru`}
                     />
                   </FormField>
 
@@ -392,7 +426,7 @@ export function SellerProductEditor({
 
               {values.mode === "variant" ? (
                 <div>
-                  <ProductVariantFields variants={values.variants} attributes={attributeOptions} onChange={(variants) => setField("variants", variants)} />
+                  <ProductVariantFields variants={values.variants} attributes={attributeOptions} onChange={(variants) => setField("variants", variants)} onCreateAttribute={quickCreateAttribute} creatingAttribute={quickCreateAttributeMutation.isPending} />
                   {errors.variants ? <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{errors.variants}</p> : null}
                 </div>
               ) : (

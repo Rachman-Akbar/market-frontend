@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ProductGrid } from "@/features/catalog/product/components/ProductGrid";
 import { StoreBannerCarousel } from "@/features/catalog/store/components/StoreBannerCarousel";
@@ -6,37 +6,65 @@ import { getStorefrontError, useStoreBanners, useStoreById, useStoreBySlug, useS
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 
-export default function StoreDetailPage() {
+export default function StoreDetailPage({ storeOverride = null, embedded = false }) {
   const { slug, id } = useParams();
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
+  const loadMoreRef = useRef(null);
   const deferredSearch = useDeferredValue(search.trim());
   const storeBySlugQuery = useStoreBySlug(slug, { enabled: Boolean(slug) });
   const storeByIdQuery = useStoreById(id, { enabled: Boolean(id) });
   const storeQuery = slug ? storeBySlugQuery : storeByIdQuery;
-  const store = storeQuery.data;
+  const store = storeOverride || storeQuery.data;
   const bannersQuery = useStoreBanners(store?.id);
   const productsQuery = useStoreProducts(store?.id, {
+    per_page: 24,
     ...(deferredSearch ? { search: deferredSearch } : {}),
   });
-  const products = productsQuery.data?.rows || [];
+  const products = useMemo(() => {
+    const rows = productsQuery.data?.pages?.flatMap((page) => page?.rows || []) || [];
+    const seen = new Set();
+
+    return rows.filter((product) => {
+      const key = String(product?.id ?? product?.slug ?? "");
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [productsQuery.data]);
   const location = useMemo(() => [store?.city, store?.province].filter(Boolean).join(", "), [store?.city, store?.province]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !productsQuery.hasNextPage) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || productsQuery.isFetchingNextPage) return;
+        productsQuery.fetchNextPage();
+      },
+      { rootMargin: "320px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [productsQuery.fetchNextPage, productsQuery.hasNextPage, productsQuery.isFetchingNextPage]);
 
   const submitSearch = (event) => {
     event.preventDefault();
     setSearch(searchDraft.trim());
   };
 
-  if (storeQuery.isLoading) {
+  if (!storeOverride && storeQuery.isLoading) {
     return <main className="mx-auto max-w-[1200px] px-4 py-12"><AsyncState loading /></main>;
   }
 
-  if (storeQuery.error || !store) {
+  if ((!storeOverride && storeQuery.error) || !store) {
     return <main className="mx-auto max-w-[1200px] px-4 py-12"><AsyncState error={getStorefrontError(storeQuery.error)} /></main>;
   }
 
   return (
-    <main className="mx-auto max-w-[1200px] space-y-6 px-4 py-6">
+    <main className={embedded ? "space-y-6" : "mx-auto max-w-[1200px] space-y-6 px-4 py-6"}>
       <StoreBannerCarousel banners={bannersQuery.data || []} fallback={store.bannerUrl} />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -57,7 +85,7 @@ export default function StoreDetailPage() {
           <div className="grid grid-cols-2 gap-2 text-center sm:flex">
             <div className="rounded-xl bg-emerald-50 px-4 py-3">
               <p className="text-lg font-extrabold text-emerald-700">{products.length}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-600">Produk</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-600">Dimuat</p>
             </div>
             <div className="rounded-xl bg-slate-50 px-4 py-3">
               <p className="text-lg font-extrabold text-slate-800">Aktif</p>
@@ -103,6 +131,15 @@ export default function StoreDetailPage() {
           emptyText="Produk toko belum tersedia."
         />
         {products.length ? <ProductGrid products={products} /> : null}
+        <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
+          {productsQuery.isFetchingNextPage
+            ? "Memuat produk berikutnya..."
+            : productsQuery.hasNextPage
+              ? "Geser ke bawah untuk memuat produk berikutnya"
+              : products.length
+                ? "Semua produk toko sudah ditampilkan"
+                : ""}
+        </div>
       </section>
     </main>
   );

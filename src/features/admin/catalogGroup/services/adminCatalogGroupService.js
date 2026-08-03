@@ -1,5 +1,8 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
+import { toBoolean } from "@/core/utils/boolean";
+import { invalidateCatalogQueries } from "@/features/catalog/application/cache/catalogQueryClient";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminCatalogGroupKeys = { all: ["admin", "catalog-groups"] };
 
@@ -8,7 +11,7 @@ function normalizeCatalogGroup(row = {}) {
     id: Number(row.id || 0),
     name: row.name || "",
     slug: row.slug || "",
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
     createdAt: row.created_at || row.createdAt || null,
     updatedAt: row.updated_at || row.updatedAt || null,
     raw: row,
@@ -42,24 +45,53 @@ export async function deleteAdminCatalogGroup(id) {
   return apiClient.delete(`/api/v1/catalog/catalog-groups/${id}`);
 }
 
-export function useAdminCatalogGroups() {
-  return useQuery({ queryKey: adminCatalogGroupKeys.all, queryFn: getAdminCatalogGroups });
+function refreshCatalogGroupQueries(queryClient) {
+  invalidateCatalogQueries("catalog-groups");
+  invalidateCatalogQueries("categories");
+  queryClient.invalidateQueries({ queryKey: adminCatalogGroupKeys.all });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "catalog-groups"] });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "categories"] });
 }
 
-function useCatalogGroupMutation(mutationFn) {
-  return useMutation({ mutationFn });
+export function useAdminCatalogGroups() {
+  return useQuery({
+    queryKey: adminCatalogGroupKeys.all,
+    queryFn: getAdminCatalogGroups,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
 }
 
 export function useCreateAdminCatalogGroup() {
-  return useCatalogGroupMutation(createAdminCatalogGroup);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminCatalogGroup,
+    onSettled: () => refreshCatalogGroupQueries(queryClient),
+  });
 }
 
 export function useUpdateAdminCatalogGroup() {
-  return useCatalogGroupMutation(({ id, values }) => updateAdminCatalogGroup(id, values));
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminCatalogGroup(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      adminCatalogGroupKeys.all,
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshCatalogGroupQueries(queryClient),
+  });
 }
 
 export function useDeleteAdminCatalogGroup() {
-  return useCatalogGroupMutation(deleteAdminCatalogGroup);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminCatalogGroup,
+    onSettled: () => refreshCatalogGroupQueries(queryClient),
+  });
 }
 
 export function getCatalogGroupError(error) {

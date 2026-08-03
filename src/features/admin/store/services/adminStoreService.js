@@ -1,6 +1,8 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapCollection } from "@/core/utils/apiClient";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminStoreKeys = {
   list: (params = {}) => ["admin", "stores", params],
@@ -24,7 +26,7 @@ export function normalizeAdminStore(row = {}) {
     logo: resolveMediaUrl(row.logo || ""),
     bannerUrl: resolveMediaUrl(row.banner_url || row.bannerUrl || ""),
     status: row.status || "pending",
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
     createdAt: row.created_at || row.createdAt || null,
     updatedAt: row.updated_at || row.updatedAt || null,
     raw: row,
@@ -71,15 +73,45 @@ export async function updateAdminStoreStatus(id, status, isActive) {
 }
 
 export function useAdminStores(params = {}) {
-  return useQuery({ queryKey: adminStoreKeys.list(params), queryFn: () => getAdminStores(params) });
+  return useQuery({
+    queryKey: adminStoreKeys.list(params),
+    queryFn: () => getAdminStores(params),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
+}
+
+function refreshStoreQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: ["admin", "stores"] });
+  queryClient.invalidateQueries({ queryKey: ["seller", "store"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront"] });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "products"] });
 }
 
 export function useUpdateAdminStore() {
-  return useMutation({ mutationFn: ({ id, values }) => updateAdminStore(id, values) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminStore(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(queryClient, ["admin", "stores"], id, (row) => mergeOptimisticValues(row, values)),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshStoreQueries(queryClient),
+  });
 }
 
 export function useUpdateAdminStoreStatus() {
-  return useMutation({ mutationFn: ({ id, status, isActive }) => updateAdminStoreStatus(id, status, isActive) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, isActive }) => updateAdminStoreStatus(id, status, isActive),
+    onMutate: ({ id, status, isActive }) => beginOptimisticEntityUpdate(
+      queryClient,
+      ["admin", "stores"],
+      id,
+      (row) => mergeOptimisticValues(row, { status, ...(isActive === undefined ? {} : { isActive }) }),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshStoreQueries(queryClient),
+  });
 }
 
 export function getAdminStoreError(error) {

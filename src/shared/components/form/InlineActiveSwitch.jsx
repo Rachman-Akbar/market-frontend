@@ -17,14 +17,15 @@ export const InlineActiveSwitch = memo(function InlineActiveSwitch({
       type="button"
       role="switch"
       aria-checked={Boolean(checked)}
+      aria-busy={pending}
       aria-label={`Ubah status menjadi ${checked ? inactiveLabel : activeLabel}`}
-      disabled={disabled || pending}
+      disabled={disabled}
       onClick={(event) => {
         event.stopPropagation();
         onChange?.(!checked);
       }}
       className={cn(
-        "inline-flex items-center gap-2 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-55",
+        "inline-flex items-center gap-2 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-60",
         compact ? "text-[11px]" : "text-xs",
       )}
     >
@@ -45,7 +46,10 @@ export const InlineActiveSwitch = memo(function InlineActiveSwitch({
           )}
         />
       </span>
-      <span className={cn("font-bold", checked ? "text-emerald-700" : "text-slate-500")}>{pending ? "Menyimpan..." : label}</span>
+      <span className={cn("inline-flex items-center gap-1 font-bold", checked ? "text-emerald-700" : "text-slate-500")}>
+        {label}
+        {pending ? <span className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" /> : null}
+      </span>
     </button>
   );
 });

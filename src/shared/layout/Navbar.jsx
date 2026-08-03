@@ -3,131 +3,10 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useCart } from "@/features/order/cart/context/CartContext";
-import { useSellerStore } from "@/features/seller/store/services/sellerStoreService";
-import { useSellerOrders } from "@/features/order/ordering/orderService";
-import { useSellerProducts } from "@/features/seller/product/services/sellerProductService";
-import { useStoreProducts } from "@/features/catalog/store/services/storefrontService";
-import { formatPrice } from "@/shared/utils/utils";
 import { CategoryDropdown } from "@/features/catalog/category/components/CategoryDropdown";
 
 function openIndependentPortal(path, windowName) {
   window.open(path, windowName, "noopener,noreferrer");
-}
-
-function openSellerPortal() {
-  const sellerWindow = window.open(
-    "/auth/role-switch?redirect=%2Fseller",
-    "ziip-seller",
-    "noopener,noreferrer",
-  );
-
-  if (sellerWindow) {
-    try {
-      sellerWindow.opener = null;
-    } catch {
-      return sellerWindow;
-    }
-  }
-
-  return sellerWindow;
-}
-
-function StoreTooltip({ onOpenSeller, canReadSellerData, sessionStore }) {
-  const storeQuery = useSellerStore({ enabled: canReadSellerData });
-  const store = storeQuery.data || sessionStore || null;
-  const ordersQuery = useSellerOrders(canReadSellerData ? store?.id : 0, {
-    per_page: 100,
-  });
-  const productsQuery = useSellerProducts({ per_page: 100 });
-  const publicProductsQuery = useStoreProducts(store?.slug, { per_page: 100 });
-  const orders = ordersQuery.data?.data || [];
-  const products = canReadSellerData
-    ? productsQuery.data?.rows || []
-    : publicProductsQuery.data?.rows || [];
-  const activeProducts = products.filter((product) => product.isActive).length;
-  const lowStock = products.filter((product) => product.isActive && Number(product.stock || 0) <= 5).length;
-  const paidOrders = orders.filter((order) =>
-    ["paid", "success", "settlement"].includes(
-      String(order.paymentStatus || "").toLowerCase(),
-    ),
-  );
-  const revenue = paidOrders.reduce(
-    (total, order) => total + Number(order.totalItemsPrice || 0),
-    0,
-  );
-  const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
-  const sales = days.map(
-    (_, index) =>
-      orders.filter((order) => {
-        if (!order.createdAt) return false;
-        const day = new Date(order.createdAt).getDay();
-        return (day + 6) % 7 === index;
-      }).length,
-  );
-  const max = Math.max(...sales, 1);
-
-  if (!store?.id) {
-    return (
-      <div className="absolute right-0 top-full z-[95] mt-2 w-64 border border-slate-200 bg-white p-4">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-2xl text-slate-400">storefront</span>
-          <div><p className="text-sm font-extrabold text-slate-800">Belum mempunyai toko</p><p className="mt-1 text-xs text-slate-500">Lengkapi onboarding untuk mulai berjualan.</p></div>
-        </div>
-        <button type="button" onClick={onOpenSeller} className="mt-4 h-9 w-full bg-emerald-600 text-xs font-extrabold text-white">Buat Toko</button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="absolute right-0 top-full z-[95] mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-4 py-3">
-        <p className="text-xs font-bold text-[#047857]">
-          Performa Toko Minggu Ini
-        </p>
-        <p className="mt-0.5 text-[10px] text-slate-500">
-          {store?.name || "Daftarkan toko Anda"}
-        </p>
-      </div>
-      <div className="px-4 py-3">
-        <div className="mb-3 grid grid-cols-3 gap-2">
-          {[
-            { label: "Penjualan", value: formatPrice(revenue) },
-            { label: "Produk Aktif", value: activeProducts.toLocaleString("id-ID") },
-            { label: "Stok Rendah", value: lowStock.toLocaleString("id-ID") },
-          ].map((item) => (
-            <div key={item.label} className="text-center">
-              <p className="truncate text-[11px] font-bold text-slate-800">
-                {item.value}
-              </p>
-              <p className="text-[10px] text-slate-400">{item.label}</p>
-            </div>
-          ))}
-        </div>
-        <div className="flex h-16 items-end gap-1">
-          {sales.map((value, index) => (
-            <div
-              key={days[index]}
-              className="flex flex-1 flex-col items-center gap-0.5"
-            >
-              <div
-                className="w-full rounded-sm bg-[#10B981]"
-                style={{ height: `${Math.max(2, (value / max) * 48)}px` }}
-              />
-              <span className="text-[9px] text-slate-400">{days[index]}</span>
-            </div>
-          ))}
-        </div>
-        <hr className="my-3 border-slate-100" />
-        <button
-          type="button"
-          onClick={onOpenSeller}
-          className="block w-full text-center text-xs font-bold text-[#10B981] hover:text-[#047857]"
-        >
-          Kelola Toko
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function ProfileTooltip({ onClose, onLogout, roles, loading }) {
@@ -136,7 +15,18 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
     { icon: "location_on", label: "Alamat Saya", path: "/profile/addresses" },
   ];
 
+  const normalizedRoles = Array.isArray(roles)
+    ? roles.map((role) => String(role || "").trim().toLowerCase())
+    : [];
   const independentItems = [
+    {
+      icon: "storefront",
+      label: "Seller Panel",
+      path: normalizedRoles.includes("seller")
+        ? "/auth/role-switch?role=seller&redirect=%2Fseller"
+        : "/auth/seller/onboarding",
+      windowName: "ziip-seller",
+    },
     {
       icon: "chat",
       label: "Chat",
@@ -145,7 +35,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
     },
   ];
 
-  if (roles.includes("admin")) {
+  if (normalizedRoles.includes("admin")) {
     independentItems.push({
       icon: "admin_panel_settings",
       label: "Admin",
@@ -206,11 +96,10 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
 export function Navbar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, roles, activeRole, store, logout, loading } = useAuth();
+  const { user, roles, logout, loading } = useAuth();
   const { totalItems } = useCart();
   const [query, setQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [storeHover, setStoreHover] = useState(false);
   const [profileHover, setProfileHover] = useState(false);
 
   function handleSearch(event) {
@@ -221,11 +110,6 @@ export function Navbar() {
     }
   }
 
-  function handleOpenSeller() {
-    setStoreHover(false);
-    openSellerPortal();
-  }
-
   async function handleLogout() {
     setProfileHover(false);
     await logout?.();
@@ -233,10 +117,23 @@ export function Navbar() {
     navigate("/", { replace: true });
   }
 
+  function handleOpenSellerPanel() {
+    setCategoryOpen(false);
+    setProfileHover(false);
+
+    const normalizedRoles = Array.isArray(roles)
+      ? roles.map((role) => String(role || "").trim().toLowerCase())
+      : [];
+    const path = normalizedRoles.includes("seller")
+      ? "/auth/role-switch?role=seller&redirect=%2Fseller"
+      : "/auth/seller/onboarding";
+
+    openIndependentPortal(path, "ziip-seller");
+  }
+
   function toggleCategory(event) {
     event.preventDefault();
     event.stopPropagation();
-    setStoreHover(false);
     setProfileHover(false);
     setCategoryOpen((current) => !current);
   }
@@ -260,7 +157,6 @@ export function Navbar() {
             </span>
           </div>
           <div className="hidden items-center gap-5 lg:flex">
-            <Link to="/stores" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Daftar Toko</Link>
             <Link to="/promotions" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Promo</Link>
             <span className="whitespace-nowrap">Pusat Edukasi Seller</span>
             <span className="whitespace-nowrap">Ziip Care</span>
@@ -312,7 +208,6 @@ export function Navbar() {
           </form>
 
           <div className="flex flex-shrink-0 items-center gap-2">
-            <Link to="/stores" className="hidden items-center gap-1 rounded-lg px-2 py-2 text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-[#10B981] md:flex"><span className="material-symbols-outlined text-[20px]">storefront</span><span className="hidden xl:inline">Toko</span></Link>
             <Link
               to="/cart"
               className="relative rounded-lg p-2 text-slate-600 transition hover:bg-emerald-50 hover:text-[#10B981]"
@@ -330,34 +225,15 @@ export function Navbar() {
 
             {user ? (
               <>
-                <div
-                  className="relative"
-                  onMouseEnter={() => {
-                    setCategoryOpen(false);
-                    setStoreHover(true);
-                  }}
-                  onMouseLeave={() => setStoreHover(false)}
+                <button
+                  type="button"
+                  onClick={handleOpenSellerPanel}
+                  className="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:border-[#10B981] hover:bg-emerald-50 hover:text-[#047857] sm:flex"
+                  aria-label="Beralih ke Seller Panel"
                 >
-                  <button
-                    type="button"
-                    onClick={handleOpenSeller}
-                    className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:border-[#10B981] hover:text-[#047857]"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      storefront
-                    </span>
-                    <span className="hidden lg:inline">Seller</span>
-                  </button>
-                  <div
-                    className={`origin-top-right transition-all duration-200 ${storeHover ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0"}`}
-                  >
-                    <StoreTooltip
-                      onOpenSeller={handleOpenSeller}
-                      canReadSellerData={activeRole === "seller"}
-                      sessionStore={store}
-                    />
-                  </div>
-                </div>
+                  <span className="material-symbols-outlined text-[18px]">storefront</span>
+                  <span>Seller Panel</span>
+                </button>
 
                 <div
                   className="relative"

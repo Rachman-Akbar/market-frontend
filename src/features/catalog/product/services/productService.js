@@ -1,10 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
-import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { catalogRequest, safeArray, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 import { formatPrice } from "@/shared/utils/utils";
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='%23f3f4f6'/%3E%3Cpath d='M180 385h240l-74-94-54 68-42-52-70 78Z' fill='%23d1d5db'/%3E%3Ccircle cx='235' cy='235' r='35' fill='%23d1d5db'/%3E%3C/svg%3E";
+
+function booleanValue(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  return ["1", "true", "yes", "on", "active", "published", "approved"].includes(String(value).trim().toLowerCase());
+}
+
+function normalizedStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
 function firstValue(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== "");
@@ -40,7 +51,7 @@ export function normalizeVariant(variant = {}) {
     name: variant.name || variant.title || "Varian Produk",
     price: numberValue(variant.price),
     stock: numberValue(variant.stock),
-    is_default: Boolean(variant.is_default),
+    is_default: booleanValue(variant.is_default),
     values,
     raw: variant,
   };
@@ -51,7 +62,7 @@ function normalizeImages(product = {}) {
     id: image.id,
     url: resolveMediaUrl(image.url || image.image_url || image.src || ""),
     alt_text: image.alt_text || image.alt || product.name || "Product",
-    is_primary: Boolean(image.is_primary),
+    is_primary: booleanValue(image.is_primary),
     sort_order: Number(image.sort_order || 0),
   })).filter((image) => image.url);
 
@@ -80,7 +91,7 @@ export function normalizeProduct(product = {}) {
     name: category.name || category.category?.name || "Kategori",
     slug: category.slug || category.category?.slug || "",
     full_slug: category.full_slug || category.category?.full_slug || category.slug || category.category?.slug || "",
-    is_primary: Boolean(category.is_primary),
+    is_primary: booleanValue(category.is_primary),
     raw: category,
   }));
   const primaryCategory = product.primary_category || categories.find((category) => category.is_primary) || categories[0] || null;
@@ -128,8 +139,8 @@ export function normalizeProduct(product = {}) {
     thumbnail: images[0]?.url || PLACEHOLDER_IMAGE,
     image: images[0]?.url || PLACEHOLDER_IMAGE,
     images,
-    status: product.status || "",
-    is_active: product.is_active ?? true,
+    status: normalizedStatus(product.status),
+    is_active: booleanValue(product.is_active ?? product.isActive, true),
     price,
     price_label: formatPrice(price),
     stock: numberValue(firstValue(product.stock, product.total_stock, defaultVariant?.stock)),
@@ -144,45 +155,69 @@ export function normalizeProduct(product = {}) {
   };
 }
 
-export async function getProducts(params = {}) {
+function getNextCursor(payload, meta) {
+  const direct = meta?.next_cursor || payload?.meta?.next_cursor || payload?.data?.meta?.next_cursor;
+  if (direct) return String(direct);
+
+  const nextUrl = payload?.links?.next || payload?.data?.links?.next || meta?.next_page_url;
+  if (!nextUrl) return undefined;
+
+  try {
+    const origin = globalThis.location?.origin || "http://localhost";
+    return new URL(nextUrl, origin).searchParams.get("cursor") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function getProducts(params = {}, options = {}) {
   const payload = await catalogRequest("/products", {
     params: {
       include: "summary",
-      per_page: params.per_page ?? params.limit ?? 20,
+      per_page: 24,
       ...params,
     },
-    cacheTtl: CATALOG_CACHE_TTL.short,
+    signal: options.signal,
   });
   const { items, meta } = unwrapCollection(payload);
   const products = items
     .map(normalizeProduct)
     .filter((product) => product.is_active !== false && (!product.status || product.status === "published"));
+  const nextCursor = getNextCursor(payload, meta);
 
   return {
     data: products,
     meta,
+    nextCursor,
+    hasMore: Boolean(nextCursor),
     facets: payload?.facets || payload?.data?.facets || meta?.facets || {},
   };
 }
 
-export async function getProductById(id) {
-  const payload = await catalogRequest(`/products/${id}`, {
-    cacheTtl: CATALOG_CACHE_TTL.medium,
+export function flattenProductPages(infiniteData) {
+  const rows = infiniteData?.pages?.flatMap((page) => page?.data || []) || [];
+  const seen = new Set();
+
+  return rows.filter((product) => {
+    const key = String(product?.id ?? product?.slug ?? "");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
+}
+
+export async function getProductById(id) {
+  const payload = await catalogRequest(`/products/${id}`);
   return normalizeProduct(unwrapData(payload));
 }
 
 export async function getProductBySlug(slug) {
-  const payload = await catalogRequest(`/products/slug/${encodeURIComponent(slug)}`, {
-    cacheTtl: CATALOG_CACHE_TTL.medium,
-  });
+  const payload = await catalogRequest(`/products/slug/${encodeURIComponent(slug)}`);
   return normalizeProduct(unwrapData(payload));
 }
 
 export async function getProductVariants(productId) {
-  const payload = await catalogRequest(`/products/${productId}/variants`, {
-    cacheTtl: CATALOG_CACHE_TTL.medium,
-  });
+  const payload = await catalogRequest(`/products/${productId}/variants`);
   const { items, meta } = unwrapCollection(payload);
   return {
     data: items.map(normalizeVariant),
@@ -199,6 +234,7 @@ export async function getProductAttributes(params = {}) {
 
 export const productKeys = {
   list: (params = {}) => ["catalog", "products", params],
+  infinite: (params = {}) => ["catalog", "products", "infinite", params],
   detail: (id) => ["catalog", "products", "detail", String(id || "")],
   slug: (slug) => ["catalog", "products", "slug", String(slug || "")],
   variants: (productId) => ["catalog", "products", "variants", String(productId || "")],
@@ -208,8 +244,24 @@ export function useProducts(params = {}, options = {}) {
   return useQuery({
     queryKey: productKeys.list(params),
     queryFn: () => getProducts(params),
-    staleTime: 60000,
+    ...publicQueryOptions,
     placeholderData: (previous) => previous,
+    ...options,
+  });
+}
+
+
+export function useInfiniteProducts(params = {}, options = {}) {
+  return useInfiniteQuery({
+    queryKey: productKeys.infinite(params),
+    queryFn: ({ pageParam, signal }) => getProducts({
+      ...params,
+      cursor: pageParam || undefined,
+    }, { signal }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor || undefined,
+    ...publicQueryOptions,
+    refetchInterval: false,
     ...options,
   });
 }
@@ -219,7 +271,7 @@ export function useProductById(id) {
     queryKey: productKeys.detail(id),
     queryFn: () => getProductById(id),
     enabled: Boolean(id),
-    staleTime: 120000,
+    ...publicQueryOptions,
   });
 }
 
@@ -228,7 +280,7 @@ export function useProductBySlug(slug) {
     queryKey: productKeys.slug(slug),
     queryFn: () => getProductBySlug(slug),
     enabled: Boolean(slug),
-    staleTime: 120000,
+    ...publicQueryOptions,
   });
 }
 
@@ -238,7 +290,7 @@ export function useProductVariants(productId, options = {}) {
     queryKey: productKeys.variants(productId),
     queryFn: () => getProductVariants(productId),
     enabled: Boolean(productId),
-    staleTime: 120000,
+    ...publicQueryOptions,
     ...options,
   });
 }

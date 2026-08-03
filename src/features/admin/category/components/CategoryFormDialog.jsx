@@ -8,6 +8,8 @@ import { required, validateFields } from "@/core/utils/formValidation";
 import { useAdminCatalogGroups } from "@/features/admin/catalogGroup/services/adminCatalogGroupService";
 import { getCategoryError, useCreateAdminCategory, useUpdateAdminCategory } from "@/features/admin/category/services/adminCategoryService";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { getRelationQuickCreateError, useQuickCreateCatalogGroup, useQuickCreateCategory } from "@/shared/services/relationQuickCreateService";
 
 function descendantIds(categories, parentId) {
   const ids = new Set();
@@ -29,7 +31,7 @@ function getDepth(category) {
 
 function initialValues(entity) {
   return {
-    name: toTitleCase(entity?.name || ""),
+    name: entity?.name || "",
     slug: entity?.slug || "",
     catalogGroupId: entity?.catalogGroupId || "",
     parentId: entity?.parentId || "",
@@ -58,6 +60,9 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
   const groupsQuery = useAdminCatalogGroups();
+  const notifications = useNotificationCenter();
+  const quickGroupMutation = useQuickCreateCatalogGroup();
+  const quickParentMutation = useQuickCreateCategory();
   const createMutation = useCreateAdminCategory();
   const updateMutation = useUpdateAdminCategory();
   const mutation = entity ? updateMutation : createMutation;
@@ -88,6 +93,38 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
   );
 
   const computedLevel = selectedParent ? getDepth(selectedParent) + 2 : 1;
+
+  const selectedGroup = useMemo(
+    () => (groupsQuery.data || []).find((group) => group.id === Number(values.catalogGroupId)) || null,
+    [groupsQuery.data, values.catalogGroupId],
+  );
+
+  const quickCreateGroup = async (name) => {
+    try {
+      const created = await quickGroupMutation.mutateAsync(name);
+      notifications.push({ type: "success", title: "Catalog Group siap digunakan", message: `${created.name} berhasil tersedia dan langsung dipilih.` });
+      return { value: created.id, label: toTitleCase(created.name) };
+    } catch (error) {
+      notifications.push({ type: "error", title: "Catalog Group gagal dibuat", message: getRelationQuickCreateError(error) });
+      throw error;
+    }
+  };
+
+  const quickCreateParent = async (name) => {
+    if (!selectedGroup?.name) {
+      const error = new Error("Pilih Catalog Group sebelum membuat parent Category.");
+      notifications.push({ type: "error", title: "Catalog Group belum dipilih", message: error.message });
+      throw error;
+    }
+    try {
+      const created = await quickParentMutation.mutateAsync({ name, catalogGroupName: selectedGroup.name });
+      notifications.push({ type: "success", title: "Parent Category siap digunakan", message: `${created.name} berhasil tersedia dan langsung dipilih.` });
+      return { value: created.id, label: `L${created.level || 1} · ${toTitleCase(created.name)}` };
+    } catch (error) {
+      notifications.push({ type: "error", title: "Parent Category gagal dibuat", message: getRelationQuickCreateError(error) });
+      throw error;
+    }
+  };
 
   useEffect(() => {
     if (computedLevel === 3) return;
@@ -168,6 +205,9 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
                   }))}
                   placeholder="Pilih group"
                   searchPlaceholder="Cari catalog group"
+                  onCreate={quickCreateGroup}
+                  creating={quickGroupMutation.isPending}
+                  createLabel={(name) => `Data tidak ditemukan, tambahkan “${name}” sebagai Catalog Group baru`}
                 />
               </FormField>
 
@@ -185,6 +225,9 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
                   })}
                   placeholder="Tanpa parent · Level 1"
                   searchPlaceholder="Cari parent kategori"
+                  onCreate={quickCreateParent}
+                  creating={quickParentMutation.isPending}
+                  createLabel={(name) => `Data tidak ditemukan, tambahkan “${name}” sebagai parent Category baru`}
                 />
               </FormField>
 

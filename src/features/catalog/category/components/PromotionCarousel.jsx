@@ -42,7 +42,7 @@ export function PromotionCarousel() {
     <section className="group relative aspect-[12/3] min-h-[180px] w-full overflow-hidden bg-slate-900">
       <picture className="absolute inset-0">
         <source media="(max-width: 640px)" srcSet={promotion.mobileImageUrl || promotion.imageUrl} />
-        <img src={promotion.imageUrl} alt={promotion.title} className="h-full w-full object-cover" fetchPriority="high" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+        <img src={promotion.imageUrl} alt={promotion.title} className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
       </picture>
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/40 to-transparent" />
       <div className="relative flex h-full max-w-xl flex-col justify-center px-12 py-8 text-white sm:px-16 lg:px-20">

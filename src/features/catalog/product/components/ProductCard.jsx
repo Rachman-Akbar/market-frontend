@@ -137,7 +137,6 @@ export function ProductCard({
   );
 
   const [optimisticWished, setOptimisticWished] = useState(wishedFromStore);
-  const [wishlistPending, setWishlistPending] = useState(false);
   const [cartStatus, setCartStatus] = useState("idle");
   const [cartMessage, setCartMessage] = useState("");
   const [orderModalOpen, setOrderModalOpen] = useState(false);
@@ -195,10 +194,8 @@ export function ProductCard({
   const selectedVariantId = getVariantId(selectedVariant) || Number(variantId || 0);
 
   useEffect(() => {
-    if (!wishlistPending) {
-      setOptimisticWished(wishedFromStore);
-    }
-  }, [wishedFromStore, wishlistPending, resolvedProductId]);
+    setOptimisticWished(wishedFromStore);
+  }, [wishedFromStore, resolvedProductId]);
 
   useEffect(() => {
     const normalized = normalizeVariants(variants);
@@ -274,34 +271,41 @@ export function ProductCard({
     navigate,
   ]);
 
-  const handleWishlistToggle = async (event) => {
+  const handleWishlistToggle = (event) => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!requireLogin() || wishlistPending) return;
+    if (!requireLogin()) return;
 
     const previousWished = optimisticWished;
     const nextWished = !previousWished;
-
     setOptimisticWished(nextWished);
-    setWishlistPending(true);
 
-    try {
-      if (onWishlistToggle) {
-        await onWishlistToggle({
+    const request = onWishlistToggle
+      ? onWishlistToggle({
           id: resolvedProductId,
           productId: resolvedProductId,
           variantId: Number(variantId || 0),
           wished: nextWished,
+        })
+      : toggleItem({
+          productId: resolvedProductId,
+          variantId: selectedVariantId,
+          productName: displayTitle,
+          storeId: resolvedStoreId,
+          storeName: resolvedStoreName,
+          slug,
+          brand,
+          price: selectedPrice,
+          stock: selectedStock ?? productStock ?? 0,
+          imageUrl: displayImage || "",
+          location: displayLocation,
+          status: "published",
         });
-      } else {
-        await toggleItem({ productId: resolvedProductId });
-      }
-    } catch {
+
+    Promise.resolve(request).catch(() => {
       setOptimisticWished(previousWished);
-    } finally {
-      setWishlistPending(false);
-    }
+    });
   };
 
   const loadProductVariants = useCallback(async () => {

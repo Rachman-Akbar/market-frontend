@@ -45,6 +45,25 @@ function isVariantAvailable(variant) {
   return stock === null || stock > 0;
 }
 
+function hasVariantOptions(variant) {
+  const sources = [variant?.values, variant?.attributes, variant?.options, variant?.option_values];
+  return sources.some((source) => {
+    if (Array.isArray(source)) return source.some((value) => String(value?.value ?? value?.name ?? value ?? "").trim() !== "");
+    if (source && typeof source === "object") return Object.values(source).some((value) => String(value?.value ?? value?.name ?? value ?? "").trim() !== "");
+    return false;
+  });
+}
+
+function shouldShowVariantSelector(product) {
+  const variants = Array.isArray(product?.variants) ? product.variants.filter(Boolean) : [];
+  if (variants.length > 1) return true;
+  if (!variants.length) return false;
+  const variant = variants[0];
+  const name = String(variant?.name || variant?.variant_name || "").trim().toLowerCase();
+  const defaultNames = new Set(["", "default", "utama", "standard", "standar"]);
+  return hasVariantOptions(variant) || (!defaultNames.has(name) && !variant?.is_default);
+}
+
 function getInitialVariant(product) {
   const variants = Array.isArray(product?.variants) ? product.variants : [];
   const defaultId = getVariantId(product?.default_variant);
@@ -103,6 +122,7 @@ export function ProductDetailClient({ slug }) {
   }, []);
 
   const categories = useMemo(() => getProductCategories(product), [product]);
+  const showVariantSelector = useMemo(() => shouldShowVariantSelector(product), [product]);
   const activePrice = Number(selectedVariant?.price ?? product?.price ?? 0);
   const selectedVariantStock = getVariantStock(selectedVariant);
   const activeStock = selectedVariant
@@ -212,11 +232,13 @@ export function ProductDetailClient({ slug }) {
 
           <hr className="mb-6 border-gray-100" />
 
-          <VariantSelector
-            variants={product.variants}
-            value={selectedVariant}
-            onVariantChange={handleVariantChange}
-          />
+          {showVariantSelector ? (
+            <VariantSelector
+              variants={product.variants}
+              value={selectedVariant}
+              onVariantChange={handleVariantChange}
+            />
+          ) : null}
 
           <div className="mb-4 border-b border-gray-200">
             <div className="flex gap-8">

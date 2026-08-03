@@ -12,7 +12,7 @@ function emptyVariant() {
   return { clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, values: [] };
 }
 
-export const ProductVariantFields = memo(function ProductVariantFields({ variants, attributes, onChange }) {
+export const ProductVariantFields = memo(function ProductVariantFields({ variants, attributes, onChange, onCreateAttribute, creatingAttribute = false }) {
   const [expanded, setExpanded] = useState(() => new Set(variants.map((variant, index) => variant.id || variant.clientId || index)));
 
   useEffect(() => {
@@ -137,6 +137,9 @@ export const ProductVariantFields = memo(function ProductVariantFields({ variant
                           options={attributeOptions}
                           placeholder="Pilih atribut"
                           searchPlaceholder="Cari atribut"
+                          onCreate={onCreateAttribute}
+                          creating={creatingAttribute}
+                          createLabel={(name) => `Data tidak ditemukan, tambahkan “${name}” sebagai atribut baru`}
                         />
                         <input value={item.value} onChange={(event) => updateValue(index, valueIndex, "value", event.target.value)} className={inputClassName} placeholder="Contoh: Merah, XL, 128 GB" />
                         <button type="button" onClick={() => removeValue(index, valueIndex)} className="flex h-11 w-9 items-center justify-center text-red-600 hover:bg-red-50" aria-label="Hapus atribut">

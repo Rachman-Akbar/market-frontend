@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 
 function slugify(value = "") {
@@ -31,41 +31,31 @@ export function normalizeCatalogGroup(group = {}) {
     slug,
     sort_order: Number(group.sort_order ?? group.sortOrder ?? 0),
     is_active: normalizeBoolean(group.is_active ?? group.isActive, true),
+    categories: Array.isArray(group.categories) ? group.categories : [],
     raw: group,
   };
 }
 
 export async function getCatalogGroups(params = {}) {
-  const payload = await catalogRequest("/catalog-groups", {
-    params,
-    cacheTtl: CATALOG_CACHE_TTL.long,
-    persistCache: true,
-  });
-  const { items, meta } = unwrapCollection(payload);
+  const payload = await catalogRequest("/catalog-groups", { params });
+  const { items } = unwrapCollection(payload);
 
   return {
     data: Array.isArray(items) ? items.map(normalizeCatalogGroup) : [],
-    meta,
+    meta: null,
     raw: payload,
   };
 }
 
 export async function getCatalogGroupById(id) {
-  const payload = await catalogRequest(`/catalog-groups/${id}`, {
-    cacheTtl: CATALOG_CACHE_TTL.long,
-    persistCache: true,
-  });
+  const payload = await catalogRequest(`/catalog-groups/${id}`);
   return normalizeCatalogGroup(unwrapData(payload));
 }
 
 export async function getCatalogGroupBySlug(slug) {
-  const payload = await catalogRequest(`/catalog-groups/slug/${encodeURIComponent(slug)}`, {
-    cacheTtl: CATALOG_CACHE_TTL.long,
-    persistCache: true,
-  });
+  const payload = await catalogRequest(`/catalog-groups/slug/${encodeURIComponent(slug)}`);
   return normalizeCatalogGroup(unwrapData(payload));
 }
-
 
 export const catalogGroupKeys = {
   list: (params = {}) => ["catalog", "catalog-groups", params],
@@ -75,7 +65,7 @@ export function useCatalogGroups(params = {}, options = {}) {
   return useQuery({
     queryKey: catalogGroupKeys.list(params),
     queryFn: () => getCatalogGroups(params),
-    staleTime: 300000,
+    ...publicQueryOptions,
     ...options,
   });
 }

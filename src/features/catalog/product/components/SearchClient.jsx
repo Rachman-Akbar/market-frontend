@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { FilterSidebar } from "@/shared/components/ui/FilterSidebar";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
-import { useProducts } from "@/features/catalog/product/services/productService";
+import { flattenProductPages, useInfiniteProducts } from "@/features/catalog/product/services/productService";
 import { getCategories } from "@/features/catalog/category/services/categoryService";
 
 const FILTER_TABS = ["Semua", "Official Store", "Power Merchant", "Diskon"];
-const DEFAULT_LIMIT = 20;
 const initialFilters = {
   categories: [],
   locations: [],
@@ -29,24 +28,21 @@ export default function SearchClient() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const [activeTab, setActiveTab] = useState(0);
-  const [page, setPage] = useState(1);
   const [sort, setSort] = useState("relevance");
   const [filters, setFilters] = useState(initialFilters);
   const [debouncedFilters, setDebouncedFilters] = useState(initialFilters);
+  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedFilters(filters), 350);
     return () => window.clearTimeout(timer);
   }, [filters]);
 
-  useEffect(() => setPage(1), [query, activeTab, sort, debouncedFilters]);
-
   const params = useMemo(
     () => ({
+      per_page: 24,
       search: query || undefined,
       q: query || undefined,
-      page,
-      per_page: DEFAULT_LIMIT,
       category_ids: debouncedFilters.categories.length
         ? debouncedFilters.categories
         : undefined,
@@ -67,33 +63,53 @@ export default function SearchClient() {
       has_discount: activeTab === 3 ? 1 : undefined,
       sort,
     }),
-    [activeTab, debouncedFilters, page, query, sort],
+    [activeTab, debouncedFilters, query, sort],
   );
 
-  const productsQuery = useProducts(params);
+  const productsQuery = useInfiniteProducts(params);
   const categoriesQuery = useQuery({
     queryKey: ["catalog", "categories", "filter"],
     queryFn: getCategories,
-    staleTime: 300000,
+    ...publicQueryOptions,
   });
-  const products = productsQuery.data?.data || [];
-  const meta = productsQuery.data?.meta || null;
+  const products = useMemo(
+    () => flattenProductPages(productsQuery.data),
+    [productsQuery.data],
+  );
+  const facets = productsQuery.data?.pages?.[0]?.facets || {};
   const categories = useMemo(
     () => flattenCategories(categoriesQuery.data?.data || [], []),
     [categoriesQuery.data],
   );
   const locations = useMemo(() => {
-    const facetLocations = productsQuery.data?.facets?.locations;
-    if (Array.isArray(facetLocations))
+    const facetLocations = facets.locations;
+    if (Array.isArray(facetLocations)) {
       return facetLocations
         .map((item) =>
           typeof item === "string" ? item : item.name || item.value,
         )
         .filter(Boolean);
+    }
     return [
       ...new Set(products.map((product) => product.location).filter(Boolean)),
     ];
-  }, [products, productsQuery.data?.facets]);
+  }, [facets.locations, products]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !productsQuery.hasNextPage) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || productsQuery.isFetchingNextPage) return;
+        productsQuery.fetchNextPage();
+      },
+      { rootMargin: "320px 0px" },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [productsQuery.fetchNextPage, productsQuery.hasNextPage, productsQuery.isFetchingNextPage]);
 
   return (
     <main className="max-w-[1200px] mx-auto px-6 py-4">
@@ -124,9 +140,7 @@ export default function SearchClient() {
               ))}
             </div>
             <div className="flex items-center gap-2 mt-4 md:mt-0">
-              <span className="text-xs text-[#3e4a39] whitespace-nowrap">
-                Urutkan:
-              </span>
+              <span className="text-xs text-[#3e4a39] whitespace-nowrap">Urutkan:</span>
               <select
                 value={sort}
                 onChange={(event) => setSort(event.target.value)}
@@ -141,42 +155,27 @@ export default function SearchClient() {
             </div>
           </div>
           <p className="text-sm text-[#3e4a39] mb-4">
-            Menampilkan hasil pencarian untuk{" "}
-            <strong className="text-[#1b1c1c]">
-              "{query || "Semua Produk"}"
-            </strong>
+            Menampilkan hasil pencarian untuk <strong className="text-[#1b1c1c]">"{query || "Semua Produk"}"</strong>
           </p>
-          {productsQuery.isLoading ? (
-            <div className="text-sm text-gray-500 py-8">
-              Memuat hasil pencarian...
-            </div>
-          ) : null}
-          {productsQuery.error ? (
-            <div className="text-sm text-red-500 py-8">
-              {productsQuery.error.message}
-            </div>
-          ) : null}
-          {!productsQuery.isLoading &&
-          !productsQuery.error &&
-          !products.length ? (
-            <div className="text-sm text-gray-500 py-8">
-              Produk tidak ditemukan.
-            </div>
-          ) : null}
-          {!productsQuery.isLoading &&
-          !productsQuery.error &&
-          products.length ? (
+          {productsQuery.isLoading ? <div className="text-sm text-gray-500 py-8">Memuat hasil pencarian...</div> : null}
+          {productsQuery.error ? <div className="text-sm text-red-500 py-8">{productsQuery.error.message}</div> : null}
+          {!productsQuery.isLoading && !productsQuery.error && !products.length ? <div className="text-sm text-gray-500 py-8">Produk tidak ditemukan.</div> : null}
+          {!productsQuery.isLoading && !productsQuery.error && products.length ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {products.map((product) => (
                 <ProductCard key={product.id || product.slug} {...product} />
               ))}
             </div>
           ) : null}
-          <Pagination
-            current={meta?.current_page || page}
-            total={meta?.last_page || meta?.total_pages || 1}
-            onChange={setPage}
-          />
+          <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
+            {productsQuery.isFetchingNextPage
+              ? "Memuat produk berikutnya..."
+              : productsQuery.hasNextPage
+                ? "Geser ke bawah untuk memuat produk berikutnya"
+                : products.length
+                  ? "Semua produk sudah ditampilkan"
+                  : ""}
+          </div>
         </div>
       </div>
     </main>

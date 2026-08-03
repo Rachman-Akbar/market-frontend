@@ -197,6 +197,16 @@ export function ProductCheckoutPanel({
 
       await toggleItem({
         productId,
+        variantId,
+        productName: product?.name || "Produk",
+        storeId: Number(product?.store_id || product?.store?.id || 0),
+        storeName: product?.store_name || product?.store?.name || product?.brand || "Toko",
+        slug: product?.slug || String(productId),
+        brand: product?.brand || "",
+        price,
+        stock,
+        imageUrl: image || "",
+        status: product?.status || "published",
       });
     } catch (error) {
       setMessageType("error");
@@ -351,9 +361,9 @@ export function ProductCheckoutPanel({
 
         <button
           type="button"
-          disabled={wishlistMutating}
+          aria-busy={wishlistMutating}
           onClick={handleWishlist}
-          className={`flex items-center gap-1.5 transition-colors disabled:opacity-60 ${
+          className={`flex items-center gap-1.5 transition-colors ${
             wished
               ? "text-[#f87171]"
               : "text-gray-600 hover:text-[#f87171]"

@@ -1,6 +1,10 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
+import { invalidateCatalogQueries } from "@/features/catalog/application/cache/catalogQueryClient";
+import { invalidateCategoryNavigationCache } from "@/features/catalog/category/services/categoryService";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminCategoryKeys = { all: ["admin", "categories"] };
 
@@ -21,8 +25,8 @@ function flatten(rows = [], depth = 0, parentName = "", parentPath = [], result 
       level: depth + 1,
       sortOrder: Number(row.sort_order || 0),
       productsCount: Number(row.products_count || 0),
-      isActive: Boolean(row.is_active ?? true),
-      isVisibleInMenu: Boolean(row.is_visible_in_menu ?? true),
+      isActive: toBoolean(row.is_active, true),
+      isVisibleInMenu: toBoolean(row.is_visible_in_menu, true),
       parentName,
       pathNames,
       path: pathNames.join(" / "),
@@ -70,24 +74,55 @@ export async function deleteAdminCategory(id) {
   return apiClient.delete(`/api/v1/catalog/categories/${id}`);
 }
 
-export function useAdminCategoryList() {
-  return useQuery({ queryKey: adminCategoryKeys.all, queryFn: getAdminCategories });
+function refreshCategoryQueries(queryClient) {
+  invalidateCatalogQueries("categories");
+  invalidateCatalogQueries("catalog-groups");
+  invalidateCategoryNavigationCache();
+  queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "categories"] });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "catalog-groups"] });
+  queryClient.invalidateQueries({ queryKey: ["catalog", "products"] });
 }
 
-function useCategoryMutation(mutationFn) {
-  return useMutation({ mutationFn });
+export function useAdminCategoryList() {
+  return useQuery({
+    queryKey: adminCategoryKeys.all,
+    queryFn: getAdminCategories,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
 }
 
 export function useCreateAdminCategory() {
-  return useCategoryMutation(createAdminCategory);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminCategory,
+    onSettled: () => refreshCategoryQueries(queryClient),
+  });
 }
 
 export function useUpdateAdminCategory() {
-  return useCategoryMutation(({ id, values }) => updateAdminCategory(id, values));
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminCategory(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      adminCategoryKeys.all,
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshCategoryQueries(queryClient),
+  });
 }
 
 export function useDeleteAdminCategory() {
-  return useCategoryMutation(deleteAdminCategory);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminCategory,
+    onSettled: () => refreshCategoryQueries(queryClient),
+  });
 }
 
 export function getCategoryError(error) {

@@ -8,7 +8,7 @@ import { getSellerBannerError, useCreateSellerBanner, useUpdateSellerBanner } fr
 import { toTitleCase } from "@/shared/utils/textFormatter";
 
 function initialValues(entity) {
-  return { name: toTitleCase(entity?.name || ""), imageUrl: entity?.imageUrl || "", sortOrder: entity?.sortOrder || 0, isActive: entity?.isActive ?? true };
+  return { name: entity?.name || "", imageUrl: entity?.imageUrl || "", sortOrder: entity?.sortOrder || 0, isActive: entity?.isActive ?? true };
 }
 
 export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {

@@ -7,11 +7,12 @@ import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getAdminBannerError, useCreateAdminBanner, useUpdateAdminBanner } from "@/features/admin/banner/services/adminBannerService";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
 
 function initialValues(entity) {
   return {
     storeId: entity?.storeId || "",
-    name: toTitleCase(entity?.name || ""),
+    name: entity?.name || "",
     imageUrl: entity?.imageUrl || "",
     sortOrder: entity?.sortOrder || 0,
     isActive: entity?.isActive ?? true,
@@ -25,6 +26,7 @@ export function AdminBannerEditor({ open, entity, stores, onClose, onSaved, onDe
   const createMutation = useCreateAdminBanner();
   const updateMutation = useUpdateAdminBanner();
   const mutation = entity ? updateMutation : createMutation;
+  const openRelationCreateTab = useRelationCreateTab();
 
   useEffect(() => {
     if (open) {
@@ -62,7 +64,7 @@ export function AdminBannerEditor({ open, entity, stores, onClose, onSaved, onDe
       <form onSubmit={submit}>
         <div className="grid gap-4 p-5 md:grid-cols-2">
           <FormField label="Toko" error={errors.storeId} required>
-            <SearchableSelect value={values.storeId} disabled={Boolean(entity)} onChange={(nextValue) => setField("storeId", nextValue)} options={stores.map((store) => ({ value: store.id, label: toTitleCase(store.name), keywords: `${store.slug || ""} ${store.city || ""}` }))} placeholder="Pilih toko" searchPlaceholder="Cari toko" />
+            <SearchableSelect value={values.storeId} disabled={Boolean(entity)} onChange={(nextValue) => setField("storeId", nextValue)} options={stores.map((store) => ({ value: store.id, label: toTitleCase(store.name), keywords: `${store.slug || ""} ${store.city || ""}` }))} placeholder="Pilih toko" searchPlaceholder="Cari toko" onCreate={(name) => openRelationCreateTab({ href: "/admin/stores", relationLabel: "Toko", searchName: name })} createLabel={(name) => `Data tidak ditemukan, buka Data Baru Toko untuk “${name}”`} />
           </FormField>
           <FormField label="Nama banner" error={errors.name} required><input value={values.name} onChange={(event) => setField("name", event.target.value)} className={inputClassName} /></FormField>
           <FormField label="Gambar banner" error={errors.imageUrl} required className="md:col-span-2"><ImageFilePicker value={values.imageUrl} onChange={(imageUrl) => setField("imageUrl", imageUrl)} scope="banners" label="Pilih gambar banner" aspectClassName="aspect-[3/1]" /></FormField>

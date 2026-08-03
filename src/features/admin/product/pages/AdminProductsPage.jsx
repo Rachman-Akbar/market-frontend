@@ -1,40 +1,44 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { useAdminCategoryList } from "@/features/admin/category/services/adminCategoryService";
-import {
-  getAdminProductError,
-  useAdminProducts,
-  useAdminProductStores,
-  useCreateAdminProduct,
-  useDeleteAdminProduct,
-  useUpdateAdminProduct,
-} from "@/features/admin/product/services/adminProductService";
+import { getAdminProductError, useAdminProducts, useAdminProductStores, useCreateAdminProduct, useDeleteAdminProduct, useUpdateAdminProduct } from "@/features/admin/product/services/adminProductService";
 import { SellerProductEditor } from "@/features/seller/product/components/SellerProductEditor";
 import { PRODUCT_TABLE_COLUMNS, SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
 import { ConfirmDialog, EntityToolbar } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
 import { Pagination } from "@/shared/components/ui/Pagination";
-import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { useColumnVisibility, useEntityEditor, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
+import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 
 const PER_PAGE = 20;
+const EMPTY_COLUMN_FILTERS = { product: "", mode: "", price: { min: "", max: "" }, stock: { min: "", max: "" }, status: "", active: "" };
 
 export default function AdminProductsPage() {
-  const [activeFilter, setActiveFilter] = useState("");
-  const [publicationStatus, setPublicationStatus] = useState("");
+  const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
+  const [sort, setSort] = useState({ by: "created_at", direction: "desc" });
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [message, setMessage] = useState("");
   const deferredQuery = useDeferredValue(query.trim());
   const editor = useEntityEditor();
+  const notifications = useNotificationCenter();
   const productsQuery = useAdminProducts({
     page,
     per_page: PER_PAGE,
+    sort_by: sort.by,
+    sort_direction: sort.direction,
     ...(deferredQuery ? { search: deferredQuery } : {}),
-    ...(activeFilter ? { is_active: activeFilter === "active" } : {}),
-    ...(publicationStatus ? { status: publicationStatus } : {}),
+    ...(columnFilters.product ? { name: columnFilters.product } : {}),
+    ...(columnFilters.mode ? { mode: columnFilters.mode } : {}),
+    ...(columnFilters.price.min !== "" ? { price_min: columnFilters.price.min } : {}),
+    ...(columnFilters.price.max !== "" ? { price_max: columnFilters.price.max } : {}),
+    ...(columnFilters.stock.min !== "" ? { stock_min: columnFilters.stock.min } : {}),
+    ...(columnFilters.stock.max !== "" ? { stock_max: columnFilters.stock.max } : {}),
+    ...(columnFilters.status ? { status: columnFilters.status } : {}),
+    ...(columnFilters.active ? { is_active: columnFilters.active === "active" } : {}),
   });
   const storesQuery = useAdminProductStores();
   const categoriesQuery = useAdminCategoryList();
@@ -43,147 +47,106 @@ export default function AdminProductsPage() {
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
   const rows = productsQuery.data?.rows || [];
   const meta = productsQuery.data?.meta || {};
-
   const displayRows = useMemo(() => {
-    const storesById = new Map(
-      (storesQuery.data || []).map((store) => [store.id, store.name]),
-    );
-
-    return rows.map((row) => ({
-      ...row,
-      storeName: storesById.get(row.storeId) || "",
-    }));
+    const storesById = new Map((storesQuery.data || []).map((store) => [store.id, store.name]));
+    return rows.map((row) => ({ ...row, storeName: storesById.get(row.storeId) || "" }));
   }, [rows, storesQuery.data]);
-
-  const columns = useMemo(
-    () => mergeColumns(PRODUCT_TABLE_COLUMNS, buildRawColumns(displayRows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"])),
-    [displayRows],
-  );
+  const columns = useMemo(() => mergeColumns(PRODUCT_TABLE_COLUMNS.filter((column) => column.key !== "store"), buildRawColumns(displayRows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"])), [displayRows]);
   const columnVisibility = useColumnVisibility(columns, "admin-products");
   const selection = useTableSelection(displayRows);
+  const spreadsheet = useSpreadsheetWorkspace({ module: "product", label: "Product", selectedRows: selection.selectedRows, onCompleted: () => { selection.clear(); productsQuery.refetch(); } });
+  const hasActiveFilters = useMemo(() => JSON.stringify(columnFilters) !== JSON.stringify(EMPTY_COLUMN_FILTERS), [columnFilters]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [activeFilter, deferredQuery, publicationStatus]);
+  useEffect(() => setPage(1), [columnFilters, deferredQuery, sort]);
 
-  const bulkDelete = async () => {
-    if (!selection.selectedRows.length) return;
-    try {
-      for (const product of selection.selectedRows) await deleteMutation.mutateAsync(product.id);
-      selection.clear();
-      setMessage("Produk terpilih berhasil dihapus. Tekan Refresh untuk memperbarui daftar.");
-    } catch (error) {
-      setMessage(getAdminProductError(error));
-    }
+  const toggleActive = (product, isActive) => {
+    quickUpdateMutation.mutate(
+      { id: product.id, values: { ...product, isActive } },
+      {
+        onSuccess: () => notifications.push({ type: "success", title: "Product", message: `Product berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.` }),
+        onError: (error) => notifications.push({ type: "error", title: "Product", message: getAdminProductError(error) }),
+      },
+    );
+  };
+
+  const changeStatus = (product, status) => {
+    quickUpdateMutation.mutate(
+      { id: product.id, values: { ...product, status } },
+      {
+        onSuccess: () => notifications.push({ type: "success", title: "Product", message: `Status Product berhasil diubah menjadi ${status}.` }),
+        onError: (error) => notifications.push({ type: "error", title: "Product", message: getAdminProductError(error) }),
+      },
+    );
   };
 
   const remove = async () => {
     if (!deleteTarget) return;
-
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      editor.close();
-      setMessage("Produk berhasil dihapus.");
+      notifications.push({ type: "success", title: "Product", message: "Product berhasil dihapus." });
     } catch (error) {
-      setMessage(getAdminProductError(error));
+      notifications.push({ type: "error", title: "Product", message: getAdminProductError(error) });
     }
   };
 
   return (
-    <AdminShell
-      title="Manajemen Produk"
-      subtitle="Kelola produk seluruh toko, mode variant, galeri, status publikasi, serta active/non-active."
-    >
-      {editor.isListActive ? (<>
-
-      <EntityToolbar
-        query={query}
-        onQueryChange={setQuery}
-        onCreate={editor.create}
-        onRefresh={() => productsQuery.refetch()}
-        refreshing={productsQuery.isFetching}
-        createLabel="Tambah Produk"
-        placeholder="Cari nama, SKU, brand, atau variant"
-        selectionEnabled={selection.enabled}
-        selectedCount={selection.selectedCount}
-        onToggleSelection={selection.toggleEnabled}
-        bulkActions={[{ key: "delete", label: "Hapus data terpilih", icon: "delete", danger: true, onClick: bulkDelete }]}
-        columns={columns}
-        visibleColumns={columnVisibility.visibleKeys}
-        onToggleColumn={columnVisibility.toggleColumn}
-        onShowAllColumns={columnVisibility.showAll}
-        onResetColumns={columnVisibility.reset}
-        filters={(
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <SearchableSelect
-              value={publicationStatus}
-              onChange={setPublicationStatus}
-              options={[
-                { value: "draft", label: "Draft" },
-                { value: "published", label: "Published" },
-                { value: "archived", label: "Archived" },
-              ]}
-              placeholder="Semua publikasi"
-              className="w-44"
-              buttonClassName="h-10"
-            />
-            <SearchableSelect
-              value={activeFilter}
-              onChange={setActiveFilter}
-              options={[
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Non-Active" },
-              ]}
-              placeholder="Semua active"
-              className="w-40"
-              buttonClassName="h-10"
-            />
-          </div>
-        )}
-      />
-
-      {message ? (
-        <p className="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">
-          {message}
-        </p>
-      ) : null}
-
-      <AsyncState
-        loading={productsQuery.isLoading}
-        error={productsQuery.error ? getAdminProductError(productsQuery.error) : ""}
-        empty={!productsQuery.isLoading && !displayRows.length}
-        emptyText="Produk belum tersedia."
-      />
-
-      {displayRows.length ? (
+    <AdminShell title="Manajemen Product" subtitle="Kelola product seluruh toko, import/export Excel, gambar, filter header, dan active/non-active.">
+      {editor.isListActive ? (
         <>
-          <SellerProductTable
-            rows={displayRows}
-            onEdit={editor.edit}
-            onToggleActive={(product, isActive) => quickUpdateMutation.mutate({ id: product.id, values: { ...product, isActive } })}
-            onStatusChange={(product, statusValue) => quickUpdateMutation.mutate({ id: product.id, values: { ...product, status: statusValue } })}
-            pendingId={quickUpdateMutation.variables?.id}
-            portal="admin"
-            columns={columns}
-            visibleSet={columnVisibility.visibleSet}
+          <EntityToolbar
+            query={query}
+            onQueryChange={setQuery}
+            onCreate={editor.create}
+            onRefresh={() => productsQuery.refetch()}
+            refreshing={productsQuery.isFetching}
+            createLabel="Tambah Produk"
+            placeholder="Cari nama, toko, SKU, brand, atau variant"
             selectionEnabled={selection.enabled}
-            selectedIds={selection.selectedIds}
-            allSelected={selection.allSelected}
-            onToggleRow={selection.toggleRow}
-            onToggleAll={selection.toggleAll}
+            selectedCount={selection.selectedCount}
+            onToggleSelection={selection.toggleEnabled}
+            bulkActions={spreadsheet.actions}
+            columns={columns}
+            visibleColumns={columnVisibility.visibleKeys}
+            onToggleColumn={columnVisibility.toggleColumn}
+            onShowAllColumns={columnVisibility.showAll}
+            onResetColumns={columnVisibility.reset}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
           />
-          <Pagination
-            current={meta.current_page || page}
-            total={meta.last_page || 1}
-            onChange={setPage}
-          />
+          <AsyncState loading={productsQuery.isLoading} error={productsQuery.error ? getAdminProductError(productsQuery.error) : ""} />
+          {!productsQuery.isLoading ? (
+            <>
+              <SellerProductTable
+                rows={displayRows}
+                onEdit={editor.edit}
+                onToggleActive={toggleActive}
+                onStatusChange={changeStatus}
+                pendingId={quickUpdateMutation.variables?.id}
+                portal="admin"
+                columns={columns}
+                visibleSet={columnVisibility.visibleSet}
+                selectionEnabled={selection.enabled}
+                selectedIds={selection.selectedIds}
+                allSelected={selection.allSelected}
+                onToggleRow={selection.toggleRow}
+                onToggleAll={selection.toggleAll}
+                sortBy={sort.by}
+                sortDirection={sort.direction}
+                onSortChange={(by, direction) => setSort({ by, direction })}
+                columnFilters={columnFilters}
+                onColumnFilterChange={(key, value) => setColumnFilters((current) => ({ ...current, [key]: value }))}
+                storeOptions={[]}
+              />
+              {displayRows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+            </>
+          ) : null}
         </>
       ) : null}
 
-      
-      </>) : null}
+      <SpreadsheetOperationPanel workspace={spreadsheet} />
+
       <SellerProductEditor
         open={editor.open}
         product={editor.entity}
@@ -197,22 +160,12 @@ export default function AdminProductsPage() {
         onDelete={(product) => { setDeleteTarget(product); editor.close(); }}
         onSaved={() => {
           editor.markListDirty();
-          setMessage(
-          editor.entity
-            ? "Produk berhasil diperbarui."
-            : "Produk berhasil ditambahkan.",
-          );
+          notifications.push({ type: "success", title: "Product", message: editor.entity ? "Product berhasil diperbarui." : "Product berhasil ditambahkan." });
+          editor.completeSave();
         }}
       />
 
-      <ConfirmDialog
-        open={Boolean(deleteTarget)}
-        title="Hapus Produk"
-        message={`Produk “${deleteTarget?.name || ""}” akan dihapus.`}
-        pending={deleteMutation.isPending}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={remove}
-      />
+      <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Product" message={`Product “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
     </AdminShell>
   );
 }

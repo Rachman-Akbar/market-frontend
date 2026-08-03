@@ -1,8 +1,10 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
-export const adminBannerKeys = { list: (params = {}) => ["admin", "banners", params] };
+export const adminBannerKeys = { all: ["admin", "banners"], list: (params = {}) => ["admin", "banners", params] };
 
 export function normalizeAdminBanner(row = {}) {
   return {
@@ -12,7 +14,7 @@ export function normalizeAdminBanner(row = {}) {
     name: row.name || "",
     imageUrl: resolveMediaUrl(row.image_url || row.imageUrl || ""),
     sortOrder: Number(row.sort_order || row.sortOrder || 0),
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
     createdAt: row.created_at || row.createdAt || null,
     updatedAt: row.updated_at || row.updatedAt || null,
     raw: row,
@@ -48,11 +50,36 @@ export async function deleteAdminBanner(id) {
   return apiClient.delete(`/api/v1/catalog/banners/admin/${id}`);
 }
 
-export function useAdminBanners(params = {}) {
-  return useQuery({ queryKey: adminBannerKeys.list(params), queryFn: () => getAdminBanners(params) });
+function refreshBannerQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: adminBannerKeys.all });
+  queryClient.invalidateQueries({ queryKey: ["seller", "banners"] });
+  queryClient.invalidateQueries({ queryKey: ["storefront"] });
 }
 
-export function useCreateAdminBanner() { return useMutation({ mutationFn: createAdminBanner }); }
-export function useUpdateAdminBanner() { return useMutation({ mutationFn: ({ id, values }) => updateAdminBanner(id, values) }); }
-export function useDeleteAdminBanner() { return useMutation({ mutationFn: deleteAdminBanner }); }
-export function getAdminBannerError(error) { return getApiMessage(error, "Banner gagal diproses oleh admin."); }
+export function useAdminBanners(params = {}) {
+  return useQuery({ queryKey: adminBannerKeys.list(params), queryFn: () => getAdminBanners(params), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
+}
+
+export function useCreateAdminBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: createAdminBanner, onSettled: () => refreshBannerQueries(queryClient) });
+}
+
+export function useUpdateAdminBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminBanner(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(queryClient, adminBannerKeys.all, id, (row) => mergeOptimisticValues(row, values)),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshBannerQueries(queryClient),
+  });
+}
+
+export function useDeleteAdminBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: deleteAdminBanner, onSettled: () => refreshBannerQueries(queryClient) });
+}
+
+export function getAdminBannerError(error) {
+  return getApiMessage(error, "Banner gagal diproses oleh admin.");
+}

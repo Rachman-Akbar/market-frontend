@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 
 export function useEntityEditor(options = {}) {
   const tabs = usePanelTabs();
+  const skipNextCloseRef = useRef(false);
   const [localState, setLocalState] = useState({ open: false, entity: null });
 
   const create = useCallback(() => {
@@ -22,12 +23,30 @@ export function useEntityEditor(options = {}) {
   }, [options, tabs]);
 
   const close = useCallback(() => {
+    if (skipNextCloseRef.current) {
+      skipNextCloseRef.current = false;
+      return;
+    }
     if (tabs) {
       tabs.closeActiveTab();
       return;
     }
     setLocalState({ open: false, entity: null });
   }, [tabs]);
+
+  const completeSave = useCallback(() => {
+    if (tabs?.activeTab?.type === "edit") {
+      tabs.closeActiveTab();
+      return;
+    }
+    if (tabs?.activeTab?.type === "create") {
+      skipNextCloseRef.current = true;
+      return;
+    }
+    if (!tabs && localState.entity) {
+      setLocalState({ open: false, entity: null });
+    }
+  }, [localState.entity, tabs]);
 
   return useMemo(() => {
     if (!tabs) {
@@ -38,6 +57,7 @@ export function useEntityEditor(options = {}) {
         create,
         edit,
         close,
+        completeSave,
         markListDirty: () => {},
         listRevision: 0,
       };
@@ -57,6 +77,7 @@ export function useEntityEditor(options = {}) {
       create,
       edit,
       close,
+      completeSave,
     };
-  }, [close, create, edit, localState, tabs]);
+  }, [close, completeSave, create, edit, localState, tabs]);
 }

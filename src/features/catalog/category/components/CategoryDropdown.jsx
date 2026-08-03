@@ -38,7 +38,7 @@ export function CategoryDropdown({
   const voucherLoading = vouchersQuery.isLoading;
   const voucherError = vouchersQuery.error?.message || "";
 
-  const navGroups = useMemo(() => [...groups, VOUCHER_GROUP], [groups]);
+  const navGroups = useMemo(() => [VOUCHER_GROUP, ...groups], [groups]);
   const l1List = useMemo(() => {
     if (isVoucherActive) return [];
     const list =
@@ -84,8 +84,13 @@ export function CategoryDropdown({
     const nextGroup = requestedExists
       ? requested
       : String(groups[0]?.key || groups[0]?.id || "");
-    if (!activeGroupKey || (requestedExists && requested !== activeGroupKey))
+    const activeStillExists = activeGroupKey === VOUCHER_GROUP_KEY || groups.some(
+      (group) => String(group.key ?? group.id ?? group.slug) === activeGroupKey,
+    );
+
+    if (!activeStillExists || (requestedExists && requested !== activeGroupKey)) {
       setActiveGroup(nextGroup);
+    }
   }, [activeGroupKey, groups, open, selectedGroupKey]);
 
   useEffect(() => {

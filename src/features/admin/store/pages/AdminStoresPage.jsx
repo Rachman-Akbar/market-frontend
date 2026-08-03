@@ -40,7 +40,7 @@ export default function AdminStoresPage() {
         await statusMutation.mutateAsync({ id: store.id, status: nextStatus, isActive: nextStatus === "suspended" ? false : store.isActive });
       }
       selection.clear();
-      setMessage(`Status toko terpilih diubah menjadi ${nextStatus}. Tekan Refresh untuk memperbarui daftar.`);
+      setMessage(`Status toko terpilih diubah menjadi ${nextStatus}.`);
     } catch (error) {
       setMessage(getAdminStoreError(error));
     }
@@ -76,11 +76,19 @@ export default function AdminStoresPage() {
           />
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={storesQuery.isLoading} error={storesQuery.error ? getAdminStoreError(storesQuery.error) : ""} empty={!storesQuery.isLoading && !rows.length} emptyText="Toko belum tersedia." />
-          {rows.length ? <AdminStoreTable rows={rows} columns={columns} onEdit={editor.edit} pendingId={statusMutation.variables?.id} visibleSet={columnVisibility.visibleSet} selectionEnabled={selection.enabled} selectedIds={selection.selectedIds} allSelected={selection.allSelected} onToggleRow={selection.toggleRow} onToggleAll={selection.toggleAll} onToggleActive={async (store, isActive) => { try { await statusMutation.mutateAsync({ id: store.id, status: store.status, isActive }); setMessage("Status operasional toko berhasil diperbarui. Tekan Refresh untuk melihat data terbaru."); } catch (error) { setMessage(getAdminStoreError(error)); } }} /> : null}
+          {rows.length ? <AdminStoreTable rows={rows} columns={columns} onEdit={editor.edit} pendingId={statusMutation.variables?.id} visibleSet={columnVisibility.visibleSet} selectionEnabled={selection.enabled} selectedIds={selection.selectedIds} allSelected={selection.allSelected} onToggleRow={selection.toggleRow} onToggleAll={selection.toggleAll} onToggleActive={(store, isActive) => {
+            statusMutation.mutate(
+              { id: store.id, status: store.status, isActive },
+              {
+                onSuccess: () => setMessage("Status operasional toko berhasil diperbarui."),
+                onError: (error) => setMessage(getAdminStoreError(error)),
+              },
+            );
+          }} /> : null}
           {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
         </>
       ) : null}
-      <AdminStoreEditor open={editor.open} store={editor.entity} onClose={editor.close} onSaved={() => setMessage("Toko berhasil diperbarui. Tekan Refresh untuk melihat data terbaru.")} />
+      <AdminStoreEditor open={editor.open} store={editor.entity} onClose={editor.close} onSaved={() => setMessage("Toko berhasil diperbarui.")} />
     </AdminShell>
   );
 }

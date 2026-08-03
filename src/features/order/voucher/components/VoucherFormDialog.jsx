@@ -13,7 +13,7 @@ import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 function initialValues(entity) {
   return {
     code: entity?.code || "",
-    name: toTitleCase(entity?.name || ""),
+    name: entity?.name || "",
     imageFile: null,
     imageUrl: entity?.imageUrl || "",
     discountTarget: entity?.discountTarget || "product",

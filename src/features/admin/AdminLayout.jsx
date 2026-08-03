@@ -7,16 +7,23 @@ import { PanelTabBar, PanelTabsProvider } from "@/shared/layout/tabs";
 
 export const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "dashboard", exact: true, hiddenInSidebar: true },
-  { href: "/admin/stores", label: "Toko", icon: "storefront" },
-  { href: "/admin/products", label: "Produk", icon: "inventory_2" },
-  { href: "/admin/catalog-groups", label: "Catalog Group", icon: "category" },
-  { href: "/admin/categories", label: "Kategori", icon: "account_tree" },
-  { href: "/admin/vouchers", label: "Voucher", icon: "confirmation_number" },
-  { href: "/admin/promotions", label: "Promosi", icon: "campaign" },
-  { href: "/admin/banners", label: "Banner", icon: "view_carousel" },
-  { href: "/admin/orders", label: "Pesanan", icon: "receipt_long" },
-  { href: "/admin/users", label: "User", icon: "group" },
-  { href: "/admin/roles", label: "Role", icon: "admin_panel_settings" },
+  { href: "/admin/products", label: "Product", icon: "inventory_2", group: "Persediaan" },
+  { href: "/admin/stock", label: "Stock", icon: "warehouse", group: "Persediaan" },
+  { href: "/admin/vouchers", label: "Voucher", icon: "confirmation_number", group: "Penjualan" },
+  { href: "/admin/promotions", label: "Promosi", icon: "campaign", group: "Penjualan" },
+  { href: "/admin/orders", label: "Pesanan", icon: "receipt_long", group: "Penjualan" },
+  { href: "/admin/customers", label: "Pelanggan", icon: "person_search", group: "Penjualan" },
+  { href: "/admin/order-operations", label: "Order", icon: "shopping_bag", group: "Penjualan" },
+  { href: "/admin/cashflow", label: "Pemasukan dan Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
+  { href: "/admin/receivables-payables", label: "Hutang dan Piutang", icon: "payments", group: "Finance" },
+  { href: "/admin/store-information", label: "Informasi", icon: "store", group: "Toko" },
+  { href: "/admin/banners", label: "Banner", icon: "view_carousel", group: "Toko" },
+  { href: "/admin/store-preview", label: "Preview Toko", icon: "preview", group: "Toko" },
+  { href: "/admin/categories", label: "Category", icon: "account_tree", group: "Aplikasi" },
+  { href: "/admin/catalog-groups", label: "Catalog Group", icon: "category", group: "Aplikasi" },
+  { href: "/admin/users", label: "User", icon: "group", group: "Manajemen" },
+  { href: "/admin/stores", label: "Toko", icon: "storefront", group: "Manajemen" },
+  { href: "/admin/roles", label: "Role", icon: "admin_panel_settings", group: "Manajemen", hiddenInSidebar: true },
 ];
 
 export default function AdminLayout() {
@@ -25,7 +32,7 @@ export default function AdminLayout() {
   return (
     <PanelTabsProvider items={ADMIN_NAV_ITEMS}>
       <div className="min-h-screen bg-slate-50">
-        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[64px_1fr]">
+        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[248px_1fr]">
           <PanelSidebar items={ADMIN_NAV_ITEMS} homeHref="/admin" title="Admin Control" sidebarClassName="border-slate-800/20 bg-[#0f172a]" activeClassName="bg-teal-400 text-slate-950" />
           <div className="min-w-0">
             <PanelHeader eyebrow="Admin Panel" title="Platform Management" userName={user?.name || "Admin"} roleLabel="Super Admin" accentTextClassName="text-teal-700" avatarClassName="bg-teal-500" notificationClassName="hover:bg-teal-50 hover:text-teal-700" mobileNavigation={<PanelMobileNavigation items={ADMIN_NAV_ITEMS} activeClassName="bg-teal-50 text-teal-700" />} />

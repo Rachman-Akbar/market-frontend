@@ -34,7 +34,7 @@ export default function AdminRolesPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
       editor.close();
-      setMessage("Role berhasil dihapus. Tekan Refresh untuk memperbarui daftar.");
+      setMessage("Role berhasil dihapus.");
     } catch (error) {
       setMessage(getAdminIdentityError(error));
     }
@@ -45,7 +45,7 @@ export default function AdminRolesPage() {
     try {
       for (const role of selection.selectedRows) await deleteMutation.mutateAsync(role.id);
       selection.clear();
-      setMessage("Role terpilih berhasil dihapus. Tekan Refresh untuk memperbarui daftar.");
+      setMessage("Role terpilih berhasil dihapus.");
     } catch (error) {
       setMessage(getAdminIdentityError(error));
     }
@@ -58,7 +58,7 @@ export default function AdminRolesPage() {
         await quickUpdateMutation.mutateAsync({ id: role.id, values: { ...role, isActive, permissionIds: role.permissions.map((permission) => permission.id) } });
       }
       selection.clear();
-      setMessage(`Role terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}. Tekan Refresh untuk memperbarui daftar.`);
+      setMessage(`Role terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
     } catch (error) {
       setMessage(getAdminIdentityError(error));
     }
@@ -97,13 +97,14 @@ export default function AdminRolesPage() {
               rows={filteredRows}
               columns={columns}
               onEdit={editor.edit}
-              onToggleActive={async (row, isActive) => {
-                try {
-                  await quickUpdateMutation.mutateAsync({ id: row.id, values: { ...row, isActive, permissionIds: row.permissions.map((permission) => permission.id) } });
-                  setMessage("Status role berhasil diperbarui. Tekan Refresh untuk melihat data terbaru.");
-                } catch (error) {
-                  setMessage(getAdminIdentityError(error));
-                }
+              onToggleActive={(row, isActive) => {
+                quickUpdateMutation.mutate(
+                  { id: row.id, values: { ...row, isActive, permissionIds: row.permissions.map((permission) => permission.id) } },
+                  {
+                    onSuccess: () => setMessage("Status role berhasil diperbarui."),
+                    onError: (error) => setMessage(getAdminIdentityError(error)),
+                  },
+                );
               }}
               pendingId={quickUpdateMutation.variables?.id}
               visibleSet={columnVisibility.visibleSet}
@@ -117,7 +118,7 @@ export default function AdminRolesPage() {
         </>
       ) : null}
 
-      <RoleFormDialog open={editor.open} role={editor.entity} onDelete={setDeleteTarget} onClose={editor.close} onSaved={() => setMessage(`${editor.entity ? "Role berhasil diperbarui" : "Role berhasil ditambahkan"}. Tekan Refresh pada tab List untuk melihat data terbaru.`)} />
+      <RoleFormDialog open={editor.open} role={editor.entity} onDelete={setDeleteTarget} onClose={editor.close} onSaved={() => setMessage(`${editor.entity ? "Role berhasil diperbarui" : "Role berhasil ditambahkan"}.`)} />
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Role" message={`Role “${deleteTarget?.name || ""}” akan dihapus dari user dan permission terkait.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
     </AdminShell>
   );

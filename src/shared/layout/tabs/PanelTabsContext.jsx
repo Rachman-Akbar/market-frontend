@@ -5,7 +5,8 @@ import { toTitleCase } from "@/shared/utils/textFormatter";
 const PanelTabsContext = createContext(null);
 
 function matchMenu(items, pathname) {
-  return items.find((item) => item.exact ? pathname === item.href : pathname.startsWith(item.href)) || items[0] || null;
+  const matches = items.filter((item) => item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`));
+  return matches.sort((left, right) => right.href.length - left.href.length)[0] || items[0] || null;
 }
 
 function createParentTab(item, index = 0) {
@@ -15,7 +16,9 @@ function createParentTab(item, index = 0) {
     label: item.label,
     icon: item.icon,
     exact: Boolean(item.exact),
-    closable: index !== 0,
+    noChildTabs: Boolean(item.noChildTabs),
+    pinned: Boolean(item.pinned || item.exact),
+    closable: item.closable !== false && !item.exact && !item.pinned,
   };
 }
 
@@ -24,14 +27,14 @@ function createListTab(parent) {
     id: `${parent.id}:list`,
     parentId: parent.id,
     type: "list",
-    label: "List",
+    label: "Daftar",
     closable: false,
     entity: null,
   };
 }
 
 function createDefaultChildren(parent, openCreate = false) {
-  if (parent.exact) return [];
+  if (parent.exact || parent.noChildTabs) return [];
   const list = createListTab(parent);
   if (!openCreate) return [list];
   return [
@@ -126,7 +129,7 @@ export function PanelTabsProvider({ children, items = [] }) {
   const closeParent = useCallback((parentId) => {
     const index = parentTabs.findIndex((tab) => tab.id === parentId);
     const target = parentTabs[index];
-    if (!target?.closable) return;
+    if (!target?.closable || target?.pinned) return;
     const nextTabs = parentTabs.filter((tab) => tab.id !== parentId);
     setParentTabs(nextTabs);
     setChildrenByParent((current) => {
@@ -171,6 +174,31 @@ export function PanelTabsProvider({ children, items = [] }) {
       label: options.label || "Data Baru",
       closable: true,
       entity: null,
+    };
+    setChildrenByParent((current) => {
+      const childTabs = current[activeParent.id] || [createListTab(activeParent)];
+      return {
+        ...current,
+        [activeParent.id]: childTabs.some((item) => item.id === id)
+          ? childTabs.map((item) => item.id === id ? { ...item, ...tab } : item)
+          : [...childTabs, tab],
+      };
+    });
+    setActiveChildByParent((current) => ({ ...current, [activeParent.id]: id }));
+    return id;
+  }, [activeParent]);
+
+  const openOperationTab = useCallback((type, options = {}) => {
+    if (!activeParent) return null;
+    const id = `${activeParent.id}:${type}:${options.id || "default"}`;
+    const tab = {
+      id,
+      parentId: activeParent.id,
+      type,
+      label: options.label || toTitleCase(type),
+      closable: true,
+      entity: options.entity || null,
+      payload: options.payload || null,
     };
     setChildrenByParent((current) => {
       const childTabs = current[activeParent.id] || [createListTab(activeParent)];
@@ -259,13 +287,14 @@ export function PanelTabsProvider({ children, items = [] }) {
     activateTab,
     openCreateTab,
     openEditTab,
+    openOperationTab,
     closeTab,
     closeActiveTab,
     openList,
     markListDirty,
     listRevision: Number(listRevisionByParent[activeParent?.id] || 0),
     navigate,
-  }), [activateParent, activateTab, activeParent, activeParentId, activeTab, activeTabId, closeActiveTab, closeParent, closeTab, items, listRevisionByParent, markListDirty, navigate, openCreateTab, openEditTab, openList, openParent, parentTabs, tabs]);
+  }), [activateParent, activateTab, activeParent, activeParentId, activeTab, activeTabId, closeActiveTab, closeParent, closeTab, items, listRevisionByParent, markListDirty, navigate, openCreateTab, openEditTab, openOperationTab, openList, openParent, parentTabs, tabs]);
 
   return <PanelTabsContext.Provider value={value}>{children}</PanelTabsContext.Provider>;
 }

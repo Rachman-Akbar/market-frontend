@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/shared/utils/utils";
 import { usePanelTabs } from "@/shared/layout/tabs";
@@ -9,76 +9,93 @@ export const PanelSidebar = memo(function PanelSidebar({
   title,
   sidebarClassName,
   activeClassName,
+  showHomeLink = true,
+  showMarketplaceLink = true,
 }) {
   const tabs = usePanelTabs();
-  const [hoveredHref, setHoveredHref] = useState("");
-  const visibleItems = items.filter((item) => !item.hiddenInSidebar);
+  const dashboard = items.find((item) => item.href === homeHref);
+  const groups = useMemo(() => {
+    const grouped = new Map();
+
+    items
+      .filter((item) => !item.hiddenInSidebar)
+      .forEach((item) => {
+        const groupName = item.group || "Menu";
+        if (!grouped.has(groupName)) grouped.set(groupName, []);
+        grouped.get(groupName).push(item);
+      });
+
+    return Array.from(grouped, ([name, groupItems]) => ({ name, items: groupItems }));
+  }, [items]);
 
   const openMenu = (event, item) => {
     if (!tabs) return;
     event.preventDefault();
-    tabs.openParent(item, { openCreate: !item.exact, resetToCreate: !item.exact });
+    const openCreate = !item.exact && !item.noChildTabs;
+    tabs.openParent(item, { openCreate, resetToCreate: openCreate });
   };
 
-  const dashboard = items.find((item) => item.href === homeHref);
+  const menuClassName = (active) => cn(
+    "flex min-h-10 w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-white/10 hover:text-white",
+    active && activeClassName,
+  );
 
   return (
-    <aside className={cn("hidden text-white lg:block", sidebarClassName)}>
-      <div className="sticky top-0 flex h-screen w-[64px] flex-col items-center py-2">
-        <Link
-          to={homeHref}
-          onClick={(event) => dashboard && openMenu(event, dashboard)}
-          className={cn(
-            "mb-3 flex h-11 w-11 items-center justify-center text-white transition-colors hover:bg-white/10",
-            tabs?.activeParentId === homeHref && activeClassName,
-          )}
-          aria-label="Dashboard"
-          title="Dashboard"
-        >
-          <span className="material-symbols-outlined text-[22px]">dashboard</span>
-        </Link>
+    <aside className={cn("hidden text-white lg:block", sidebarClassName)} aria-label={title}>
+      <div className="sticky top-0 flex h-screen w-[248px] flex-col overflow-hidden">
+        <div className="border-b border-white/10 px-4 py-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Navigasi</p>
+          <p className="mt-1 truncate text-sm font-extrabold text-white">{title}</p>
+        </div>
 
-        <nav className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1 py-1">
-          {visibleItems.map((item) => {
-            const active = tabs?.activeParentId === item.href;
-            const hovered = hoveredHref === item.href;
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
+          {showHomeLink && dashboard ? (
+            <Link
+              to={homeHref}
+              onClick={(event) => openMenu(event, dashboard)}
+              className={menuClassName(tabs?.activeParentId === homeHref)}
+              aria-current={tabs?.activeParentId === homeHref ? "page" : undefined}
+            >
+              <span className="material-symbols-outlined text-[20px]">dashboard</span>
+              <span>Dashboard</span>
+            </Link>
+          ) : null}
 
-            return (
-              <div key={item.href} className="relative flex w-full justify-center">
-                <Link
-                  to={item.href}
-                  onClick={(event) => openMenu(event, item)}
-                  onMouseEnter={() => setHoveredHref(item.href)}
-                  onMouseLeave={() => setHoveredHref("")}
-                  onFocus={() => setHoveredHref(item.href)}
-                  onBlur={() => setHoveredHref("")}
-                  className={cn(
-                    "flex h-11 w-11 items-center justify-center text-slate-300 transition-colors duration-150 hover:bg-white/10 hover:text-white",
-                    active && activeClassName,
-                  )}
-                  aria-label={item.label}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span className="material-symbols-outlined text-[21px]">{item.icon}</span>
-                </Link>
+          {groups.map((group) => (
+            <section key={group.name} aria-label={group.name}>
+              <p className="mb-1.5 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                {group.name}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = tabs?.activeParentId === item.href;
 
-                <div
-                  className={cn(
-                    "pointer-events-none absolute left-[52px] top-1/2 z-[80] -translate-y-1/2 whitespace-nowrap bg-slate-950 px-3 py-2 text-xs font-bold text-white opacity-0 transition-all duration-150",
-                    hovered && "translate-x-1 opacity-100",
-                  )}
-                  role="tooltip"
-                >
-                  {item.label}
-                </div>
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={(event) => openMenu(event, item)}
+                      className={menuClassName(active)}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </nav>
 
-        <Link to="/" className="mt-2 flex h-11 w-11 items-center justify-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white" aria-label="Kembali ke marketplace" title="Marketplace">
-          <span className="material-symbols-outlined text-[21px]">storefront</span>
-        </Link>
+        {showMarketplaceLink ? (
+          <div className="border-t border-white/10 p-3">
+            <Link to="/" className="flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-white/10 hover:text-white">
+              <span className="material-symbols-outlined text-[20px]">storefront</span>
+              <span>Kembali ke Marketplace</span>
+            </Link>
+          </div>
+        ) : null}
       </div>
     </aside>
   );

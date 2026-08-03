@@ -1,68 +1,49 @@
-import { useCallback, useMemo, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
-import { getProducts } from "@/features/catalog/product/services/productService";
+import { flattenProductPages, useInfiniteProducts } from "@/features/catalog/product/services/productService";
 import { useCatalogGroups } from "@/features/catalog/cataloggroup/services/catalogGroupService";
-
-const DEFAULT_LIMIT = 12;
-
-function getNextPage(meta) {
-  const current = Number(meta?.current_page ?? meta?.page ?? 1);
-  const last = Number(meta?.last_page ?? meta?.total_pages ?? current);
-
-  return current < last ? current + 1 : undefined;
-}
 
 export function ProductFeed() {
   const [activeTab, setActiveTab] = useState(0);
-
+  const loadMoreRef = useRef(null);
   const groupsQuery = useCatalogGroups({
     is_active: 1,
     include_categories: 0,
   });
-
   const groups = useMemo(
-    () => (groupsQuery.data?.data || []).slice(0, 6),
+    () => groupsQuery.data?.data || [],
     [groupsQuery.data],
   );
-
   const selectedGroup = activeTab > 0 ? groups[activeTab - 1] || null : null;
-
-  const selectedGroupKey = selectedGroup
-    ? String(selectedGroup.id ?? selectedGroup.slug)
-    : "all";
-
   const tabs = useMemo(
     () => ["For You", ...groups.map((group) => group.name)],
     [groups],
   );
-
-  const productsQuery = useInfiniteQuery({
-    queryKey: ["catalog", "product-feed", selectedGroupKey],
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      getProducts({
-        catalog_group_id: selectedGroup?.id,
-        catalog_group_slug: selectedGroup?.slug,
-        page: pageParam,
-        per_page: DEFAULT_LIMIT,
-      }),
-    getNextPageParam: (lastPage) => getNextPage(lastPage.meta),
-    staleTime: 60000,
+  const productsQuery = useInfiniteProducts({
+    per_page: 24,
+    catalog_group_id: selectedGroup?.id,
+    catalog_group_slug: selectedGroup?.slug,
   });
+  const products = useMemo(
+    () => flattenProductPages(productsQuery.data),
+    [productsQuery.data],
+  );
 
-  const products = useMemo(() => {
-    const rows =
-      productsQuery.data?.pages.flatMap((page) => page.data || []) || [];
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !productsQuery.hasNextPage) return undefined;
 
-    const unique = new Map();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || productsQuery.isFetchingNextPage) return;
+        productsQuery.fetchNextPage();
+      },
+      { rootMargin: "320px 0px" },
+    );
 
-    rows.forEach((item) => {
-      unique.set(String(item.id ?? item.slug), item);
-    });
-
-    return [...unique.values()];
-  }, [productsQuery.data]);
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [productsQuery.fetchNextPage, productsQuery.hasNextPage, productsQuery.isFetchingNextPage]);
 
   const handleTabClick = useCallback((index) => {
     setActiveTab((current) => (current === index ? current : index));
@@ -97,43 +78,27 @@ export function ProductFeed() {
         </div>
       ) : null}
 
-      {!productsQuery.isLoading &&
-      !productsQuery.error &&
-      !products.length ? (
-        <div className="py-8 text-sm text-gray-500">
-          Produk belum tersedia.
-        </div>
+      {!productsQuery.isLoading && !productsQuery.error && !products.length ? (
+        <div className="py-8 text-sm text-gray-500">Produk belum tersedia.</div>
       ) : null}
 
-      {!productsQuery.isLoading &&
-      !productsQuery.error &&
-      products.length ? (
+      {!productsQuery.isLoading && !productsQuery.error && products.length ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
           {products.map((product) => (
-            <ProductCard
-              key={product.id || product.slug}
-              {...product}
-            />
+            <ProductCard key={product.id || product.slug} {...product} />
           ))}
         </div>
       ) : null}
 
-      {!productsQuery.isLoading &&
-      !productsQuery.error &&
-      productsQuery.hasNextPage ? (
-        <div className="flex justify-center py-4">
-          <button
-            type="button"
-            onClick={() => productsQuery.fetchNextPage()}
-            disabled={productsQuery.isFetchingNextPage}
-            className="rounded-lg border border-[#bccbb4] px-12 py-2 font-bold text-[#1b1c1c] transition-all hover:bg-[#f6f3f2] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {productsQuery.isFetchingNextPage
-              ? "Memuat..."
-              : "Lihat Selengkapnya"}
-          </button>
-        </div>
-      ) : null}
+      <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-2 text-xs font-semibold text-slate-400">
+        {productsQuery.isFetchingNextPage
+          ? "Memuat produk berikutnya..."
+          : productsQuery.hasNextPage
+            ? "Geser ke bawah untuk memuat produk berikutnya"
+            : products.length
+              ? "Semua produk sudah ditampilkan"
+              : ""}
+      </div>
     </section>
   );
 }

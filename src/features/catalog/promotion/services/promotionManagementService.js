@@ -1,10 +1,19 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { assetUrl } from "@/features/seller/store/services/sellerStoreService";
 import { toAppPath } from "@/core/utils/url";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 
+
+function booleanValue(value, fallback = true) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  return ["1", "true", "yes", "on", "active", "approved"].includes(String(value).trim().toLowerCase());
+}
 export const promotionManagementKeys = {
   public: ["catalog", "promotions", "public"],
   admin: ["admin", "promotions"],
@@ -32,8 +41,8 @@ export function normalizePromotion(row = {}) {
     targetId,
     targetUrl: row.target_url || "",
     sortOrder: Number(row.sort_order || 0),
-    isActive: Boolean(row.is_active ?? true),
-    approvalStatus: row.approval_status || "approved",
+    isActive: booleanValue(row.is_active ?? row.isActive, true),
+    approvalStatus: String(row.approval_status || row.approvalStatus || "approved").trim().toLowerCase(),
     rejectionReason: row.rejection_reason || "",
     submittedAt: row.submitted_at || null,
     approvedAt: row.approved_at || null,
@@ -103,14 +112,13 @@ export function usePublicPromotions() {
   return useQuery({
     queryKey: promotionManagementKeys.public,
     queryFn: getPublicPromotions,
-    staleTime: 5 * 60 * 1000,
+    ...publicQueryOptions,
     retry: 1,
-    refetchOnWindowFocus: false,
   });
 }
 
 export function useAdminPromotions(params = {}) {
-  return useQuery({ queryKey: [...promotionManagementKeys.admin, params], queryFn: () => getAdminPromotions(params) });
+  return useQuery({ queryKey: [...promotionManagementKeys.admin, params], queryFn: () => getAdminPromotions(params), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
 }
 
 export function useSellerPromotions(params = {}) {
@@ -125,19 +133,35 @@ export function useSellerPromotions(params = {}) {
       return storeId ? rows.filter((row) => row.storeId === storeId) : [];
     },
     enabled: Boolean(activeRole === "seller" && storeId),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }
 
-function usePromotionMutation(mutationFn) {
-  return useMutation({ mutationFn });
+function refreshPromotionQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: promotionManagementKeys.public });
+  queryClient.invalidateQueries({ queryKey: promotionManagementKeys.admin });
+  queryClient.invalidateQueries({ queryKey: promotionManagementKeys.seller });
+  queryClient.invalidateQueries({ queryKey: ["storefront"] });
 }
 
-export function useCreateAdminPromotion() { return usePromotionMutation(createAdminPromotion); }
-export function useUpdateAdminPromotion() { return usePromotionMutation(({ id, values }) => updateAdminPromotion(id, values)); }
-export function useDeleteAdminPromotion() { return usePromotionMutation(deleteAdminPromotion); }
-export function useCreateSellerPromotion() { return usePromotionMutation(createSellerPromotion); }
-export function useUpdateSellerPromotion() { return usePromotionMutation(({ id, values }) => updateSellerPromotion(id, values)); }
-export function useDeleteSellerPromotion() { return usePromotionMutation(deleteSellerPromotion); }
-export function useApprovePromotion() { return usePromotionMutation(approvePromotion); }
-export function useRejectPromotion() { return usePromotionMutation(rejectPromotion); }
+function usePromotionMutation(mutationFn, queryKey, optimistic = false) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onMutate: optimistic ? ({ id, values }) => beginOptimisticEntityUpdate(queryClient, queryKey, id, (row) => mergeOptimisticValues(row, values)) : undefined,
+    onError: optimistic ? (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context) : undefined,
+    onSettled: () => refreshPromotionQueries(queryClient),
+  });
+}
+
+export function useCreateAdminPromotion() { return usePromotionMutation(createAdminPromotion, promotionManagementKeys.admin); }
+export function useUpdateAdminPromotion() { return usePromotionMutation(({ id, values }) => updateAdminPromotion(id, values), promotionManagementKeys.admin, true); }
+export function useDeleteAdminPromotion() { return usePromotionMutation(deleteAdminPromotion, promotionManagementKeys.admin); }
+export function useCreateSellerPromotion() { return usePromotionMutation(createSellerPromotion, promotionManagementKeys.seller); }
+export function useUpdateSellerPromotion() { return usePromotionMutation(({ id, values }) => updateSellerPromotion(id, values), promotionManagementKeys.seller, true); }
+export function useDeleteSellerPromotion() { return usePromotionMutation(deleteSellerPromotion, promotionManagementKeys.seller); }
+export function useApprovePromotion() { return usePromotionMutation(approvePromotion, promotionManagementKeys.admin); }
+export function useRejectPromotion() { return usePromotionMutation(rejectPromotion, promotionManagementKeys.admin); }
 export function getPromotionError(error) { return getApiMessage(error, "Promosi gagal diproses."); }

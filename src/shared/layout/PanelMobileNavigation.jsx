@@ -19,11 +19,12 @@ export const PanelMobileNavigation = memo(function PanelMobileNavigation({ items
               onClick={(event) => {
                 if (!tabs) return;
                 event.preventDefault();
-                tabs.openParent(item, { openCreate: !item.exact, resetToCreate: !item.exact });
+                const openCreate = !item.exact && !item.noChildTabs;
+                tabs.openParent(item, { openCreate, resetToCreate: openCreate });
               }}
               className={cn("flex h-11 min-w-11 shrink-0 items-center justify-center text-slate-500 transition-colors", active ? activeClassName : "hover:bg-slate-100 hover:text-slate-800")}
               aria-label={item.label}
-              title={item.label}
+              title={item.group ? `${item.group} · ${item.label}` : item.label}
             >
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
             </Link>

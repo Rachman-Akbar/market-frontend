@@ -7,7 +7,7 @@ import { getCatalogGroupError, useCreateAdminCatalogGroup, useUpdateAdminCatalog
 import { toTitleCase } from "@/shared/utils/textFormatter";
 
 function initialValues(entity) {
-  return { name: toTitleCase(entity?.name || ""), slug: entity?.slug || "", isActive: entity?.isActive ?? true };
+  return { name: entity?.name || "", slug: entity?.slug || "", isActive: entity?.isActive ?? true };
 }
 
 export function CatalogGroupFormDialog({ open, entity, onClose, onSaved, onDelete }) {

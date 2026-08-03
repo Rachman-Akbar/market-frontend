@@ -16,7 +16,10 @@ export function useManagedStores(params = {}, options = {}) {
   return useQuery({
     queryKey: storeManagementKeys.list(params),
     queryFn: () => getManagedStores(params),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     ...options,
   });
 }

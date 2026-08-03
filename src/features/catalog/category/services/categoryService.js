@@ -1,13 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { CATALOG_CACHE_TTL } from "@/features/catalog/domain/cache/catalogCacheConfig";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { catalogRequest, unwrapCollection, unwrapData } from "@/features/catalog/catalogApi";
 import { getCatalogGroups } from "@/features/catalog/cataloggroup/services/catalogGroupService";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
-
-let navigationCache = null;
-let navigationCacheExpiresAt = 0;
-let navigationPromise = null;
-let navigationCacheVersion = 0;
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 
 function slugify(value = "") {
   return String(value)
@@ -50,16 +45,7 @@ function getCategoryChildren(category = {}) {
   );
 }
 
-function navigationIsFresh() {
-  return navigationCache && navigationCacheExpiresAt > Date.now();
-}
-
-export function invalidateCategoryNavigationCache() {
-  navigationCache = null;
-  navigationCacheExpiresAt = 0;
-  navigationPromise = null;
-  navigationCacheVersion += 1;
-}
+export function invalidateCategoryNavigationCache() {}
 
 export function extractCategories(value) {
   if (!value) return [];
@@ -271,10 +257,7 @@ export function getCategoryHref(category = {}) {
 }
 
 export async function getCategories() {
-  const payload = await catalogRequest("/categories", {
-    cacheTtl: CATALOG_CACHE_TTL.long,
-    persistCache: true,
-  });
+  const payload = await catalogRequest("/categories");
   const rawItems = extractCategories(payload);
 
   return {
@@ -284,10 +267,7 @@ export async function getCategories() {
 }
 
 export async function getCategoriesMenu() {
-  const payload = await catalogRequest("/categories/menu", {
-    cacheTtl: CATALOG_CACHE_TTL.long,
-    persistCache: true,
-  });
+  const payload = await catalogRequest("/categories/menu");
   const rawItems = extractCategories(payload);
 
   return {
@@ -297,10 +277,7 @@ export async function getCategoriesMenu() {
 }
 
 export async function getCategoriesByCatalogGroup(groupId) {
-  const payload = await catalogRequest(`/catalog-groups/${groupId}/categories`, {
-    cacheTtl: CATALOG_CACHE_TTL.long,
-    persistCache: true,
-  });
+  const payload = await catalogRequest(`/catalog-groups/${groupId}/categories`);
   const data = unwrapData(payload);
   const rawItems = extractCategories(data);
 
@@ -313,9 +290,7 @@ export async function getCategoriesByCatalogGroup(groupId) {
 }
 
 export async function getCategoryById(id) {
-  const payload = await catalogRequest(`/categories/${id}`, {
-    cacheTtl: CATALOG_CACHE_TTL.medium,
-  });
+  const payload = await catalogRequest(`/categories/${id}`);
   const data = unwrapData(payload);
 
   return normalizeCategory(data);
@@ -323,122 +298,131 @@ export async function getCategoryById(id) {
 
 export async function getCategoryByPath(path) {
   const encodedPath = encodeCategoryPath(path);
-  const payload = await catalogRequest(`/categories/path/${encodedPath}`, {
-    cacheTtl: CATALOG_CACHE_TTL.medium,
-  });
+  const payload = await catalogRequest(`/categories/path/${encodedPath}`);
   const data = unwrapData(payload);
 
   return normalizeCategory(data);
 }
 
-export async function getProductsByCategoryPath(path, params = {}) {
+function getNextProductCursor(payload, meta) {
+  const direct = meta?.next_cursor || payload?.meta?.next_cursor || payload?.data?.meta?.next_cursor;
+  if (direct) return String(direct);
+
+  const nextUrl = payload?.links?.next || payload?.data?.links?.next || meta?.next_page_url;
+  if (!nextUrl) return undefined;
+
+  try {
+    const origin = globalThis.location?.origin || "http://localhost";
+    return new URL(nextUrl, origin).searchParams.get("cursor") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function getProductsByCategoryPath(path, params = {}, options = {}) {
   const encodedPath = encodeCategoryPath(path);
   const payload = await catalogRequest(`/categories/path/${encodedPath}/products`, {
     params: {
       include_descendants: true,
-      per_page: params.per_page ?? params.limit ?? 20,
       include: "summary",
+      per_page: 24,
       ...params,
     },
-    cacheTtl: CATALOG_CACHE_TTL.short,
+    signal: options.signal,
   });
   const { items, meta } = unwrapCollection(payload);
 
   return {
     data: items,
     meta,
+    nextCursor: getNextProductCursor(payload, meta),
     raw: payload,
   };
 }
 
-export async function getCategoryNavigation({ forceRefresh = false } = {}) {
-  if (!forceRefresh && navigationIsFresh()) return navigationCache;
-  if (!forceRefresh && navigationPromise) return navigationPromise;
-
-  const requestVersion = navigationCacheVersion;
-
-  navigationPromise = getCatalogGroups({ is_active: 1, include_categories: 1 })
-    .then(async (groupsResult) => {
-      const groups = Array.isArray(groupsResult?.data)
-        ? groupsResult.data
-            .filter((group) => group.is_active !== false)
-            .sort((a, b) => {
-              if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-              return a.name.localeCompare(b.name);
-            })
-            .map((group) => ({
-              ...group,
-              key: String(group.key ?? group.id ?? group.slug),
-            }))
-        : [];
-
-      if (!groups.length) {
-        const menuResult = await getCategoriesMenu();
-
-        return {
-          groups: [
-            {
-              id: "all",
-              key: "all",
-              name: "Kategori",
-              slug: "kategori",
-            },
-          ],
-          categoriesByGroup: {
-            all: menuResult.data,
-          },
-        };
-      }
-
-      let categoriesByGroup = Object.fromEntries(
-        groups.map((group) => {
-          const embeddedCategories = getEmbeddedGroupCategories(group);
-
-          return [
-            group.key,
-            buildCategoryTree(embeddedCategories, {
-              catalog_group_id: group.id,
-            }),
-          ];
-        })
-      );
-
-      if (isEmptyNavigation(categoriesByGroup)) {
-        try {
-          const menuResult = await getCategoriesMenu();
-          const groupedMenu = splitMenuByGroup(extractCategories(menuResult.raw), groups);
-
-          categoriesByGroup = isEmptyNavigation(groupedMenu)
-            ? {
-                ...categoriesByGroup,
-                [groups[0].key]: menuResult.data,
-              }
-            : groupedMenu;
-        } catch {
-          categoriesByGroup = Object.fromEntries(groups.map((group) => [group.key, []]));
-        }
-      }
-
-      return {
-        groups,
-        categoriesByGroup,
-      };
-    })
-    .then((result) => {
-      if (requestVersion === navigationCacheVersion) {
-        navigationCache = result;
-        navigationCacheExpiresAt = Date.now() + CATALOG_CACHE_TTL.long;
-      }
-
-      return result;
-    })
-    .finally(() => {
-      navigationPromise = null;
-    });
-
-  return navigationPromise;
+export function useInfiniteProductsByCategoryPath(path, params = {}, options = {}) {
+  return useInfiniteQuery({
+    queryKey: ["catalog", "category", "products", "infinite", path, params],
+    queryFn: ({ pageParam, signal }) => getProductsByCategoryPath(path, {
+      ...params,
+      cursor: pageParam || undefined,
+    }, { signal }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor || undefined,
+    enabled: Boolean(path),
+    ...publicQueryOptions,
+    refetchInterval: false,
+    ...options,
+  });
 }
 
+export async function getCategoryNavigation() {
+  const groupsResult = await getCatalogGroups({ is_active: 1, include_categories: 1 });
+  const groups = Array.isArray(groupsResult?.data)
+    ? groupsResult.data
+        .filter((group) => group.is_active !== false)
+        .sort((a, b) => {
+          if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+          return a.name.localeCompare(b.name);
+        })
+        .map((group) => ({
+          ...group,
+          key: String(group.key ?? group.id ?? group.slug),
+        }))
+    : [];
+
+  if (!groups.length) {
+    const menuResult = await getCategoriesMenu();
+
+    return {
+      groups: [
+        {
+          id: "all",
+          key: "all",
+          name: "Kategori",
+          slug: "kategori",
+        },
+      ],
+      categoriesByGroup: {
+        all: menuResult.data,
+      },
+    };
+  }
+
+  let categoriesByGroup = Object.fromEntries(
+    groups.map((group) => {
+      const embeddedCategories = getEmbeddedGroupCategories(group);
+
+      return [
+        group.key,
+        buildCategoryTree(embeddedCategories, {
+          catalog_group_id: group.id,
+        }),
+      ];
+    }),
+  );
+
+  if (isEmptyNavigation(categoriesByGroup)) {
+    try {
+      const menuResult = await getCategoriesMenu();
+      const groupedMenu = splitMenuByGroup(extractCategories(menuResult.raw), groups);
+
+      categoriesByGroup = isEmptyNavigation(groupedMenu)
+        ? {
+            ...categoriesByGroup,
+            [groups[0].key]: menuResult.data,
+          }
+        : groupedMenu;
+    } catch {
+      categoriesByGroup = Object.fromEntries(groups.map((group) => [group.key, []]));
+    }
+  }
+
+  return {
+    groups,
+    categoriesByGroup,
+  };
+}
 
 export const categoryKeys = {
   menu: ["catalog", "categories", "menu"],
@@ -450,7 +434,7 @@ export function useCategoriesMenu(options = {}) {
   return useQuery({
     queryKey: categoryKeys.menu,
     queryFn: getCategoriesMenu,
-    staleTime: 300000,
+    ...publicQueryOptions,
     ...options,
   });
 }
@@ -459,7 +443,7 @@ export function useCategoryNavigation(options = {}) {
   return useQuery({
     queryKey: categoryKeys.navigation,
     queryFn: () => getCategoryNavigation(),
-    staleTime: 300000,
+    ...publicQueryOptions,
     ...options,
   });
 }
@@ -469,7 +453,7 @@ export function useCategoryByPath(path, options = {}) {
     queryKey: categoryKeys.path(path),
     queryFn: () => getCategoryByPath(path),
     enabled: Boolean(path),
-    staleTime: 300000,
+    ...publicQueryOptions,
     ...options,
   });
 }

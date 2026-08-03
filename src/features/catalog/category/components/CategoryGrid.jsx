@@ -12,7 +12,7 @@ export function CategoryGrid() {
   const categoriesByGroup = navigationQuery.data?.categoriesByGroup || {};
   const categories = useMemo(
     () =>
-      groups.flatMap((group) => categoriesByGroup[group.key] || []).slice(0, 8),
+      groups.flatMap((group) => categoriesByGroup[group.key] || []),
     [categoriesByGroup, groups],
   );
 

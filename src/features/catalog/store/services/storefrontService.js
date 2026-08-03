@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
+import { toBoolean } from "@/core/utils/boolean";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { normalizeProduct } from "@/features/catalog/product/services/productService";
 import { assetUrl } from "@/features/seller/store/services/sellerStoreService";
@@ -26,8 +28,8 @@ export function normalizeStorefront(row = {}) {
     city: row.city || "",
     province: row.province || "",
     address: row.address || "",
-    status: row.status || "pending",
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    status: String(row.status || "pending").trim().toLowerCase(),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
     detail: {
       openDays: detail.open_days || detail.openDays || "",
       openTime: detail.open_time || detail.openTime || "",
@@ -66,9 +68,29 @@ export async function getStoreById(id) {
   return normalizeStorefront(unwrapApiData(response.data));
 }
 
-export async function getStoreProducts(storeId, params = {}) {
+function getStoreProductCursor(payload) {
+  const direct = payload?.meta?.next_cursor || payload?.data?.meta?.next_cursor;
+  if (direct) return String(direct);
+
+  const nextUrl = payload?.links?.next || payload?.data?.links?.next;
+  if (!nextUrl) return undefined;
+
+  try {
+    const origin = globalThis.location?.origin || "http://localhost";
+    return new URL(nextUrl, origin).searchParams.get("cursor") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function getStoreProducts(storeId, params = {}, options = {}) {
   const response = await apiClient.get("/api/v1/catalog/products", {
-    params: { ...params, store_id: Number(storeId) },
+    params: {
+      per_page: 24,
+      ...params,
+      store_id: Number(storeId),
+    },
+    signal: options.signal,
   });
   const rows = unwrapCollection(response.data);
   const products = rows
@@ -77,11 +99,8 @@ export async function getStoreProducts(storeId, params = {}) {
 
   return {
     rows: products,
-    meta: {
-      current_page: 1,
-      last_page: 1,
-      total: products.length,
-    },
+    meta: response.data?.meta || null,
+    nextCursor: getStoreProductCursor(response.data),
   };
 }
 
@@ -94,25 +113,36 @@ export function useStores(params = {}, options = {}) {
   return useQuery({
     queryKey: storefrontKeys.stores(params),
     queryFn: () => getStores(params),
-    staleTime: 2 * 60 * 1000,
+    ...publicQueryOptions,
     ...options,
   });
 }
 
 export function useStoreBySlug(slug, options = {}) {
-  return useQuery({ queryKey: storefrontKeys.detail(slug), queryFn: () => getStoreBySlug(slug), enabled: Boolean(slug), staleTime: 2 * 60 * 1000, ...options });
+  return useQuery({ queryKey: storefrontKeys.detail(slug), queryFn: () => getStoreBySlug(slug), enabled: Boolean(slug), ...publicQueryOptions, ...options });
 }
 
 export function useStoreById(id, options = {}) {
-  return useQuery({ queryKey: storefrontKeys.detailById(id), queryFn: () => getStoreById(id), enabled: Boolean(id), staleTime: 2 * 60 * 1000, ...options });
+  return useQuery({ queryKey: storefrontKeys.detailById(id), queryFn: () => getStoreById(id), enabled: Boolean(id), ...publicQueryOptions, ...options });
 }
 
 export function useStoreProducts(storeId, params = {}) {
-  return useQuery({ queryKey: storefrontKeys.products(storeId, params), queryFn: () => getStoreProducts(storeId, params), enabled: Boolean(storeId), staleTime: 60 * 1000 });
+  return useInfiniteQuery({
+    queryKey: storefrontKeys.products(storeId, params),
+    queryFn: ({ pageParam, signal }) => getStoreProducts(storeId, {
+      ...params,
+      cursor: pageParam || undefined,
+    }, { signal }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor || undefined,
+    enabled: Boolean(storeId),
+    ...publicQueryOptions,
+    refetchInterval: false,
+  });
 }
 
 export function useStoreBanners(storeId) {
-  return useQuery({ queryKey: storefrontKeys.banners(storeId), queryFn: () => getStoreBanners(storeId), enabled: Boolean(storeId), staleTime: 2 * 60 * 1000 });
+  return useQuery({ queryKey: storefrontKeys.banners(storeId), queryFn: () => getStoreBanners(storeId), enabled: Boolean(storeId), ...publicQueryOptions });
 }
 
 export function getStorefrontError(error) {

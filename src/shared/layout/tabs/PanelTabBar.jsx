@@ -79,6 +79,7 @@ function ScrollableTabs({ tabs, activeId, onActivate, onClose, variant }) {
           const active = tab.id === activeId;
           const parent = variant === "parent";
           const list = !parent && tab.type === "list";
+          const operationIcon = tab.type === "import" ? "upload_file" : tab.type === "export" ? "download" : tab.type === "bulk-delete" ? "delete_sweep" : tab.type === "create" ? "add" : "edit_square";
           return (
             <button
               key={tab.id}
@@ -86,7 +87,8 @@ function ScrollableTabs({ tabs, activeId, onActivate, onClose, variant }) {
               type="button"
               onClick={() => onActivate(tab.id)}
               className={cn(
-                "group flex min-w-[100px] max-w-[220px] flex-[1_1_160px] items-center gap-2 overflow-hidden px-3 text-xs font-extrabold transition-colors",
+                "group flex max-w-[220px] items-center gap-2 overflow-hidden px-3 text-xs font-extrabold transition-colors",
+                list ? "h-9 min-w-11 flex-none justify-center px-2" : "min-w-[100px] flex-[1_1_160px]",
                 parent && "h-9 rounded-t-md",
                 parent && active && "bg-rose-500 text-white",
                 parent && !active && "bg-slate-300 text-slate-700 hover:bg-slate-400/70",
@@ -98,8 +100,8 @@ function ScrollableTabs({ tabs, activeId, onActivate, onClose, variant }) {
               )}
               title={tab.label}
             >
-              <span className="material-symbols-outlined shrink-0 text-[16px]">{parent ? tab.icon : list ? "list_alt" : tab.type === "create" ? "add" : "edit_square"}</span>
-              <span className="min-w-0 flex-1 truncate text-left">{tab.label}</span>
+              <span className="material-symbols-outlined shrink-0 text-[16px]">{parent ? tab.icon : list ? "list_alt" : operationIcon}</span>
+              {!list ? <span className="min-w-0 flex-1 truncate text-left">{tab.label}</span> : null}
               {tab.closable ? (
                 <span
                   role="button"
@@ -134,9 +136,6 @@ export const PanelTabBar = memo(function PanelTabBar() {
       </div>
       {context.tabs.length ? (
         <div className="flex min-w-0 items-center gap-1 bg-slate-50 px-1 py-1.5">
-          <div className="flex h-9 w-11 shrink-0 items-center justify-center bg-emerald-600 text-white" aria-hidden="true">
-            <span className="material-symbols-outlined text-[20px]">menu</span>
-          </div>
           <ScrollableTabs tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} variant="child" />
           <TabDropdown tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} label="Semua halaman data" accent="child" />
         </div>

@@ -6,6 +6,7 @@ import {
 } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toBoolean } from "@/core/utils/boolean";
 import {
   addressKeys,
   createAddress,
@@ -35,7 +36,7 @@ export function normalizeStore(row = {}) {
     province: row.province || "",
     address: row.address || "",
     status: row.status || "pending",
-    isActive: Boolean(row.is_active ?? row.isActive),
+    isActive: toBoolean(row.is_active ?? row.isActive, false),
     logo: resolveMediaUrl(row.logo || ""),
     bannerUrl: resolveMediaUrl(row.banner_url || row.bannerUrl || ""),
     createdAt: row.created_at || row.createdAt || null,

@@ -1,5 +1,8 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
+import { publicQueryOptions } from "@/core/api/publicQueryOptions";
+import { toBoolean } from "@/core/utils/boolean";
+import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminIdentityKeys = {
   users: ["admin", "identity", "users"],
@@ -11,7 +14,7 @@ function normalizeRoleReference(row = {}) {
   return {
     id: Number(row.id || 0),
     name: row.name || "",
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
   };
 }
 
@@ -21,8 +24,8 @@ export function normalizeUser(row = {}) {
     name: row.name || "",
     email: row.email || "",
     avatar: row.avatar || "",
-    isEmailVerified: Boolean(row.is_email_verified ?? row.isEmailVerified),
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isEmailVerified: toBoolean(row.is_email_verified ?? row.isEmailVerified, false),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
     bannedAt: row.banned_at || row.bannedAt || "",
     roles: (row.roles || []).map(normalizeRoleReference),
     createdAt: row.created_at || row.createdAt || null,
@@ -36,11 +39,11 @@ export function normalizeRole(row = {}) {
     id: Number(row.id || 0),
     name: row.name || "",
     description: row.description || "",
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
     permissions: (row.permissions || []).map((permission) => ({
       id: Number(permission.id || 0),
       name: permission.name || "",
-      isActive: Boolean(permission.is_active ?? permission.isActive ?? true),
+      isActive: toBoolean(permission.is_active ?? permission.isActive, true),
     })),
     createdAt: row.created_at || row.createdAt || null,
     updatedAt: row.updated_at || row.updatedAt || null,
@@ -53,7 +56,7 @@ function normalizePermission(row = {}) {
     id: Number(row.id || 0),
     name: row.name || "",
     description: row.description || "",
-    isActive: Boolean(row.is_active ?? row.isActive ?? true),
+    isActive: toBoolean(row.is_active ?? row.isActive, true),
   };
 }
 
@@ -131,40 +134,83 @@ export async function getAdminPermissions() {
   return unwrapCollection(response.data).map(normalizePermission);
 }
 
+function refreshIdentityQueries(queryClient) {
+  queryClient.invalidateQueries({ queryKey: ["admin", "identity"] });
+  queryClient.invalidateQueries({ queryKey: ["auth"] });
+}
+
 export function useAdminUsers() {
-  return useQuery({ queryKey: adminIdentityKeys.users, queryFn: getAdminUsers });
+  return useQuery({ queryKey: adminIdentityKeys.users, queryFn: getAdminUsers, ...publicQueryOptions });
 }
 
 export function useAdminRoles() {
-  return useQuery({ queryKey: adminIdentityKeys.roles, queryFn: getAdminRoles, staleTime: 5 * 60 * 1000 });
+  return useQuery({ queryKey: adminIdentityKeys.roles, queryFn: getAdminRoles, ...publicQueryOptions });
 }
 
 export function useAdminPermissions() {
-  return useQuery({ queryKey: adminIdentityKeys.permissions, queryFn: getAdminPermissions, staleTime: 5 * 60 * 1000 });
+  return useQuery({ queryKey: adminIdentityKeys.permissions, queryFn: getAdminPermissions, ...publicQueryOptions });
 }
 
 export function useCreateAdminUser() {
-  return useMutation({ mutationFn: createAdminUser });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminUser,
+    onSettled: () => refreshIdentityQueries(queryClient),
+  });
 }
 
 export function useUpdateAdminUser() {
-  return useMutation({ mutationFn: ({ id, values }) => updateAdminUser(id, values) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminUser(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      adminIdentityKeys.users,
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshIdentityQueries(queryClient),
+  });
 }
 
 export function useDeleteAdminUser() {
-  return useMutation({ mutationFn: deleteAdminUser });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminUser,
+    onSettled: () => refreshIdentityQueries(queryClient),
+  });
 }
 
 export function useCreateAdminRole() {
-  return useMutation({ mutationFn: createAdminRole });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminRole,
+    onSettled: () => refreshIdentityQueries(queryClient),
+  });
 }
 
 export function useUpdateAdminRole() {
-  return useMutation({ mutationFn: ({ id, values }) => updateAdminRole(id, values) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }) => updateAdminRole(id, values),
+    onMutate: ({ id, values }) => beginOptimisticEntityUpdate(
+      queryClient,
+      adminIdentityKeys.roles,
+      id,
+      (row) => mergeOptimisticValues(row, values),
+    ),
+    onError: (_error, _variables, context) => rollbackOptimisticEntityUpdate(queryClient, context),
+    onSettled: () => refreshIdentityQueries(queryClient),
+  });
 }
 
 export function useDeleteAdminRole() {
-  return useMutation({ mutationFn: deleteAdminRole });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminRole,
+    onSettled: () => refreshIdentityQueries(queryClient),
+  });
 }
 
 export function getAdminIdentityError(error) {

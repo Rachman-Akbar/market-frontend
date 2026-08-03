@@ -17,6 +17,9 @@ import {
   useUpdateSellerPromotion,
 } from "@/features/catalog/promotion/services/promotionManagementService";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { getRelationQuickCreateError, useQuickCreateCategory } from "@/shared/services/relationQuickCreateService";
+import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
 
 function flattenCategories(rows = [], depth = 0, result = []) {
   rows.forEach((row) => {
@@ -31,15 +34,15 @@ async function getTargetCategories() {
   return flattenCategories(result.data || []);
 }
 
-async function getPublicProducts() {
-  const response = await apiClient.get("/api/v1/catalog/products", { params: { per_page: 100 } });
+async function getPublicProducts(query = "") {
+  const response = await apiClient.get("/api/v1/catalog/products", { params: { per_page: 50, ...(query.trim() ? { q: query.trim() } : {}) } });
   return unwrapCollection(response.data).map((row) => ({ id: Number(row.id), name: row.name || `Produk ${row.id}` }));
 }
 
 function initialValues(entity) {
   return {
     storeId: entity?.storeId || "",
-    name: toTitleCase(entity?.name || ""),
+    name: entity?.name || "",
     imageUrl: entity?.imageUrl || "",
     mobileImageUrl: entity?.mobileImageUrl || "",
     clickAction: entity?.clickAction || "none",
@@ -55,6 +58,9 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
   const isSeller = portal === "seller";
+  const notifications = useNotificationCenter();
+  const quickCreateCategoryMutation = useQuickCreateCategory();
+  const openRelationCreateTab = useRelationCreateTab();
   const categoriesQuery = useQuery({ queryKey: ["promotion", "target-categories"], queryFn: getTargetCategories, enabled: open, staleTime: 5 * 60 * 1000 });
   const productsQuery = useQuery({
     queryKey: ["promotion", portal, "target-products"],
@@ -93,6 +99,36 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
     setErrors((current) => ({ ...current, [field]: "" }));
   };
 
+  const quickCreateCategory = async (name) => {
+    try {
+      const created = await quickCreateCategoryMutation.mutateAsync({ name, catalogGroupName: "Lainnya" });
+      notifications.push({ type: "success", title: "Category siap digunakan", message: `${created.name} berhasil dibuat dan langsung dipilih sebagai target.` });
+      return { value: created.id, label: toTitleCase(created.name) };
+    } catch (error) {
+      notifications.push({ type: "error", title: "Category gagal dibuat", message: getRelationQuickCreateError(error) });
+      throw error;
+    }
+  };
+
+  const openProductCreate = async (name) => {
+    const normalizedName = name.trim().toLowerCase();
+    const candidates = isSeller
+      ? (await getSellerProducts({ q: name, per_page: 50 })).rows
+      : await getPublicProducts(name);
+    const exact = candidates.find((product) => String(product.name || "").trim().toLowerCase() === normalizedName);
+
+    if (exact) {
+      notifications.push({ type: "info", title: "Product sudah tersedia", message: `${exact.name} ditemukan dari pencarian backend dan langsung dipilih.` });
+      return { value: exact.id, label: toTitleCase(exact.name) };
+    }
+
+    return openRelationCreateTab({
+      href: isSeller ? "/seller/products" : "/admin/products",
+      relationLabel: "Product",
+      searchName: name,
+    });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     const rules = {
@@ -126,8 +162,8 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
           <FormField label="Aksi ketika diklik">
             <SearchableSelect value={values.clickAction} onChange={(nextValue) => setField("clickAction", nextValue)} options={[{ value: "none", label: "Tanpa aksi" }, { value: "product", label: "Buka produk" }, { value: "category", label: "Buka kategori" }, { value: "url", label: "Buka URL" }]} clearable={false} />
           </FormField>
-          {values.clickAction === "product" ? <FormField label="Produk target" error={errors.targetId} required><SearchableSelect value={values.targetId} onChange={(nextValue) => setField("targetId", nextValue)} options={(productsQuery.data || []).map((product) => ({ value: product.id, label: toTitleCase(product.name) }))} placeholder="Pilih produk" searchPlaceholder="Cari produk" /></FormField> : null}
-          {values.clickAction === "category" ? <FormField label="Kategori target" error={errors.targetId} required><SearchableSelect value={values.targetId} onChange={(nextValue) => setField("targetId", nextValue)} options={(categoriesQuery.data || []).map((category) => ({ value: category.id, label: toTitleCase(category.name) }))} placeholder="Pilih kategori" searchPlaceholder="Cari kategori" /></FormField> : null}
+          {values.clickAction === "product" ? <FormField label="Produk target" error={errors.targetId} required><SearchableSelect value={values.targetId} onChange={(nextValue) => setField("targetId", nextValue)} options={(productsQuery.data || []).map((product) => ({ value: product.id, label: product.name }))} placeholder="Pilih produk" searchPlaceholder="Cari produk" onCreate={openProductCreate} createLabel={(name) => `Data tidak ditemukan, buka Data Baru Product untuk “${name}”`} /></FormField> : null}
+          {values.clickAction === "category" ? <FormField label="Kategori target" error={errors.targetId} required><SearchableSelect value={values.targetId} onChange={(nextValue) => setField("targetId", nextValue)} options={(categoriesQuery.data || []).map((category) => ({ value: category.id, label: toTitleCase(category.name) }))} placeholder="Pilih kategori" searchPlaceholder="Cari kategori" onCreate={quickCreateCategory} creating={quickCreateCategoryMutation.isPending} createLabel={(name) => `Data tidak ditemukan, tambahkan “${name}” sebagai Category baru`} /></FormField> : null}
           {values.clickAction === "url" ? <FormField label="URL target" error={errors.targetUrl} required><input value={values.targetUrl} onChange={(event) => setField("targetUrl", event.target.value)} className={inputClassName} placeholder="/search?q=promo atau https://..." /></FormField> : null}
           <div className="md:col-span-2"><ActiveToggle checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} description="Promosi tetap tidak tampil ke buyer sebelum approval admin." /></div>
           {values.imageUrl ? <picture className="md:col-span-2"><source media="(max-width: 640px)" srcSet={values.mobileImageUrl || values.imageUrl} /><img src={values.imageUrl} alt="Preview promosi" className="aspect-[4/1] w-full rounded-2xl bg-slate-100 object-cover" /></picture> : null}

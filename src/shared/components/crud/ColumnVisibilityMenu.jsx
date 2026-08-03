@@ -36,7 +36,7 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
         aria-label="Atur kolom tabel"
       >
         <span className="material-symbols-outlined text-[19px]">view_column</span>
-        <span className="hidden md:inline">Kolom</span>
+        <span className="hidden md:inline">Pilih Kolom</span>
         <span className="material-symbols-outlined text-[17px]">keyboard_arrow_down</span>
       </button>
 
