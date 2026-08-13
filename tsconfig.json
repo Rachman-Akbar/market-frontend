@@ -18,5 +18,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "vite.config.js"]
+  "include": ["src", "vite.config.js", "scripts/verify-persistent-layout.mjs"]
 }

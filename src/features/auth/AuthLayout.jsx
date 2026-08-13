@@ -1,4 +1,5 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { RouteOutletBoundary } from "@/shared/layout/RouteOutletBoundary";
 
 const BENEFITS = [
   "Belanja lebih cepat dengan voucher dan promo pilihan",
@@ -99,7 +100,7 @@ export default function AuthLayout() {
 
             <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-8">
               <div className="w-full max-w-md">
-                <Outlet />
+                <RouteOutletBoundary compact />
               </div>
             </div>
           </section>

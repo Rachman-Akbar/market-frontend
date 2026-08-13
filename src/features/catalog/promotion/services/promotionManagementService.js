@@ -30,6 +30,7 @@ export function normalizePromotion(row = {}) {
     id: Number(row.id || 0),
     storeId: row.store_id || row.storeId || row.store?.id ? Number(row.store_id || row.storeId || row.store?.id) : null,
     storeName: toTitleCase(row.store_name || ""),
+    promotionPaymentId: row.promotion_payment_id ? Number(row.promotion_payment_id) : null,
     name: row.name || "",
     title: toTitleCase(row.name || "Promosi"),
     subtitle: row.store_name ? `Campaign dari ${toTitleCase(row.store_name)}` : "Campaign pilihan untuk buyer Ziip",
@@ -55,6 +56,7 @@ export function normalizePromotion(row = {}) {
 function serialize(values) {
   return {
     ...(values.storeId ? { store_id: Number(values.storeId) } : {}),
+    ...(values.promotionPaymentId ? { promotion_payment_id: Number(values.promotionPaymentId) } : {}),
     name: values.name,
     image_url: values.imageUrl,
     mobile_image_url: values.mobileImageUrl || null,

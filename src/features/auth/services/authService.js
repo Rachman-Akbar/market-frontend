@@ -19,6 +19,8 @@ const AUTH_PREFIX = "/auth";
 
 let firebaseBackendLoginPromise = null;
 let firebaseBackendLoginUid = null;
+let currentUserPromise = null;
+let currentUserPromiseToken = "";
 
 function trimSlash(value = "") {
   return String(value).replace(/^\/+|\/+$/g, "");
@@ -498,12 +500,27 @@ export async function fetchCurrentAuthUser() {
     throw new Error("Sesi login tidak ditemukan.");
   }
 
-  const response = await authApi.get(getAuthPath("me"));
-  const normalized = normalizeAuthPayload(response.data, currentSession);
+  const token = String(currentSession.token);
+  if (currentUserPromise && currentUserPromiseToken === token) {
+    return currentUserPromise;
+  }
 
-  return persistSession(normalized, {
-    scope: currentSession.storageScope || getCurrentSessionScope(),
-  });
+  currentUserPromiseToken = token;
+  currentUserPromise = (async () => {
+    try {
+      const response = await authApi.get(getAuthPath("me"));
+      const normalized = normalizeAuthPayload(response.data, currentSession);
+
+      return persistSession(normalized, {
+        scope: currentSession.storageScope || getCurrentSessionScope(),
+      });
+    } finally {
+      currentUserPromise = null;
+      currentUserPromiseToken = "";
+    }
+  })();
+
+  return currentUserPromise;
 }
 
 export async function switchActiveRole(role, options = {}) {

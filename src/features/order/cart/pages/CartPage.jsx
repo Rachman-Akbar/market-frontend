@@ -21,9 +21,11 @@ import {
 import { useCart } from "@/features/order/cart/context/CartContext";
 import { useWishlist } from "@/features/order/wishlist/context/WishlistContext";
 import {
+  useConfirmOrderReceived,
   useOrderDetail,
   useOrders,
 } from "@/features/order/ordering/orderService";
+import { advancedError, useCreateReview } from "@/features/advanced/services/advancedMarketplaceService";
 import { CartItemRow } from "@/features/order/cart/components/CartItemRow";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
@@ -451,6 +453,11 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   const order = orderQuery.data;
   const [paying, setPaying] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, review: "" });
+  const confirmMutation = useConfirmOrderReceived();
+  const reviewMutation = useCreateReview();
 
   if (orderQuery.isLoading) {
     return (
@@ -507,6 +514,30 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
     !["paid", "settlement", "success"].includes(paymentStatus) &&
     Boolean(order.snapToken || order.paymentUrl || order.redirectUrl);
 
+  const handleReceived = async () => {
+    try {
+      setActionMessage("");
+      await confirmMutation.mutateAsync(order.id);
+      setActionMessage("Pesanan ditandai sudah diterima. Anda sekarang dapat memberikan review.");
+      orderQuery.refetch();
+    } catch (error) {
+      setActionMessage(advancedError(error));
+    }
+  };
+
+  const handleReview = async (event) => {
+    event.preventDefault();
+    if (!reviewTarget?.id) return;
+    try {
+      await reviewMutation.mutateAsync({ order_item_id: Number(reviewTarget.id), rating: Number(reviewForm.rating), review: reviewForm.review || null });
+      setActionMessage("Review berhasil dikirim.");
+      setReviewTarget(null);
+      setReviewForm({ rating: 5, review: "" });
+    } catch (error) {
+      setActionMessage(advancedError(error));
+    }
+  };
+
   const handlePayNow = async () => {
     try {
       setPaying(true);
@@ -538,11 +569,11 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
         Kembali ke daftar order
       </button>
 
-      {paymentNotice || paymentMessage ? (
+      {paymentNotice || paymentMessage || actionMessage ? (
         <div
           className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${paymentMessage || paymentNotice.includes("belum") || paymentNotice.includes("gagal") ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-[#047857]"}`}
         >
-          {paymentMessage || paymentNotice}
+          {paymentMessage || actionMessage || paymentNotice}
         </div>
       ) : null}
 
@@ -596,9 +627,10 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
                     {item.variantLabel || item.sku || "-"} ×{item.quantity}
                   </p>
                 </div>
-                <strong className="text-sm text-slate-900">
-                  {formatPrice(item.subtotal || item.price * item.quantity)}
-                </strong>
+                <div className="shrink-0 text-right">
+                  <strong className="text-sm text-slate-900">{formatPrice(item.subtotal || item.price * item.quantity)}</strong>
+                  {["received", "completed"].includes(String(order.status).toLowerCase()) ? <button type="button" onClick={() => setReviewTarget(item)} className="mt-2 block text-xs font-bold text-[#047857] hover:text-[#10B981]">Beri Review</button> : null}
+                </div>
               </div>
             ))}
           </div>
@@ -649,6 +681,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
           <p className="mt-4 text-xs text-slate-500">
             Metode bayar: {order.paymentMethod || "-"}
           </p>
+          {String(order.status).toLowerCase() === "shipped" ? <button type="button" disabled={confirmMutation.isPending} onClick={handleReceived} className="mt-4 w-full rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:opacity-60">{confirmMutation.isPending ? "Memproses..." : "Pesanan Sudah Diterima"}</button> : null}
           {canPay ? (
             <button
               type="button"
@@ -661,6 +694,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
           ) : null}
         </aside>
       </div>
+      {reviewTarget ? <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/55 p-4"><form onSubmit={handleReview} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-[#10B981]">Review Produk</p><h3 className="mt-1 font-black text-slate-900">{reviewTarget.productName}</h3></div><button type="button" onClick={() => setReviewTarget(null)} className="text-3xl text-slate-400">×</button></div><label className="mt-5 grid gap-1 text-sm font-bold text-slate-700">Rating<select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="h-10 rounded-md border border-slate-300 px-3">{[5,4,3,2,1].map((value) => <option key={value} value={value}>{value} bintang</option>)}</select></label><label className="mt-4 grid gap-1 text-sm font-bold text-slate-700">Ulasan<textarea value={reviewForm.review} onChange={(event) => setReviewForm((current) => ({ ...current, review: event.target.value }))} className="min-h-28 rounded-md border border-slate-300 p-3 text-sm" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setReviewTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold">Batal</button><button type="submit" disabled={reviewMutation.isPending} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{reviewMutation.isPending ? "Mengirim..." : "Kirim Review"}</button></div></form></div> : null}
     </div>
   );
 }
@@ -993,17 +1027,24 @@ export default function CartPage() {
   };
 
   const handleDecrease = (item) => {
-    const nextQty = (item.quantity || 1) - 1;
-    if (nextQty <= 0) removeItem(item.productId, item.variantId);
-    else updateQty(item.productId, item.variantId, nextQty);
+    const currentQuantity = Math.max(1, Number(item.quantity || 1));
+    const nextQuantity = Math.max(1, currentQuantity - 1);
+
+    if (nextQuantity !== currentQuantity) {
+      updateQty(item.productId, item.variantId, nextQuantity);
+    }
   };
 
   const handleIncrease = (item) => {
-    updateQty(
-      item.productId,
-      item.variantId,
-      Math.min(item.stock || Number.MAX_SAFE_INTEGER, (item.quantity || 1) + 1),
-    );
+    const currentQuantity = Math.max(1, Number(item.quantity || 1));
+    const stock = Number(item.stock || 0);
+    const nextQuantity = stock > 0
+      ? Math.min(stock, currentQuantity + 1)
+      : currentQuantity + 1;
+
+    if (nextQuantity !== currentQuantity) {
+      updateQty(item.productId, item.variantId, nextQuantity);
+    }
   };
 
   return (

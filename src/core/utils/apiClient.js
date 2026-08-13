@@ -5,23 +5,7 @@ export const BASE_SESSION_KEY = "marketku_auth_session";
 export const WINDOW_TOKEN_KEY = "marketku_window_auth_token";
 export const WINDOW_SESSION_KEY = "marketku_window_auth_session";
 
-function normalizeBaseUrl(value = "") {
-  return String(value || "")
-    .trim()
-    .replace(/\/+$/, "");
-}
-
-function resolveApiBaseUrl() {
-  return normalizeBaseUrl(
-    import.meta.env.VITE_API_BASE_URL ||
-      import.meta.env.VITE_API_URL ||
-      import.meta.env.VITE_BACKEND_URL ||
-      import.meta.env.VITE_LARAVEL_BASE_URL ||
-      "",
-  );
-}
-
-export const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URL = "";
 
 function migrateLegacySession() {
   if (typeof window === "undefined") {
@@ -178,15 +162,10 @@ export function getApiMessage(
   }
 
   if (data?.errors && typeof data.errors === "object") {
-    const message = Object.values(data.errors).flat().find(Boolean);
-
-    if (message) {
-      return String(message);
+    const first = Object.values(data.errors).flat().find(Boolean);
+    if (first) {
+      return String(first);
     }
-  }
-
-  if (typeof error?.message === "string" && error.message.trim()) {
-    return error.message;
   }
 
   return fallback;

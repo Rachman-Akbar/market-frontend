@@ -130,6 +130,10 @@ export function normalizeOrder(row = {}, payment = {}) {
   return {
     id: rawId === undefined ? "" : String(rawId),
     orderNumber: row.order_number || row.orderNumber || String(rawId || ""),
+    orderType: row.order_type || row.orderType || "normal",
+    preorderReleaseAt: row.preorder_release_at || row.preorderReleaseAt || null,
+    bookingExpiresAt: row.booking_expires_at || row.bookingExpiresAt || null,
+    receivedAt: row.received_at || row.receivedAt || null,
     userId: row.user_id ? String(row.user_id) : "",
     status: row.status || "pending",
     paymentStatus:
@@ -586,6 +590,9 @@ function buildOrderPayload(payload, cartItemIds = payload.cartItemIds) {
     service: payload.service || null,
     payment_method: payload.paymentMethod,
     voucher_code: payload.voucherCode || null,
+    order_type: payload.orderType || "normal",
+    preorder_release_at: payload.orderType === "preorder" ? payload.preorderReleaseAt || null : null,
+    booking_expires_at: payload.orderType === "booking" ? payload.bookingExpiresAt || null : null,
   };
 
   if (Array.isArray(cartItemIds) && cartItemIds.length) {
@@ -702,6 +709,11 @@ export async function cancelOrder(id) {
   return response.data;
 }
 
+export async function confirmOrderReceived(id) {
+  const response = await apiClient.patch(`/api/v1/order/orderings/${id}/status`, { status: "received" });
+  return response.data;
+}
+
 export function useOrders(filters = {}) {
   const { user, isAuthenticated } = useAuth();
   const userId = user?.id || "";
@@ -788,6 +800,14 @@ export function useSellerOrders(storeId, filters = {}) {
     queryFn: () => getSellerOrders(storeId, filters),
     enabled: Boolean(isAuthenticated && storeId),
     staleTime: 30000,
+  });
+}
+
+export function useConfirmOrderReceived() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: confirmOrderReceived,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderKeys.all }),
   });
 }
 

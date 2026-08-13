@@ -20,6 +20,7 @@ import { toTitleCase } from "@/shared/utils/textFormatter";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { getRelationQuickCreateError, useQuickCreateCategory } from "@/shared/services/relationQuickCreateService";
 import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
+import { usePromotionPayments } from "@/features/advanced/services/advancedMarketplaceService";
 
 function flattenCategories(rows = [], depth = 0, result = []) {
   rows.forEach((row) => {
@@ -42,6 +43,7 @@ async function getPublicProducts(query = "") {
 function initialValues(entity) {
   return {
     storeId: entity?.storeId || "",
+    promotionPaymentId: entity?.promotionPaymentId || "",
     name: entity?.name || "",
     imageUrl: entity?.imageUrl || "",
     mobileImageUrl: entity?.mobileImageUrl || "",
@@ -62,6 +64,8 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
   const quickCreateCategoryMutation = useQuickCreateCategory();
   const openRelationCreateTab = useRelationCreateTab();
   const categoriesQuery = useQuery({ queryKey: ["promotion", "target-categories"], queryFn: getTargetCategories, enabled: open, staleTime: 5 * 60 * 1000 });
+  const paymentQuery = usePromotionPayments({ status: "approved", per_page: 100 });
+  const paymentOptions = (paymentQuery.data?.rows || []).filter((row) => !row.promotion || Number(row.id) === Number(entity?.promotionPaymentId));
   const productsQuery = useQuery({
     queryKey: ["promotion", portal, "target-products"],
     queryFn: async () => {
@@ -136,6 +140,7 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
       imageUrl: required("Gambar desktop"),
       targetUrl: values.clickAction === "url" ? [required("URL target"), validAppUrl("URL target")] : () => "",
       targetId: ["product", "category"].includes(values.clickAction) ? required("Target") : () => "",
+      promotionPaymentId: isSeller ? required("Pembayaran promosi") : () => "",
     };
     const nextErrors = validateFields(values, rules);
     if (Object.keys(nextErrors).length) return setErrors(nextErrors);
@@ -156,6 +161,7 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
       <form onSubmit={submit}>
         <div className="grid gap-4 p-6 md:grid-cols-2">
           <FormField label="Nama promosi" error={errors.name} required><input value={values.name} onChange={(event) => setField("name", event.target.value)} className={inputClassName} /></FormField>
+          {isSeller ? <FormField label="Pembayaran promosi" error={errors.promotionPaymentId} required><SearchableSelect value={values.promotionPaymentId} onChange={(nextValue) => setField("promotionPaymentId", nextValue)} options={paymentOptions.map((row) => ({ value: row.id, label: `${row.payment_number} - ${row.package_name} - Rp${Number(row.amount || 0).toLocaleString("id-ID")}` }))} placeholder="Pilih pembayaran approved" searchPlaceholder="Cari nomor pembayaran" /></FormField> : null}
           <FormField label="Urutan"><input type="number" min="0" value={values.sortOrder} onChange={(event) => setField("sortOrder", event.target.value)} className={inputClassName} /></FormField>
           <FormField label="Gambar desktop" error={errors.imageUrl} required><ImageFilePicker value={values.imageUrl} onChange={(imageUrl) => setField("imageUrl", imageUrl)} scope="promotions/desktop" label="Pilih gambar desktop" aspectClassName="aspect-[4/1]" /></FormField>
           <FormField label="Gambar mobile" error={errors.mobileImageUrl}><ImageFilePicker value={values.mobileImageUrl} onChange={(mobileImageUrl) => setField("mobileImageUrl", mobileImageUrl)} scope="promotions/mobile" label="Pilih gambar mobile" aspectClassName="aspect-[16/9]" /></FormField>

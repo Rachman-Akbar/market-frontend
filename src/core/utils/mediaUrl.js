@@ -1,36 +1,10 @@
-import { API_BASE_URL } from "@/core/utils/apiClient";
-
 function trimTrailingSlash(value = "") {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
-function localBackendOrigin() {
-  if (typeof window === "undefined") return "";
-
-  const { protocol, hostname, port, origin } = window.location;
-  const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
-
-  if (localHosts.has(hostname) && ["3000", "3001", "4173", "5173", "5174"].includes(port)) {
-    return `${protocol}//${hostname}:8000`;
-  }
-
-  return origin;
-}
-
 export function getAssetBaseUrl() {
-  const configured = trimTrailingSlash(
-    import.meta.env.VITE_ASSET_BASE_URL || API_BASE_URL || "",
-  );
-
-  if (/^https?:\/\//i.test(configured)) {
-    try {
-      return new URL(configured).origin;
-    } catch {
-      return configured;
-    }
-  }
-
-  return trimTrailingSlash(localBackendOrigin());
+  if (typeof window === "undefined") return "";
+  return trimTrailingSlash(window.location.origin);
 }
 
 function resolveLocalAbsoluteUrl(raw) {

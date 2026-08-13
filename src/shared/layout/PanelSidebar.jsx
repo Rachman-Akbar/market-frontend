@@ -11,6 +11,7 @@ export const PanelSidebar = memo(function PanelSidebar({
   activeClassName,
   showHomeLink = true,
   showMarketplaceLink = true,
+  badges = {},
 }) {
   const tabs = usePanelTabs();
   const dashboard = items.find((item) => item.href === homeHref);
@@ -31,8 +32,7 @@ export const PanelSidebar = memo(function PanelSidebar({
   const openMenu = (event, item) => {
     if (!tabs) return;
     event.preventDefault();
-    const openCreate = !item.exact && !item.noChildTabs;
-    tabs.openParent(item, { openCreate, resetToCreate: openCreate });
+    tabs.openParent(item, { openCreate: false });
   };
 
   const menuClassName = (active) => cn(
@@ -80,6 +80,7 @@ export const PanelSidebar = memo(function PanelSidebar({
                     >
                       <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {Number(badges[item.href] || 0) > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black text-white">{Math.min(99, Number(badges[item.href] || 0))}</span> : null}
                     </Link>
                   );
                 })}

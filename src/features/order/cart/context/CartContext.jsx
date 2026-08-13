@@ -1,4 +1,12 @@
-import { createContext, useContext, useMemo } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, unwrapApiData } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -9,6 +17,7 @@ import {
 
 const CartContext = createContext(null);
 const CART_KEY = ["order", "cart"];
+const QUANTITY_SYNC_DELAY = 220;
 
 function normalizeCartItem(item = {}) {
   const attributes =
@@ -65,6 +74,24 @@ function normalizeCart(payload = {}) {
             sum + Number(item.price || 0) * Number(item.quantity || 0),
           0,
         ),
+    ),
+  };
+}
+
+function recalculateCart(cart, nextItems) {
+  const items = Array.isArray(nextItems) ? nextItems : [];
+
+  return {
+    ...(cart || {}),
+    items,
+    totalItems: items.reduce(
+      (sum, item) => sum + Math.max(0, Number(item.quantity || 0)),
+      0,
+    ),
+    totalPrice: items.reduce(
+      (sum, item) =>
+        sum + Number(item.price || 0) * Math.max(0, Number(item.quantity || 0)),
+      0,
     ),
   };
 }
@@ -166,38 +193,213 @@ async function clearRemoteCart() {
 
 export function CartProvider({ children }) {
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, initializing } = useAuth();
+  const quantitySyncRef = useRef(new Map());
+  const [syncingVariantIds, setSyncingVariantIds] = useState([]);
 
   const cartQuery = useQuery({
     queryKey: CART_KEY,
     queryFn: fetchCart,
-    enabled: isAuthenticated,
+    enabled: !initializing && isAuthenticated,
     staleTime: 30000,
   });
 
-  const synchronizeCart = async () => {
+  useEffect(() => {
+    if (!initializing && !isAuthenticated) {
+      quantitySyncRef.current.forEach((entry) => {
+        if (entry?.timer) window.clearTimeout(entry.timer);
+      });
+      quantitySyncRef.current.clear();
+      setSyncingVariantIds([]);
+      queryClient.removeQueries({ queryKey: CART_KEY, exact: true });
+    }
+  }, [initializing, isAuthenticated, queryClient]);
+
+  useEffect(
+    () => () => {
+      quantitySyncRef.current.forEach((entry) => {
+        if (entry?.timer) window.clearTimeout(entry.timer);
+      });
+      quantitySyncRef.current.clear();
+    },
+    [],
+  );
+
+  const synchronizeCart = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: CART_KEY,
     });
-  };
+  }, [queryClient]);
+
+  const cancelQuantitySync = useCallback((variantId) => {
+    const id = Number(variantId || 0);
+    const current = quantitySyncRef.current.get(id);
+
+    if (current?.timer) {
+      window.clearTimeout(current.timer);
+    }
+
+    quantitySyncRef.current.delete(id);
+    setSyncingVariantIds((rows) => rows.filter((row) => row !== id));
+  }, []);
+
+  const flushQuantity = useCallback(
+    async (variantId) => {
+      const id = Number(variantId || 0);
+      const entry = quantitySyncRef.current.get(id);
+
+      if (!entry) return;
+
+      if (entry.inFlight) {
+        quantitySyncRef.current.set(id, {
+          ...entry,
+          needsFlush: true,
+        });
+        return;
+      }
+
+      const sentQuantity = Math.max(1, Number(entry.quantity || 1));
+      quantitySyncRef.current.set(id, {
+        ...entry,
+        timer: null,
+        inFlight: true,
+        needsFlush: false,
+      });
+      setSyncingVariantIds((rows) =>
+        rows.includes(id) ? rows : [...rows, id],
+      );
+
+      try {
+        await updateCartItem({ variantId: id, quantity: sentQuantity });
+      } catch {
+      } finally {
+        const latest = quantitySyncRef.current.get(id);
+
+        if (!latest) {
+          setSyncingVariantIds((rows) => rows.filter((row) => row !== id));
+          return;
+        }
+
+        const hasNewQuantity =
+          Math.max(1, Number(latest.quantity || 1)) !== sentQuantity;
+
+        if (hasNewQuantity || latest.needsFlush) {
+          const nextEntry = {
+            ...latest,
+            inFlight: false,
+            needsFlush: false,
+          };
+          nextEntry.timer = window.setTimeout(() => {
+            flushQuantity(id);
+          }, 0);
+          quantitySyncRef.current.set(id, nextEntry);
+          return;
+        }
+
+        quantitySyncRef.current.delete(id);
+        setSyncingVariantIds((rows) => rows.filter((row) => row !== id));
+        await queryClient.invalidateQueries({ queryKey: CART_KEY });
+      }
+    },
+    [queryClient],
+  );
+
+  const updateQty = useCallback(
+    (_productId, variantId, quantity) => {
+      const id = Number(variantId || 0);
+      const nextQuantity = Math.max(1, Number(quantity || 1));
+
+      if (!id) {
+        return Promise.reject(new Error("Varian cart tidak valid."));
+      }
+
+      queryClient.setQueryData(CART_KEY, (current) => {
+        if (!current?.items) return current;
+
+        const nextItems = current.items.map((item) => {
+          if (Number(item.variantId) !== id) return item;
+
+          const stock = Number(item.stock || 0);
+          const resolvedQuantity = stock > 0
+            ? Math.min(nextQuantity, stock)
+            : nextQuantity;
+
+          return {
+            ...item,
+            quantity: resolvedQuantity,
+            subtotal: Number(item.price || 0) * resolvedQuantity,
+          };
+        });
+
+        return recalculateCart(current, nextItems);
+      });
+
+      const previous = quantitySyncRef.current.get(id);
+
+      if (previous?.timer) {
+        window.clearTimeout(previous.timer);
+      }
+
+      const nextEntry = {
+        quantity: nextQuantity,
+        timer: null,
+        inFlight: Boolean(previous?.inFlight),
+        needsFlush: Boolean(previous?.inFlight),
+      };
+
+      if (!nextEntry.inFlight) {
+        nextEntry.timer = window.setTimeout(() => {
+          flushQuantity(id);
+        }, QUANTITY_SYNC_DELAY);
+      }
+
+      quantitySyncRef.current.set(id, nextEntry);
+      return Promise.resolve();
+    },
+    [flushQuantity, queryClient],
+  );
 
   const addMutation = useMutation({
     mutationFn: addCartItem,
     onSuccess: synchronizeCart,
   });
 
-  const updateMutation = useMutation({
-    mutationFn: updateCartItem,
-    onSuccess: synchronizeCart,
-  });
-
   const removeMutation = useMutation({
-    mutationFn: removeCartItem,
-    onSuccess: synchronizeCart,
+    mutationFn: async (variantId) => {
+      cancelQuantitySync(variantId);
+      return removeCartItem(variantId);
+    },
+    onMutate: async (variantId) => {
+      const id = Number(variantId || 0);
+      const previous = queryClient.getQueryData(CART_KEY);
+
+      queryClient.setQueryData(CART_KEY, (current) => {
+        if (!current?.items) return current;
+        return recalculateCart(
+          current,
+          current.items.filter((item) => Number(item.variantId) !== id),
+        );
+      });
+
+      return { previous };
+    },
+    onError: (_error, _variantId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(CART_KEY, context.previous);
+      }
+    },
+    onSettled: synchronizeCart,
   });
 
   const clearMutation = useMutation({
-    mutationFn: clearRemoteCart,
+    mutationFn: async () => {
+      quantitySyncRef.current.forEach((entry) => {
+        if (entry?.timer) window.clearTimeout(entry.timer);
+      });
+      quantitySyncRef.current.clear();
+      setSyncingVariantIds([]);
+      return clearRemoteCart();
+    },
     onSuccess: synchronizeCart,
   });
 
@@ -212,21 +414,18 @@ export function CartProvider({ children }) {
       items: cart.items,
       subtotal: cart.totalPrice,
       totalItems: cart.totalItems,
-      loading: cartQuery.isLoading,
+      loading: initializing || cartQuery.isLoading,
       error: cartQuery.error,
       addItem: (item) => addMutation.mutateAsync(item),
-      updateQty: (_productId, variantId, quantity) =>
-        updateMutation.mutateAsync({
-          variantId,
-          quantity,
-        }),
+      updateQty,
       removeItem: (_productId, variantId) =>
         removeMutation.mutateAsync(variantId),
       clearCart: () => clearMutation.mutateAsync(),
       refreshCart: () => cartQuery.refetch(),
+      syncingVariantIds,
       mutating:
         addMutation.isPending ||
-        updateMutation.isPending ||
+        syncingVariantIds.length > 0 ||
         removeMutation.isPending ||
         clearMutation.isPending,
     }),
@@ -239,8 +438,10 @@ export function CartProvider({ children }) {
       cartQuery.isLoading,
       cartQuery.refetch,
       clearMutation,
+      initializing,
       removeMutation,
-      updateMutation,
+      syncingVariantIds,
+      updateQty,
     ],
   );
 

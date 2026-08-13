@@ -24,7 +24,7 @@ export function CategoryDropdown({
 }) {
   const dropdownRef = useRef(null);
   const [rendered, setRendered] = useState(open);
-  const [activeGroup, setActiveGroup] = useState("");
+  const [activeGroup, setActiveGroup] = useState(VOUCHER_GROUP_KEY);
   const [activeL1, setActiveL1] = useState(null);
   const navigationQuery = useCategoryNavigation({ enabled: open || rendered });
   const groups = navigationQuery.data?.groups || [];
@@ -74,24 +74,24 @@ export function CategoryDropdown({
   }, [open]);
 
   useEffect(() => {
-    if (!open || !groups.length) return;
+    if (!open) return;
+
     const requested = String(selectedGroupKey || "");
     const requestedExists =
       requested &&
-      groups.some(
+      navGroups.some(
         (group) => String(group.key ?? group.id ?? group.slug) === requested,
       );
-    const nextGroup = requestedExists
-      ? requested
-      : String(groups[0]?.key || groups[0]?.id || "");
-    const activeStillExists = activeGroupKey === VOUCHER_GROUP_KEY || groups.some(
-      (group) => String(group.key ?? group.id ?? group.slug) === activeGroupKey,
+    const activeStillExists = navGroups.some(
+      (group) =>
+        String(group.key ?? group.id ?? group.slug) === activeGroupKey,
     );
+    const nextGroup = requestedExists ? requested : VOUCHER_GROUP_KEY;
 
     if (!activeStillExists || (requestedExists && requested !== activeGroupKey)) {
       setActiveGroup(nextGroup);
     }
-  }, [activeGroupKey, groups, open, selectedGroupKey]);
+  }, [activeGroupKey, navGroups, open, selectedGroupKey]);
 
   useEffect(() => {
     if (!open) return undefined;

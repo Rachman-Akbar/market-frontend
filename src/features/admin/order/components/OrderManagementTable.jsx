@@ -10,6 +10,7 @@ const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
   { value: "processing", label: "Processing" },
   { value: "shipped", label: "Shipped" },
+  { value: "received", label: "Received" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
 ];

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/shared/utils/utils";
 import { usePanelTabs } from "@/shared/layout/tabs";
 
-export const PanelMobileNavigation = memo(function PanelMobileNavigation({ items, activeClassName }) {
+export const PanelMobileNavigation = memo(function PanelMobileNavigation({ items, activeClassName, badges = {} }) {
   const tabs = usePanelTabs();
   const visibleItems = items.filter((item) => !item.hiddenInSidebar);
 
@@ -19,14 +19,14 @@ export const PanelMobileNavigation = memo(function PanelMobileNavigation({ items
               onClick={(event) => {
                 if (!tabs) return;
                 event.preventDefault();
-                const openCreate = !item.exact && !item.noChildTabs;
-                tabs.openParent(item, { openCreate, resetToCreate: openCreate });
+                tabs.openParent(item, { openCreate: false });
               }}
-              className={cn("flex h-11 min-w-11 shrink-0 items-center justify-center text-slate-500 transition-colors", active ? activeClassName : "hover:bg-slate-100 hover:text-slate-800")}
+              className={cn("relative flex h-11 min-w-11 shrink-0 items-center justify-center text-slate-500 transition-colors", active ? activeClassName : "hover:bg-slate-100 hover:text-slate-800")}
               aria-label={item.label}
               title={item.group ? `${item.group} · ${item.label}` : item.label}
             >
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              {Number(badges[item.href] || 0) > 0 ? <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" /> : null}
             </Link>
           );
         })}

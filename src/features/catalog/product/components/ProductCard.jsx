@@ -327,16 +327,66 @@ export function ProductCard({
     }
   }, [availableVariants, resolvedProductId]);
 
-  const handleOpenOrderModal = async (event) => {
+  const goDirectCheckout = useCallback(
+    (targetVariant, quantity = 1) => {
+      const targetVariantId =
+        getVariantId(targetVariant) || Number(variantId || 0);
+      const targetStock = targetVariant
+        ? getVariantStock(targetVariant)
+        : productStock;
+      const targetPrice = normalizeNumber(targetVariant?.price ?? price, 0);
+
+      if (targetStock !== null && targetStock <= 0) {
+        throw new Error("Stok varian yang dipilih sudah habis.");
+      }
+
+      navigate("/checkout", {
+        state: {
+          buyNow: true,
+          directItems: [
+            {
+              productId: resolvedProductId,
+              variantId: targetVariantId,
+              productName: displayTitle,
+              variantLabel: targetVariant?.name || targetVariant?.label || "",
+              price: targetPrice,
+              quantity,
+              subtotal: targetPrice * quantity,
+              stock: targetStock ?? productStock ?? 0,
+              imageUrl:
+                targetVariant?.image ||
+                targetVariant?.image_url ||
+                displayImage ||
+                "",
+              storeId: resolvedStoreId,
+              storeName: resolvedStoreName,
+            },
+          ],
+        },
+      });
+    },
+    [
+      displayImage,
+      displayTitle,
+      navigate,
+      price,
+      productStock,
+      resolvedProductId,
+      resolvedStoreId,
+      resolvedStoreName,
+      variantId,
+    ],
+  );
+
+  const handleCardOrderAction = async (event) => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!requireLogin()) return;
+    if (!requireLogin() || variantsLoading || isAdding || buyingNow) return;
 
     setQty(1);
     setCartStatus("idle");
     setCartMessage("");
-    setOrderModalOpen(true);
 
     const rows = await loadProductVariants();
     const targetVariant = getInitialVariant({
@@ -344,9 +394,45 @@ export function ProductCard({
       defaultVariant,
       variantId,
     });
+    const fallbackVariantId =
+      getVariantId(targetVariant) ||
+      getVariantId(defaultVariant) ||
+      Number(variantId || 0);
+    const hasSingleVariant =
+      rows.length === 1 || (rows.length === 0 && fallbackVariantId > 0);
 
     setAvailableVariants(rows);
     setSelectedVariant(targetVariant);
+
+    if (!hasSingleVariant) {
+      setOrderModalOpen(true);
+      return;
+    }
+
+    if (rows.length === 1 && !targetVariant) {
+      setCartStatus("error");
+      setCartMessage("Stok produk sedang habis.");
+      return;
+    }
+
+    try {
+      if (showAddToCart) {
+        setCartStatus("loading");
+        await addSelectedVariant(targetVariant, 1);
+        setCartStatus("success");
+        setCartMessage("Produk berhasil dimasukkan ke keranjang.");
+        return;
+      }
+
+      setBuyingNow(true);
+      goDirectCheckout(targetVariant, 1);
+    } catch (error) {
+      setBuyingNow(false);
+      setCartStatus("error");
+      setCartMessage(
+        getApiMessage(error, "Produk belum dapat diproses langsung."),
+      );
+    }
   };
 
   const addSelectedVariant = useCallback(
@@ -437,32 +523,7 @@ export function ProductCard({
       setBuyingNow(true);
       setCartStatus("idle");
       setCartMessage("");
-
-      navigate("/checkout", {
-        state: {
-          buyNow: true,
-          directItems: [
-            {
-              productId: resolvedProductId,
-              variantId: selectedVariantId,
-              productName: displayTitle,
-              variantLabel:
-                selectedVariant?.name || selectedVariant?.label || "",
-              price: selectedPrice,
-              quantity: qty,
-              subtotal: selectedPrice * qty,
-              stock: selectedStock ?? productStock ?? 0,
-              imageUrl:
-                selectedVariant?.image ||
-                selectedVariant?.image_url ||
-                displayImage ||
-                "",
-              storeId: resolvedStoreId,
-              storeName: resolvedStoreName,
-            },
-          ],
-        },
-      });
+      goDirectCheckout(selectedVariant, qty);
     } catch (error) {
       setCartStatus("error");
       setCartMessage(
@@ -590,12 +651,30 @@ export function ProductCard({
             <div className="pointer-events-auto mt-auto pt-3">
               <button
                 type="button"
-                onClick={handleOpenOrderModal}
+                onClick={handleCardOrderAction}
+                disabled={variantsLoading || isAdding || buyingNow}
                 className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#10B981] px-3 text-xs font-bold text-white transition hover:bg-[#059669]"
               >
-                <ShoppingCart size={15} />
-                {addToCartLabel}
+                {variantsLoading || isAdding ? (
+                  <LoaderCircle size={15} className="animate-spin" />
+                ) : (
+                  <ShoppingCart size={15} />
+                )}
+                {variantsLoading
+                  ? "Memeriksa Varian..."
+                  : isAdding
+                    ? "Menambahkan..."
+                    : cartStatus === "success"
+                      ? "Ditambahkan"
+                      : cartStatus === "error"
+                        ? "Coba Lagi"
+                        : addToCartLabel}
               </button>
+              {cartStatus === "error" && cartMessage ? (
+                <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-red-500">
+                  {cartMessage}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -603,11 +682,16 @@ export function ProductCard({
         {!showAddToCart ? (
           <button
             type="button"
-            onClick={handleOpenOrderModal}
+            onClick={handleCardOrderAction}
+            disabled={variantsLoading || isAdding || buyingNow}
             className="pointer-events-auto absolute bottom-[6px] right-[4px] z-20 flex h-6 w-6 items-center justify-center text-[#8a99b5] transition hover:text-[#10B981]"
             aria-label="Atur pesanan"
           >
-            <ShoppingCart size={18} />
+            {variantsLoading || buyingNow ? (
+              <LoaderCircle size={17} className="animate-spin" />
+            ) : (
+              <ShoppingCart size={18} />
+            )}
           </button>
         ) : null}
       </article>

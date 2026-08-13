@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ImageGallery } from "@/features/catalog/product/components/ImageGallery";
 import { VariantSelector } from "../components/VariantSelector";
 import { ProductCheckoutPanel } from "@/features/catalog/product/components/ProductCheckoutPanel";
 import { ReviewSection } from "@/features/order/review/components/ReviewSection";
+import { advancedError, usePublicReviews, useStartConversation } from "@/features/advanced/services/advancedMarketplaceService";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import { formatPrice } from "@/shared/utils/utils";
 import {
   useProductBySlug,
@@ -84,6 +86,11 @@ function getInitialVariant(product) {
 }
 
 export function ProductDetailClient({ slug }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, activeRole, isAuthenticated } = useAuth();
+  const startConversation = useStartConversation();
+  const [chatNotice, setChatNotice] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const productQuery = useProductBySlug(slug);
@@ -91,6 +98,7 @@ export function ProductDetailClient({ slug }) {
   const variantsQuery = useProductVariants(baseProduct?.id, {
     enabled: Boolean(baseProduct?.id && !baseProduct?.variants?.length),
   });
+  const reviewsQuery = usePublicReviews(baseProduct?.id, { per_page: 20 });
 
   const product = useMemo(() => {
     if (!baseProduct) return null;
@@ -138,6 +146,43 @@ export function ProductDetailClient({ slug }) {
     : store.id
       ? `/stores/id/${encodeURIComponent(store.id)}`
       : "/stores";
+  const reviewRows = reviewsQuery.data?.rows || product?.reviews || [];
+  const reviewTotal = Number(product?.review_count ?? product?.reviewCount ?? reviewsQuery.data?.meta?.total ?? reviewRows.length ?? 0);
+  const averageRating = Number(product?.average_rating ?? product?.rating ?? reviewsQuery.data?.summary?.average ?? 0);
+  const storeOwnerId = store.user_id ?? store.owner_id ?? store.seller_id;
+  const ownStore = Boolean(user?.id && storeOwnerId && String(user.id) === String(storeOwnerId));
+
+  async function handleStartChat() {
+    if (!store.id) {
+      setChatNotice("Toko penjual tidak ditemukan pada data produk.");
+      return;
+    }
+
+    const currentUrl = `${location.pathname}${location.search}`;
+    if (!isAuthenticated) {
+      navigate(`/chat/login?redirect=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+
+    if (ownStore) {
+      setChatNotice("Produk ini berasal dari toko Anda sendiri.");
+      return;
+    }
+
+    setChatNotice("");
+    try {
+      const conversation = await startConversation.mutateAsync({
+        type: "store",
+        store_id: Number(store.id),
+        subject: `Produk: ${product.name}`,
+      });
+      const chatPath = activeRole === "admin" ? "/admin/chat" : activeRole === "seller" ? "/seller/chat" : "/chat";
+      const draft = `Halo, saya ingin bertanya tentang produk ${product.name}.`;
+      navigate(`${chatPath}?conversation=${encodeURIComponent(conversation.id)}&draft=${encodeURIComponent(draft)}`);
+    } catch (error) {
+      setChatNotice(advancedError(error, "Chat dengan penjual gagal dibuka."));
+    }
+  }
 
   if (loading) {
     return (
@@ -208,12 +253,11 @@ export function ProductDetailClient({ slug }) {
               </span>
             )}
 
-            {!!product.sold && !!product.rating && (
+            {!!product.sold && (
               <span className="text-gray-300">•</span>
             )}
 
-            {!!product.rating && (
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1">
                 <svg
                   className="h-4 w-4 text-yellow-400"
                   fill="currentColor"
@@ -221,9 +265,9 @@ export function ProductDetailClient({ slug }) {
                 >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                <span className="font-bold">{product.rating}</span>
+                <span className="font-bold">{averageRating.toFixed(1)}</span>
+                <span className="text-xs text-gray-500">({reviewTotal})</span>
               </div>
-            )}
           </div>
 
           <div className="mb-6 text-3xl font-bold">
@@ -328,13 +372,25 @@ export function ProductDetailClient({ slug }) {
                 </div>
               </div>
 
-              <Link
-                to={storeHref}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-[#10B981] px-5 text-sm font-bold text-[#047857] transition hover:bg-emerald-50"
-              >
-                Kunjungi Toko
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleStartChat}
+                  disabled={startConversation.isPending || ownStore}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#10B981] px-5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">chat</span>
+                  {startConversation.isPending ? "Membuka Chat..." : ownStore ? "Toko Anda" : "Chat Penjual"}
+                </button>
+                <Link
+                  to={storeHref}
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-[#10B981] px-5 text-sm font-bold text-[#047857] transition hover:bg-emerald-50"
+                >
+                  Kunjungi Toko
+                </Link>
+              </div>
             </div>
+            {chatNotice ? <p className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">{chatNotice}</p> : null}
           </div>
         </section>
 
@@ -344,8 +400,9 @@ export function ProductDetailClient({ slug }) {
 
         <div className="lg:col-span-9">
           <ReviewSection
-            reviews={product.reviews}
-            summary={product.review_summary}
+            reviews={reviewRows}
+            summary={{ average: averageRating, total: reviewTotal }}
+            loading={reviewsQuery.isLoading}
           />
         </div>
       </div>

@@ -1,8 +1,9 @@
 export const profileLayout = {
-  page: "flex h-full min-w-0 flex-1 overflow-hidden bg-white",
-  rail: "flex h-[100dvh] w-16 shrink-0 flex-col items-center justify-between border-r border-[#e5e7eb] bg-white py-4",
+  page: "flex h-full min-w-0 max-w-full flex-1 overflow-hidden bg-white",
+  rail: "hidden h-[100dvh] w-16 shrink-0 flex-col items-center justify-between border-r border-[#e5e7eb] bg-white py-4 md:flex",
+  mobileNav: "fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-[#e5e7eb] bg-white px-2 md:hidden",
   sidebar:
-    "flex h-full w-[360px] shrink-0 flex-col border-r border-[#e5e7eb] bg-white",
+    "flex h-full w-full shrink-0 flex-col border-r border-[#e5e7eb] bg-white sm:w-[320px] lg:w-[360px]",
   sidebarHeader:
     "flex h-16 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-4",
   sidebarTitle: "text-xl font-bold leading-none text-slate-950",
@@ -13,16 +14,16 @@ export const profileLayout = {
   listItem:
     "grid min-h-[76px] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 text-left transition",
   listDivider: "col-span-3 mt-3 border-[#e5e7eb]",
-  chatPanel: "flex h-full min-w-0 flex-1 flex-col bg-[#efeae2]",
+  chatPanel: "flex h-full min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-[#efeae2]",
   chatHeader:
     "flex h-16 shrink-0 items-center justify-between border-b border-[#e5e7eb] bg-white px-4 shadow-sm",
-  chatBody: "relative min-h-0 flex-1 overflow-y-auto px-6 py-4 md:px-8",
+  chatBody: "relative min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-8",
   chatFooter:
     "flex h-16 shrink-0 items-center gap-3 border-t border-[#e5e7eb] bg-white px-4",
-  contentShell: "h-full min-w-0 flex-1 overflow-y-auto bg-white",
-  contentInner: "mx-auto w-full max-w-[960px] px-6 py-8 md:px-8 lg:px-10",
+  contentShell: "h-full min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-hidden bg-white",
+  contentInner: "mx-auto w-full min-w-0 max-w-[960px] px-4 py-6 sm:px-6 md:px-8 md:py-8 lg:px-10",
   contentHeader:
-    "mb-8 flex min-h-[104px] flex-col justify-end gap-2 sm:flex-row sm:items-end sm:justify-between",
+    "mb-8 flex min-h-[104px] flex-col justify-end gap-4 sm:flex-row sm:items-end sm:justify-between",
   contentTitle: "text-3xl font-light leading-tight text-slate-950",
   contentEyebrow:
     "text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]",

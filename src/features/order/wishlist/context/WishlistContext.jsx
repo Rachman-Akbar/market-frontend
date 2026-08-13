@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -86,16 +86,23 @@ async function removeWishlistItem(productId) {
 
 export function WishlistProvider({ children }) {
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, initializing } = useAuth();
 
   const wishlistQuery = useQuery({
     queryKey: WISHLIST_KEY,
     queryFn: fetchWishlist,
-    enabled: isAuthenticated,
+    enabled: !initializing && isAuthenticated,
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
+
+
+  useEffect(() => {
+    if (!initializing && !isAuthenticated) {
+      queryClient.removeQueries({ queryKey: WISHLIST_KEY, exact: true });
+    }
+  }, [initializing, isAuthenticated, queryClient]);
 
   const addMutation = useMutation({
     mutationFn: addWishlistItem,
@@ -139,7 +146,7 @@ export function WishlistProvider({ children }) {
   const value = useMemo(
     () => ({
       items,
-      loading: wishlistQuery.isLoading,
+      loading: initializing || wishlistQuery.isLoading,
       error: wishlistQuery.error,
       addItem: (item) => addMutation.mutateAsync(item),
       removeItem: (productId) => removeMutation.mutateAsync(Number(productId)),
@@ -152,7 +159,7 @@ export function WishlistProvider({ children }) {
       refreshWishlist: () => wishlistQuery.refetch(),
       mutating: addMutation.isPending || removeMutation.isPending,
     }),
-    [addMutation, items, removeMutation, wishlistQuery.error, wishlistQuery.isLoading, wishlistQuery.refetch],
+    [addMutation, initializing, items, removeMutation, wishlistQuery.error, wishlistQuery.isLoading, wishlistQuery.refetch],
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;

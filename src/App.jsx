@@ -47,12 +47,25 @@ const AdminBannersPage = lazy(() => import("@/features/admin/banner/pages/AdminB
 const AdminOrdersPage = lazy(() => import("@/features/admin/order/pages/AdminOrdersPage"));
 const ProfilePage = lazy(() => import("@/features/profile/identity/pages/ProfilePage"));
 const AddressesPage = lazy(() => import("@/features/profile/address/pages/AddressesPage"));
-const ChatPage = lazy(() => import("@/features/profile/chat/pages/ChatPage"));
 const GroupChatPage = lazy(() => import("@/features/profile/chat/pages/GroupChatPage"));
 const NotificationsPage = lazy(() => import("@/features/profile/notifications/pages/NotificationsPage"));
 const PaymentsPage = lazy(() => import("@/features/profile/payments/pages/PaymentsPage"));
 const VouchersPage = lazy(() => import("@/features/profile/vouchers/pages/VouchersPage"));
 const ModulePlaceholderPage = lazy(() => import("@/shared/pages/ModulePlaceholderPage"));
+const FinancePage = lazy(() => import("@/features/advanced/pages/FinancePage"));
+const StockPage = lazy(() => import("@/features/advanced/pages/StockPage"));
+const CustomersPage = lazy(() => import("@/features/advanced/pages/CustomersPage"));
+const ShowcasePage = lazy(() => import("@/features/advanced/pages/ShowcasePage"));
+const HelpPage = lazy(() => import("@/features/advanced/pages/HelpPage"));
+const MissionsPage = lazy(() => import("@/features/advanced/pages/MissionsPage"));
+const BuyerHelpPage = lazy(() => import("@/features/profile/help/pages/BuyerHelpPage"));
+const BuyerMissionsPage = lazy(() => import("@/features/profile/missions/pages/BuyerMissionsPage"));
+const PromotionPaymentsPage = lazy(() => import("@/features/advanced/pages/PromotionPaymentsPage"));
+const AnnouncementPage = lazy(() => import("@/features/advanced/pages/AnnouncementPage"));
+const OrderOperationsPage = lazy(() => import("@/features/advanced/pages/OrderOperationsPage"));
+const ReviewsPage = lazy(() => import("@/features/advanced/pages/ReviewsPage"));
+const RealtimeChatPage = lazy(() => import("@/features/advanced/pages/RealtimeChatPage"));
+
 
 function LoadingScreen() {
   return (
@@ -75,7 +88,7 @@ function renderBuyerRoutes() {
       <Route path="/stores/:slug" element={<StoreDetailPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/*" element={<CheckoutPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
       </Route>
     </Route>
@@ -113,7 +126,9 @@ function renderAccountRoutes() {
         <Route path="/profile/notifications" element={<NotificationsPage />} />
         <Route path="/profile/payments" element={<PaymentsPage />} />
         <Route path="/profile/vouchers" element={<VouchersPage />} />
-        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/profile/help" element={<BuyerHelpPage />} />
+        <Route path="/profile/missions" element={<BuyerMissionsPage />} />
+        <Route path="/chat" element={<RealtimeChatPage />} />
         <Route path="/chat/groups" element={<GroupChatPage />} />
       </Route>
       <Route path="/profile/chat" element={<Navigate to="/chat/login?redirect=/chat" replace />} />
@@ -129,14 +144,19 @@ function renderSellerRoutes() {
         <Route element={<SellerLayout />}>
           <Route path="/seller" element={<SellerDashboardPage />} />
           <Route path="/seller/products" element={<SellerProductsPage />} />
-          <Route path="/seller/stock" element={<ModulePlaceholderPage title="Stock" group="Persediaan" icon="warehouse" />} />
+          <Route path="/seller/stock" element={<StockPage />} />
           <Route path="/seller/vouchers" element={<SellerVoucherPage />} />
           <Route path="/seller/promotions" element={<SellerPromotionPage />} />
           <Route path="/seller/orders" element={<SellerOrdersPage />} />
-          <Route path="/seller/customers" element={<ModulePlaceholderPage title="Pelanggan" group="Penjualan" icon="person_search" />} />
-          <Route path="/seller/order-operations" element={<ModulePlaceholderPage title="Order" group="Penjualan" icon="shopping_bag" />} />
-          <Route path="/seller/cashflow" element={<ModulePlaceholderPage title="Pemasukan dan Pengeluaran" group="Finance" icon="account_balance_wallet" />} />
-          <Route path="/seller/receivables-payables" element={<ModulePlaceholderPage title="Hutang dan Piutang" group="Finance" icon="payments" />} />
+          <Route path="/seller/customers" element={<CustomersPage />} />
+          <Route path="/seller/order-operations" element={<OrderOperationsPage />} />
+          <Route path="/seller/cashflow" element={<FinancePage mode="cashflow" />} />
+          <Route path="/seller/receivables-payables" element={<FinancePage mode="receivables" />} />
+          <Route path="/seller/showcases" element={<ShowcasePage />} />
+          <Route path="/seller/promotion-payments" element={<PromotionPaymentsPage />} />
+          <Route path="/seller/reviews" element={<ReviewsPage />} />
+          <Route path="/seller/help" element={<HelpPage />} />
+          <Route path="/seller/chat" element={<RealtimeChatPage />} />
           <Route path="/seller/store" element={<SellerStorePage />} />
           <Route path="/seller/banners" element={<SellerBannerPage />} />
           <Route path="/seller/store-preview" element={<SellerStorePreviewPage />} />
@@ -156,14 +176,21 @@ function renderAdminRoutes() {
       <Route element={<AdminLayout />}>
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/products" element={<AdminProductsPage />} />
-        <Route path="/admin/stock" element={<ModulePlaceholderPage title="Stock" group="Persediaan" icon="warehouse" />} />
+        <Route path="/admin/stock" element={<StockPage />} />
         <Route path="/admin/vouchers" element={<AdminVoucherPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionPage />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
-        <Route path="/admin/customers" element={<ModulePlaceholderPage title="Pelanggan" group="Penjualan" icon="person_search" />} />
-        <Route path="/admin/order-operations" element={<ModulePlaceholderPage title="Order" group="Penjualan" icon="shopping_bag" />} />
-        <Route path="/admin/cashflow" element={<ModulePlaceholderPage title="Pemasukan dan Pengeluaran" group="Finance" icon="account_balance_wallet" />} />
-        <Route path="/admin/receivables-payables" element={<ModulePlaceholderPage title="Hutang dan Piutang" group="Finance" icon="payments" />} />
+        <Route path="/admin/customers" element={<CustomersPage />} />
+        <Route path="/admin/order-operations" element={<OrderOperationsPage />} />
+        <Route path="/admin/cashflow" element={<FinancePage mode="cashflow" />} />
+        <Route path="/admin/receivables-payables" element={<FinancePage mode="receivables" />} />
+        <Route path="/admin/showcases" element={<ShowcasePage />} />
+        <Route path="/admin/promotion-payments" element={<PromotionPaymentsPage />} />
+        <Route path="/admin/reviews" element={<ReviewsPage />} />
+        <Route path="/admin/help" element={<HelpPage />} />
+        <Route path="/admin/missions" element={<MissionsPage />} />
+        <Route path="/admin/announcements" element={<AnnouncementPage />} />
+        <Route path="/admin/chat" element={<RealtimeChatPage />} />
         <Route path="/admin/store-information" element={<ModulePlaceholderPage title="Informasi" group="Toko" icon="store" actionHref="/admin/stores" actionLabel="Kelola Data Toko" />} />
         <Route path="/admin/banners" element={<AdminBannersPage />} />
         <Route path="/admin/store-preview" element={<ModulePlaceholderPage title="Preview Toko" group="Toko" icon="preview" actionHref="/stores" actionLabel="Buka Marketplace" />} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
@@ -40,7 +40,7 @@ function LogoutPage({ open, pending, onClose, onConfirm }) {
   );
 }
 
-export function PanelHeader({
+function PanelHeaderComponent({
   eyebrow,
   title,
   userName,
@@ -54,13 +54,18 @@ export function PanelHeader({
   actionClassName,
   notificationClassName,
   mobileNavigation,
+  notificationCount,
+  notificationConnected,
+  onNotificationClick,
 }) {
   const initial = userName?.slice(0, 1)?.toUpperCase() || "U";
   const center = useNotificationCenter();
   const { logout, loading } = useAuth();
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const unreadCount = center.queueItems.length + center.infoItems.length;
+  const localUnreadCount = center.queueItems.length + center.infoItems.length;
+  const unreadCount = notificationCount ?? localUnreadCount;
+  const hasRealtimeNotification = notificationCount !== undefined;
 
   const confirmLogout = async () => {
     await logout();
@@ -90,9 +95,10 @@ export function PanelHeader({
             {actionHref ? (
               <Link to={actionHref} className={cn("hidden rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-slate-700 transition sm:inline-flex", actionClassName)}>{actionLabel}</Link>
             ) : null}
-            <button type="button" onClick={() => center.setOpen(true)} className={cn("relative flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-600 transition", notificationClassName)} aria-label="Notifikasi">
-              <span className={`material-symbols-outlined text-[20px] ${center.queueItems.length ? "animate-pulse text-amber-600" : ""}`}>{center.queueItems.length ? "notifications_active" : "notifications"}</span>
+            <button type="button" onClick={() => onNotificationClick ? onNotificationClick() : center.setOpen(true)} className={cn("relative flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-600 transition", notificationClassName)} aria-label="Notifikasi">
+              <span className={`material-symbols-outlined text-[20px] ${unreadCount ? "animate-pulse text-amber-600" : ""}`}>{unreadCount ? "notifications_active" : "notifications"}</span>
               {unreadCount ? <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, unreadCount)}</span> : null}
+              {hasRealtimeNotification ? <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-white ${notificationConnected ? "bg-emerald-500" : "bg-amber-500"}`} /> : null}
             </button>
             <button type="button" onClick={() => setLogoutOpen(true)} className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50" aria-label="Buka logout">
               <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white", avatarClassName)}>{initial}</div>
@@ -110,3 +116,5 @@ export function PanelHeader({
     </>
   );
 }
+
+export const PanelHeader = memo(PanelHeaderComponent);

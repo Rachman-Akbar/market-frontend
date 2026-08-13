@@ -5,6 +5,7 @@ import {
   CreditCard,
   Info,
   Landmark,
+  LoaderCircle,
   MapPin,
   ShoppingBag,
   Store,
@@ -127,6 +128,9 @@ export default function CheckoutPage() {
   const [addressId, setAddressId] = useState(null);
   const [shippingId, setShippingId] = useState(PICKUP_OPTION.id);
   const [payment, setPayment] = useState("midtrans");
+  const [orderType, setOrderType] = useState("normal");
+  const [preorderReleaseAt, setPreorderReleaseAt] = useState("");
+  const [bookingExpiresAt, setBookingExpiresAt] = useState("");
   const initialVoucherCode = String(location.state?.voucherCode || "")
     .trim()
     .toUpperCase();
@@ -136,7 +140,9 @@ export default function CheckoutPage() {
   );
   const [error, setError] = useState("");
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
+  const [submitStage, setSubmitStage] = useState("");
+  const isPreviewPage = location.pathname.endsWith("/preview");
   const addresses = addressesQuery.data || [];
   const directItems = useMemo(
     () =>
@@ -370,6 +376,16 @@ export default function CheckoutPage() {
       return false;
     }
 
+    if (orderType === "preorder" && !preorderReleaseAt) {
+      setError("Tentukan tanggal rilis preorder.");
+      return false;
+    }
+
+    if (orderType === "booking" && !bookingExpiresAt) {
+      setError("Tentukan batas waktu booking.");
+      return false;
+    }
+
     if (payment === "tunai_toko" && shipping.courier !== "ambil_sendiri") {
       setError("Bayar tunai di toko hanya tersedia untuk metode ambil sendiri.");
       return false;
@@ -380,12 +396,13 @@ export default function CheckoutPage() {
   };
 
   const handleConfirmOrder = async () => {
-    if (!validateCheckout()) return;
+    if (!validateCheckout() || checkoutSubmitting) return;
 
-    setPreviewOpen(false);
     let order;
 
     try {
+      setCheckoutSubmitting(true);
+      setSubmitStage("creating");
       setError("");
       order = await createOrderMutation.mutateAsync({
         addressId,
@@ -395,9 +412,14 @@ export default function CheckoutPage() {
         service: shipping.service,
         paymentMethod: payment,
         voucherCode: selectedVoucher?.code || null,
+        orderType,
+        preorderReleaseAt: orderType === "preorder" && preorderReleaseAt ? new Date(preorderReleaseAt).toISOString() : null,
+        bookingExpiresAt: orderType === "booking" && bookingExpiresAt ? new Date(bookingExpiresAt).toISOString() : null,
       });
     } catch (requestError) {
       setError(getOrderError(requestError));
+      setCheckoutSubmitting(false);
+      setSubmitStage("");
       return;
     }
 
@@ -414,6 +436,7 @@ export default function CheckoutPage() {
     }
 
     try {
+      setSubmitStage("payment");
       await openMidtransPayment(order, {
         onSuccess: () =>
           navigate(orderRoute, {
@@ -450,6 +473,127 @@ export default function CheckoutPage() {
       });
     }
   };
+
+  if (isPreviewPage) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
+        <div className="mb-6 flex items-center gap-3 text-sm text-slate-500">
+          <button
+            type="button"
+            disabled={checkoutSubmitting}
+            onClick={() => navigate("/checkout", { state: location.state })}
+            className="flex items-center gap-2 rounded-lg px-2 py-1 font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-[#047857] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Kembali ke Checkout
+          </button>
+          <span>/</span>
+          <span className="font-semibold text-[#047857]">Preview Pesanan</span>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#10B981]">Tahap 2 dari 2</p>
+                <h1 className="mt-1 text-2xl font-black text-slate-900">Periksa pesanan sebelum dikirim</h1>
+                <p className="mt-1 text-sm leading-6 text-slate-500">Pastikan produk, alamat, pengiriman, pembayaran, dan voucher sudah benar.</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[#047857]">Checkout selesai diisi</span>
+                <span className="rounded-full bg-[#10B981] px-3 py-1.5 text-white">Preview</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-5 p-5 sm:p-7 md:grid-cols-2">
+            <section className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Penerima</p>
+              <p className="mt-2 font-bold text-slate-900">{shipping?.courier === "ambil_sendiri" ? "Ambil sendiri di toko" : selectedAddress?.recipientName || "-"}</p>
+              <p className="mt-1 text-sm leading-5 text-slate-600">{shipping?.courier === "ambil_sendiri" ? "Tidak menggunakan alamat pengiriman." : selectedAddress ? formatAddress(selectedAddress) : "-"}</p>
+            </section>
+
+            <section className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Pengiriman dan Pembayaran</p>
+              <p className="mt-2 font-bold text-slate-900">{shipping?.courier_label || shipping?.courier} {shipping?.service}</p>
+              <p className="mt-1 text-sm text-slate-600">{PAYMENT_METHODS.find((method) => method.id === payment)?.label || payment}</p>
+              <p className="mt-2 text-xs font-black uppercase text-[#047857]">{orderType}</p>
+              {orderType === "preorder" && preorderReleaseAt ? <p className="mt-1 text-xs text-slate-500">Rilis {new Date(preorderReleaseAt).toLocaleString("id-ID")}</p> : null}
+              {orderType === "booking" && bookingExpiresAt ? <p className="mt-1 text-xs text-slate-500">Batas {new Date(bookingExpiresAt).toLocaleString("id-ID")}</p> : null}
+            </section>
+
+            <section className="rounded-xl border border-slate-200 p-4 md:col-span-2">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Produk</p>
+              <div className="mt-3 divide-y divide-slate-100">
+                {selectedItems.map((item) => (
+                  <div key={`preview-${item.productId}-${item.variantId}`} className="flex items-center gap-3 py-3">
+                    {item.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-12 w-12 rounded-lg object-cover" /> : null}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-900">{item.productName}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{item.variantLabel || "Varian utama"} ×{item.quantity}</p>
+                    </div>
+                    <strong className="text-sm text-slate-900">{formatPrice(item.price * item.quantity)}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-xl bg-slate-50 p-4 md:col-span-2">
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                <div className="flex justify-between gap-3"><span className="text-slate-500">Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
+                <div className="flex justify-between gap-3"><span className="text-slate-500">Ongkir</span><strong>{formatPrice(shippingPrice)}</strong></div>
+                <div className="flex justify-between gap-3"><span className="text-slate-500">Voucher</span><strong>{selectedVoucher?.code || "Tidak digunakan"}</strong></div>
+                <div className="flex justify-between gap-3"><span className="text-slate-500">Diskon</span><strong className="text-[#047857]">-{formatPrice(voucherDiscount)}</strong></div>
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
+                <span className="font-black text-slate-900">Total Pembayaran</span>
+                <span className="text-xl font-black text-[#047857]">{formatPrice(total)}</span>
+              </div>
+            </section>
+          </div>
+
+          {error ? (
+            <div className="mx-5 mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-600 sm:mx-7">
+              {error}
+            </div>
+          ) : null}
+
+          {checkoutSubmitting ? (
+            <div className="mx-5 mb-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-[#047857] sm:mx-7">
+              <LoaderCircle size={18} className="shrink-0 animate-spin" />
+              <span>{submitStage === "payment" ? "Pesanan berhasil dibuat. Menyiapkan halaman pembayaran..." : "Sedang membuat pesanan. Mohon tunggu sebentar..."}</span>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+            <Button
+              variant="outline"
+              disabled={checkoutSubmitting}
+              onClick={() => navigate("/checkout", { state: location.state })}
+            >
+              Kembali Perbaiki
+            </Button>
+            <Button
+              disabled={checkoutSubmitting}
+              onClick={handleConfirmOrder}
+              className="min-w-[190px]"
+            >
+              {checkoutSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <LoaderCircle size={17} className="animate-spin" />
+                  {submitStage === "payment" ? "Membuka Pembayaran..." : "Membuat Pesanan..."}
+                </span>
+              ) : payment === "midtrans" ? (
+                "Konfirmasi & Bayar"
+              ) : (
+                "Konfirmasi Pesanan"
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
@@ -637,6 +781,24 @@ export default function CheckoutPage() {
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
             <h2 className="flex items-center gap-2 font-bold text-slate-900">
+              <ShoppingBag size={18} className="text-[#10B981]" />
+              Tipe Pesanan
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">Normal order diproses langsung, preorder menunggu tanggal rilis, dan booking memiliki batas pembayaran.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {[{ id: "normal", label: "Normal" }, { id: "preorder", label: "Preorder" }, { id: "booking", label: "Booking" }].map((option) => (
+                <label key={option.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${orderType === option.id ? "border-[#10B981] bg-emerald-50" : "border-slate-200"}`}>
+                  <input type="radio" checked={orderType === option.id} onChange={() => setOrderType(option.id)} className="accent-[#10B981]" />
+                  <span className="text-sm font-bold text-slate-800">{option.label}</span>
+                </label>
+              ))}
+            </div>
+            {orderType === "preorder" ? <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">Tanggal Rilis Preorder<input type="datetime-local" min={new Date().toISOString().slice(0, 16)} value={preorderReleaseAt} onChange={(event) => setPreorderReleaseAt(event.target.value)} className="h-10 rounded-md border border-slate-300 px-3 text-sm" required /></label> : null}
+            {orderType === "booking" ? <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">Batas Waktu Booking<input type="datetime-local" min={new Date().toISOString().slice(0, 16)} value={bookingExpiresAt} onChange={(event) => setBookingExpiresAt(event.target.value)} className="h-10 rounded-md border border-slate-300 px-3 text-sm" required /></label> : null}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 font-bold text-slate-900">
               <CreditCard size={18} className="text-[#10B981]" />
               Metode Pembayaran
             </h2>
@@ -794,11 +956,13 @@ export default function CheckoutPage() {
           <Button
             disabled={!shipping}
             onClick={() => {
-              if (validateCheckout()) setPreviewOpen(true);
+              if (validateCheckout()) {
+                navigate("/checkout/preview", { state: location.state });
+              }
             }}
             className="mt-5 w-full"
           >
-            Preview Pesanan
+            Lanjut ke Preview
           </Button>
           <p className="mt-3 text-center text-[11px] leading-5 text-slate-500">
             Pesanan tetap tersimpan jika popup pembayaran Midtrans ditutup atau
@@ -806,72 +970,6 @@ export default function CheckoutPage() {
           </p>
         </aside>
       </div>
-
-      {previewOpen ? (
-        <div className="fixed inset-0 z-[120] overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-sm">
-          <div className="mx-auto my-6 w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#10B981]">Tahap Preview</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Periksa pesanan sebelum dikirim</h2>
-                <p className="mt-1 text-sm text-slate-500">Pastikan produk, alamat, pengiriman, pembayaran, dan voucher sudah benar.</p>
-              </div>
-              <button type="button" onClick={() => setPreviewOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Tutup preview">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <div className="grid gap-5 p-5 sm:p-6 md:grid-cols-2">
-              <section className="rounded-xl border border-slate-200 p-4">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Penerima</p>
-                <p className="mt-2 font-bold text-slate-900">{shipping?.courier === "ambil_sendiri" ? "Ambil sendiri di toko" : selectedAddress?.recipientName || "-"}</p>
-                <p className="mt-1 text-sm leading-5 text-slate-600">{shipping?.courier === "ambil_sendiri" ? "Tidak menggunakan alamat pengiriman." : selectedAddress ? formatAddress(selectedAddress) : "-"}</p>
-              </section>
-              <section className="rounded-xl border border-slate-200 p-4">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Pengiriman dan Pembayaran</p>
-                <p className="mt-2 font-bold text-slate-900">{shipping?.courier_label || shipping?.courier} {shipping?.service}</p>
-                <p className="mt-1 text-sm text-slate-600">{PAYMENT_METHODS.find((method) => method.id === payment)?.label || payment}</p>
-              </section>
-
-              <section className="md:col-span-2 rounded-xl border border-slate-200 p-4">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Produk</p>
-                <div className="mt-3 divide-y divide-slate-100">
-                  {selectedItems.map((item) => (
-                    <div key={`preview-${item.productId}-${item.variantId}`} className="flex items-center gap-3 py-3">
-                      {item.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-12 w-12 rounded-lg object-cover" /> : null}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-slate-900">{item.productName}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{item.variantLabel || "Varian utama"} ×{item.quantity}</p>
-                      </div>
-                      <strong className="text-sm text-slate-900">{formatPrice(item.price * item.quantity)}</strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="md:col-span-2 rounded-xl bg-slate-50 p-4">
-                <div className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">Ongkir</span><strong>{formatPrice(shippingPrice)}</strong></div>
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">Voucher</span><strong>{selectedVoucher?.code || "Tidak digunakan"}</strong></div>
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">Diskon</span><strong className="text-[#047857]">-{formatPrice(voucherDiscount)}</strong></div>
-                </div>
-                <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-                  <span className="font-black text-slate-900">Total Pembayaran</span>
-                  <span className="text-xl font-black text-[#047857]">{formatPrice(total)}</span>
-                </div>
-              </section>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-              <Button variant="outline" onClick={() => setPreviewOpen(false)}>Kembali Perbaiki</Button>
-              <Button disabled={createOrderMutation.isPending} onClick={handleConfirmOrder}>
-                {createOrderMutation.isPending ? "Membuat Pesanan..." : payment === "midtrans" ? "Konfirmasi & Bayar" : "Konfirmasi Pesanan"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <InstantAddressModal
         open={showAddressModal}

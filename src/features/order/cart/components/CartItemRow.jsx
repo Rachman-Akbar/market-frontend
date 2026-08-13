@@ -1,4 +1,5 @@
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { LoaderCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useCart } from "@/features/order/cart/context/CartContext";
 import { formatPrice } from "@/shared/utils/utils";
 
 function getItemKey(item) {
@@ -13,8 +14,11 @@ export function CartItemRow({
   onIncrease,
   onRemove,
 }) {
+  const { syncingVariantIds = [] } = useCart();
   const itemKey = getItemKey(item);
   const stock = item.stock ?? item.availableStock ?? null;
+  const syncing = syncingVariantIds.includes(Number(item.variantId || 0));
+  const atMaximum = stock !== null && Number(stock) > 0 && item.quantity >= stock;
 
   return (
     <div className="flex gap-4 py-4 group">
@@ -62,30 +66,40 @@ export function CartItemRow({
           </span>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center rounded-full border border-[#bccabc] bg-[#f1f4f8] p-1">
+            <div
+              aria-busy={syncing}
+              className="flex h-10 items-center overflow-hidden rounded-xl border border-[#d9e1db] bg-white shadow-sm transition-shadow duration-150 focus-within:ring-2 focus-within:ring-emerald-100"
+            >
               <button
                 type="button"
                 onClick={() => onDecrease(item)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[#065F46] transition hover:bg-[#ebeef2]"
+                className="flex h-full w-10 touch-manipulation items-center justify-center text-[#065F46] transition-all duration-150 hover:bg-emerald-50 active:scale-90 active:bg-emerald-100"
+                aria-label="Kurangi jumlah"
               >
-                <Minus size={16} />
+                <Minus size={16} strokeWidth={2.4} />
               </button>
-              <span className="min-w-[48px] px-3 text-center text-sm font-bold text-[#181c1f]">
+              <span className="flex min-w-[54px] items-center justify-center gap-1 px-2 text-center text-sm font-bold tabular-nums text-[#181c1f] transition-all duration-150">
                 {item.quantity}
+                {syncing ? (
+                  <LoaderCircle size={12} className="animate-spin text-[#10B981]" />
+                ) : null}
               </span>
               <button
                 type="button"
+                disabled={atMaximum}
                 onClick={() => onIncrease(item)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[#065F46] transition hover:bg-[#ebeef2]"
+                className="flex h-full w-10 touch-manipulation items-center justify-center text-[#065F46] transition-all duration-150 hover:bg-emerald-50 active:scale-90 active:bg-emerald-100 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                aria-label="Tambah jumlah"
               >
-                <Plus size={16} />
+                <Plus size={16} strokeWidth={2.4} />
               </button>
             </div>
 
             <button
               type="button"
               onClick={() => onRemove(item)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-[#ba1a1a] transition hover:bg-[#ffdad6]"
+              className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-xl text-[#ba1a1a] transition-all duration-150 hover:bg-[#ffdad6] active:scale-90"
+              aria-label="Hapus dari cart"
             >
               <Trash2 size={16} />
             </button>

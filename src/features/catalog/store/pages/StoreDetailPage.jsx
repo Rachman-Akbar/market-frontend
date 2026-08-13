@@ -5,6 +5,8 @@ import { StoreBannerCarousel } from "@/features/catalog/store/components/StoreBa
 import { getStorefrontError, useStoreBanners, useStoreById, useStoreBySlug, useStoreProducts } from "@/features/catalog/store/services/storefrontService";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { usePublicShowcases } from "@/features/advanced/services/advancedMarketplaceService";
+import { normalizeProduct } from "@/features/catalog/product/services/productService";
 
 export default function StoreDetailPage({ storeOverride = null, embedded = false }) {
   const { slug, id } = useParams();
@@ -17,6 +19,8 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
   const storeQuery = slug ? storeBySlugQuery : storeByIdQuery;
   const store = storeOverride || storeQuery.data;
   const bannersQuery = useStoreBanners(store?.id);
+  const showcasesQuery = usePublicShowcases(store?.id);
+  const showcases = (showcasesQuery.data?.rows || []).map((showcase) => ({ ...showcase, products: (showcase.products || []).map((product) => normalizeProduct({ ...product, store })) }));
   const productsQuery = useStoreProducts(store?.id, {
     per_page: 24,
     ...(deferredSearch ? { search: deferredSearch } : {}),
@@ -94,6 +98,10 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
           </div>
         </div>
       </section>
+
+      {showcases.length ? <section className="space-y-8">
+        {showcases.map((showcase) => <div key={showcase.id}><div className="mb-4"><div className="flex items-center gap-2"><h2 className="text-xl font-extrabold text-slate-900">{showcase.name}</h2><span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase text-emerald-700">Etalase</span></div>{showcase.description ? <p className="mt-1 text-sm text-slate-500">{showcase.description}</p> : null}</div>{showcase.products?.length ? <ProductGrid products={showcase.products} /> : <p className="border border-slate-200 bg-white p-6 text-sm text-slate-500">Produk etalase belum tersedia.</p>}</div>)}
+      </section> : null}
 
       <section>
         <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
