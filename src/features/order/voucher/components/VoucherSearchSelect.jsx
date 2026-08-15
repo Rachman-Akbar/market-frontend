@@ -180,12 +180,6 @@ export default function VoucherSearchSelect({
 
       {open ? (
         <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-          {loading ? (
-            <p className="px-3 py-5 text-center text-xs text-slate-500">
-              Memuat voucher...
-            </p>
-          ) : null}
-
           {!loading && error ? (
             <p className="px-3 py-5 text-center text-xs text-slate-500">
               Voucher sementara belum dapat dimuat.

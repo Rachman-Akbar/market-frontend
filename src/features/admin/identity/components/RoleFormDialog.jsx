@@ -151,7 +151,7 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {role && onDelete ? <button type="button" onClick={() => onDelete(role)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">{mutation.isPending ? "Menyimpan..." : "Simpan Role"}</button>
+          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Role"</button>
         </div>
       </form>
     </CrudDialog>

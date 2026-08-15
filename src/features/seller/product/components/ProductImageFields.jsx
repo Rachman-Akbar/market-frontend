@@ -64,8 +64,8 @@ export const ProductImageFields = memo(function ProductImageFields({ images, err
           onClick={() => inputRef.current?.click()}
           className="inline-flex h-10 items-center justify-center gap-2 border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
         >
-          <span className={`material-symbols-outlined text-[18px] ${uploading ? "animate-spin" : ""}`}>{uploading ? "progress_activity" : "upload"}</span>
-          {uploading ? "Mengunggah..." : "Pilih Gambar"}
+          <span className="material-symbols-outlined text-[18px]">upload</span>
+          Pilih Gambar
         </button>
       </div>
       {error || uploadError ? <p className="text-xs font-semibold text-red-600">{error || uploadError}</p> : null}

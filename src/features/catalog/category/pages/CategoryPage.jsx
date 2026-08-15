@@ -268,9 +268,6 @@ export default function CategoryPage() {
               </div>
             </div>
 
-            {loading && (
-              <div className="text-sm text-gray-500 py-8">Memuat produk...</div>
-            )}
             {error && <div className="text-sm text-red-500 py-8">{error}</div>}
             {!loading && !error && !products.length && (
               <div className="text-sm text-gray-500 py-8">
@@ -287,9 +284,9 @@ export default function CategoryPage() {
 
             <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
               {productsQuery.isFetchingNextPage
-                ? "Memuat produk berikutnya..."
+                ? "Lihat produk berikutnya"
                 : productsQuery.hasNextPage
-                  ? "Geser ke bawah untuk memuat produk berikutnya"
+                  ? "Geser ke bawah untuk melihat produk berikutnya"
                   : products.length
                     ? "Semua produk sudah ditampilkan"
                     : ""}

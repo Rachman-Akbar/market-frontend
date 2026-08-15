@@ -5,10 +5,9 @@ export const AsyncState = memo(function AsyncState({
   error,
   empty,
   emptyText = "Data belum tersedia.",
-  loadingText = "Memuat data...",
 }) {
   if (loading) {
-    return <p className="py-8 text-sm text-slate-500">{loadingText}</p>;
+    return null;
   }
 
   if (error) {

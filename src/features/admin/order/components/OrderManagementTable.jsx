@@ -1,7 +1,10 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { StatusBadge } from "@/shared/components/feedback/StatusBadge";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
+import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
+import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
+import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { formatPrice } from "@/shared/utils/utils";
 import { formatTableValue } from "@/shared/utils/tableData";
 import { toTitleCase } from "@/shared/utils/textFormatter";
@@ -25,55 +28,23 @@ export const ORDER_TABLE_COLUMNS = [
   { key: "status", label: "Status" },
 ];
 
-export const OrderManagementTable = memo(function OrderManagementTable({
-  rows,
-  portal,
-  pendingId,
-  onStatusChange,
-  columns = ORDER_TABLE_COLUMNS,
-  visibleSet,
-  selectionEnabled = false,
-  selectedIds = new Set(),
-  allSelected = false,
-  onToggleRow,
-  onToggleAll,
-}) {
-  const visible = (key) => !visibleSet || visibleSet.has(key);
-  const rawColumns = columns.filter((column) => column.rawKey && visible(column.key));
-  return (
-    <div className="overflow-hidden bg-white ring-1 ring-slate-200">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-100 text-xs font-extrabold text-slate-600">
-            <tr>
-              <TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />
-              {visible("number") ? <th className="px-4 py-3">Nomor</th> : null}
-              {portal === "admin" && visible("store") ? <th className="px-4 py-3">Toko</th> : null}
-              {visible("customer") ? <th className="px-4 py-3">Customer</th> : null}
-              {visible("total") ? <th className="px-4 py-3">Total</th> : null}
-              {visible("payment") ? <th className="px-4 py-3">Pembayaran</th> : null}
-              {visible("tracking") ? <th className="px-4 py-3">Resi</th> : null}
-              {visible("status") ? <th className="px-4 py-3">Status</th> : null}
-              {rawColumns.map((column) => <th key={column.key} className="whitespace-nowrap px-4 py-3">{column.label}</th>)}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rows.map((row) => (
-              <tr key={`${row.id}:${row.subOrderNumber}`} className="hover:bg-slate-50">
-                <TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />
-                {visible("number") ? <td className="px-4 py-3"><p className="font-extrabold text-slate-900">{row.subOrderNumber || row.orderNumber || `#${row.id}`}</p><p className="mt-0.5 text-xs text-slate-500">{row.createdAt ? new Date(row.createdAt).toLocaleString("id-ID") : "-"}</p></td> : null}
-                {portal === "admin" && visible("store") ? <td className="px-4 py-3 font-bold text-slate-700">{toTitleCase(row.storeName) || "-"}</td> : null}
-                {visible("customer") ? <td className="px-4 py-3 text-slate-600">{toTitleCase(row.customerName) || "-"}</td> : null}
-                {visible("total") ? <td className="px-4 py-3 font-extrabold text-slate-800">{formatPrice(row.total)}</td> : null}
-                {visible("payment") ? <td className="px-4 py-3"><StatusBadge status={row.paymentStatus} /></td> : null}
-                {visible("tracking") ? <td className="px-4 py-3 text-slate-600">{row.trackingNumber || "-"}</td> : null}
-                {visible("status") ? <td className="px-4 py-3"><div className="w-40"><SearchableSelect value={row.status} disabled={pendingId === row.id} onChange={(nextValue) => onStatusChange(row, nextValue)} options={STATUS_OPTIONS} clearable={false} buttonClassName="h-9 text-xs" /></div></td> : null}
-                {rawColumns.map((column) => <td key={column.key} className="max-w-72 truncate px-4 py-3 text-slate-600">{formatTableValue(row.raw?.[column.rawKey])}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+const widths = { number: 220, store: 210, customer: 200, total: 160, payment: 160, tracking: 200, status: 190 };
+
+export const OrderManagementTable = memo(function OrderManagementTable({ rows, portal, pendingId, onStatusChange, columns = ORDER_TABLE_COLUMNS, visibleSet, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll }) {
+  const activeColumns = useMemo(() => columns.filter((column) => (!visibleSet || visibleSet.has(column.key)) && (column.key !== "store" || portal === "admin")).map((column) => ({ ...column, width: widths[column.key] || 180 })), [columns, portal, visibleSet]);
+  const layout = useTableColumnLayout({ storageKey: `${portal}.orders.management`, columns: activeColumns });
+  const tableWidth = layout.totalWidth + (selectionEnabled ? 44 : 0);
+
+  const renderCell = (column, row) => {
+    if (column.rawKey) return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{formatTableValue(row.raw?.[column.rawKey])}</td>;
+    if (column.key === "number") return <td key={column.key} className="px-4 py-3"><p className="truncate font-extrabold text-slate-900">{row.subOrderNumber || row.orderNumber || `#${row.id}`}</p><p className="mt-0.5 truncate text-xs text-slate-500">{row.createdAt ? new Date(row.createdAt).toLocaleString("id-ID") : "-"}</p></td>;
+    if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(row.storeName) || "-"}</td>;
+    if (column.key === "customer") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{toTitleCase(row.customerName) || "-"}</td>;
+    if (column.key === "total") return <td key={column.key} className="px-4 py-3 font-extrabold text-slate-800">{formatPrice(row.total)}</td>;
+    if (column.key === "payment") return <td key={column.key} className="px-4 py-3"><StatusBadge status={row.paymentStatus} /></td>;
+    if (column.key === "tracking") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{row.trackingNumber || "-"}</td>;
+    return <td key={column.key} className="px-4 py-3"><div className="w-full" onClick={(event) => event.stopPropagation()}><SearchableSelect value={row.status} disabled={pendingId === row.id} onChange={(nextValue) => onStatusChange(row, nextValue)} options={STATUS_OPTIONS} clearable={false} buttonClassName="h-9 text-xs" /></div></td>;
+  };
+
+  return <div className="bg-white ring-1 ring-slate-200"><TableLayoutHint onReset={layout.resetLayout} /><div className="overflow-x-auto"><table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 820), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map((column) => <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key}>{column.label}</InteractiveTableHeader>)}</tr></thead><tbody className="divide-y divide-slate-100">{rows.map((row) => <tr key={`${row.id}:${row.subOrderNumber}`} className="hover:bg-slate-50"><TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />{layout.orderedColumns.map((column) => renderCell(column, row))}</tr>)}</tbody></table></div></div>;
 });

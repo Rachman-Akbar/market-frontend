@@ -87,8 +87,8 @@ export const ImageFilePicker = memo(function ImageFilePicker({
         onClick={() => inputRef.current?.click()}
         className="flex h-10 items-center gap-2 border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
       >
-        <span className={`material-symbols-outlined text-[18px] ${uploading ? "animate-spin" : ""}`}>{uploading ? "progress_activity" : "upload"}</span>
-        {uploading ? "Mengunggah..." : label}
+        <span className="material-symbols-outlined text-[18px]">upload</span>
+        {label}
       </button>
       <div className={cn("relative overflow-hidden bg-slate-100", aspectClassName)}>
         {previewUrl ? (

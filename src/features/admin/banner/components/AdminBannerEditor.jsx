@@ -75,7 +75,7 @@ export function AdminBannerEditor({ open, entity, stores, onClose, onSaved, onDe
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-5 text-sm font-extrabold text-white disabled:opacity-60">{mutation.isPending ? "Menyimpan..." : "Simpan"}</button>
+          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-5 text-sm font-extrabold text-white disabled:opacity-60">"Simpan"</button>
         </div>
       </form>
     </CrudDialog>

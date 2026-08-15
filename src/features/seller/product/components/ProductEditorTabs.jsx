@@ -5,6 +5,7 @@ const TABS = [
   { id: "variant", label: "Variant", icon: "tune" },
   { id: "images", label: "Gambar", icon: "image" },
   { id: "stock", label: "Stok", icon: "inventory_2" },
+  { id: "costing", label: "HPP & Harga Jual", icon: "calculate" },
 ];
 
 export const ProductEditorTabs = memo(function ProductEditorTabs({ activeTab, onChange, errorTabs = [] }) {

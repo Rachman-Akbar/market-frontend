@@ -3,6 +3,8 @@ import { useCustomers } from "@/features/advanced/services/advancedMarketplaceSe
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Pagination } from "@/shared/components/ui/Pagination";
+import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
+import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 
 function money(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -15,6 +17,7 @@ export default function CustomersPage() {
   const listQuery = useCustomers({ page, per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}) });
   const rows = listQuery.data?.rows || [];
   const meta = listQuery.data?.meta || {};
+  const spreadsheet = useSpreadsheetWorkspace({ module: "customer", label: "Pelanggan", allowImport: false, allowBulkDelete: false });
   const columns = useMemo(() => [
     { key: "name", label: "Nama" },
     { key: "email", label: "Email" },
@@ -24,10 +27,18 @@ export default function CustomersPage() {
     { key: "is_active", label: "Status", render: (row) => row.is_active ? "Aktif" : "Nonaktif" },
   ], []);
 
-  return (
-    <ModuleFrame title="Pelanggan" subtitle="Daftar otomatis dibentuk dari buyer yang pernah bertransaksi pada toko seller." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()}>
-      <DataGrid columns={columns} rows={rows} emptyText={listQuery.isLoading ? "Memuat pelanggan..." : "Belum ada pelanggan yang pernah membeli."} />
+  return <>
+    <ModuleFrame
+      title="Pelanggan"
+      subtitle="Daftar dibentuk dari transaksi buyer yang benar-benar terjadi pada toko. Pelanggan dapat diexport, tetapi tidak diimport agar tidak membuat relasi transaksi palsu."
+      query={query}
+      onQueryChange={setQuery}
+      onRefresh={() => listQuery.refetch()}
+      bulkActions={spreadsheet.actions}
+    >
+      <DataGrid storageKey="seller.customers" columns={columns} rows={rows} emptyText={listQuery.isLoading ? "" : "Belum ada pelanggan yang pernah membeli."} />
       {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
     </ModuleFrame>
-  );
+    <SpreadsheetOperationPanel workspace={spreadsheet} />
+  </>;
 }

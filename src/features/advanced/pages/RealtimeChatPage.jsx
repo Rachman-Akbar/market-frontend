@@ -42,14 +42,14 @@ function conversationSubtitle(row, activeRole) {
 function connectionLabel(status) {
   const labels = {
     connected: "Real-time aktif",
-    connecting: "Menghubungkan real-time",
+    connecting: "Polling aktif",
     unavailable: "Real-time tidak tersedia, polling aktif",
     disconnected: "Real-time terputus, polling aktif",
     failed: "Real-time gagal, polling aktif",
     error: "Real-time bermasalah, polling aktif",
     not_configured: "Reverb belum dikonfigurasi, polling aktif",
     unauthenticated: "Sesi chat belum aktif",
-    idle: "Menyiapkan koneksi",
+    idle: "Polling aktif",
   };
   return labels[status] || "Polling aktif";
 }
@@ -324,7 +324,7 @@ export default function RealtimeChatPage() {
                 value={startForm.buyer_id}
                 onChange={(value) => setStartForm((current) => ({ ...current, buyer_id: value }))}
                 options={customerOptions}
-                placeholder={customersQuery.isLoading ? "Memuat buyer..." : "Pilih buyer"}
+                placeholder="Pilih buyer"
                 searchPlaceholder="Cari nama atau email buyer"
               />
             </Field>
@@ -367,7 +367,7 @@ export default function RealtimeChatPage() {
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" className="h-9" />
           </div>
           <div className="max-h-[550px] overflow-y-auto">
-            {listQuery.isLoading ? <p className="p-5 text-sm text-slate-500">Memuat percakapan...</p> : null}
+            
             {!listQuery.isLoading && !conversations.length ? <p className="p-5 text-sm text-slate-500">Percakapan belum tersedia.</p> : null}
             {conversations.map((row) => (
               <button key={row.id} type="button" onClick={() => selectConversation(row.id)} className={`w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${Number(selectedId) === Number(row.id) ? "border-l-2 border-l-orange-500 bg-orange-50" : ""}`}>
@@ -388,7 +388,7 @@ export default function RealtimeChatPage() {
                 <p className="mt-1 text-xs text-slate-500">{conversationSubtitle(active, activeRole)}</p>
               </header>
               <div className="flex-1 space-y-3 overflow-y-auto bg-slate-100 p-5">
-                {detailQuery.isLoading && !messages.length ? <p className="text-sm text-slate-500">Memuat pesan...</p> : null}
+                
                 {messages.map((item) => {
                   const mine = String(item.sender_id) === String(user?.id);
                   return (
@@ -411,7 +411,7 @@ export default function RealtimeChatPage() {
               ) : (
                 <form onSubmit={send} className="flex gap-2 border-t border-slate-200 bg-white p-4">
                   <Input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Tulis pesan" required autoComplete="off" />
-                  <Button type="submit" disabled={sendMutation.isPending || !message.trim()}>{sendMutation.isPending ? "Mengirim..." : "Kirim"}</Button>
+                  <Button type="submit" disabled={sendMutation.isPending || !message.trim()}>Kirim</Button>
                 </form>
               )}
             </>

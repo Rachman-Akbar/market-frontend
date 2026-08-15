@@ -147,7 +147,7 @@ export const SearchableSelect = memo(function SearchableSelect({
           <div className="max-h-64 overflow-y-auto py-1" role="listbox">
             {canCreate ? (
               <button type="button" disabled={creating || creatingLocal} onClick={createOption} className="mb-1 flex w-full items-start gap-2 border-b border-emerald-100 bg-emerald-50 px-3 py-3 text-left text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-60">
-                <span className={`material-symbols-outlined mt-0.5 text-[18px] ${(creating || creatingLocal) ? "animate-spin" : ""}`}>{(creating || creatingLocal) ? "progress_activity" : "add_circle"}</span>
+                <span className={`material-symbols-outlined mt-0.5 text-[18px] ${(creating || creatingLocal) ? "" : ""}`}>{(creating || creatingLocal) ? "add_circle" : "add_circle"}</span>
                 <span className="min-w-0 flex-1"><strong className="block">{createLabel ? createLabel(query.trim()) : `Data tidak ditemukan, tambahkan “${query.trim()}” sebagai data baru`}</strong><span className="mt-0.5 block text-xs font-medium text-emerald-700">Nama akan dibersihkan dan dicek ulang agar tidak membuat data ganda.</span></span>
               </button>
             ) : null}

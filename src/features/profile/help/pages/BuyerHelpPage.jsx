@@ -222,7 +222,7 @@ export default function BuyerHelpPage() {
 
             <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-5">
               <button type="submit" disabled={createMutation.isPending || contextQuery.isLoading} className="inline-flex h-11 items-center gap-2 rounded-full bg-[#10B981] px-6 text-sm font-semibold text-white hover:bg-[#059669] disabled:opacity-50">
-                <Send size={16} /> {createMutation.isPending ? "Mengirim..." : "Kirim ke Admin"}
+                <Send size={16} /> Kirim ke Admin
               </button>
               <button type="button" onClick={backToList} className={profileLayout.secondaryButton}>Batal</button>
             </div>
@@ -242,7 +242,6 @@ export default function BuyerHelpPage() {
           </button>
 
           {message ? <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">{message}</div> : null}
-          {ticketQuery.isLoading ? <div className="h-56 animate-pulse rounded-2xl bg-slate-100" /> : null}
           {ticketQuery.error ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{advancedError(ticketQuery.error)}</div> : null}
 
           {ticket ? (
@@ -281,7 +280,7 @@ export default function BuyerHelpPage() {
                 </label>
                 <div className="mt-3 flex justify-end">
                   <button type="submit" disabled={replyMutation.isPending} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#10B981] px-5 text-sm font-semibold text-white hover:bg-[#059669] disabled:opacity-50">
-                    <Send size={15} /> {replyMutation.isPending ? "Mengirim..." : "Kirim Balasan"}
+                    <Send size={15} /> Kirim Balasan
                   </button>
                 </div>
               </form>
@@ -320,11 +319,10 @@ export default function BuyerHelpPage() {
             {[{ value: "", label: "Semua" }, { value: "open", label: "Menunggu" }, { value: "in_progress", label: "Ditangani" }, { value: "resolved", label: "Selesai" }].map((item) => (
               <button key={item.value || "all"} type="button" onClick={() => { setStatus(item.value); setPage(1); }} className={`h-9 shrink-0 rounded-full px-4 text-xs font-semibold ${status === item.value ? "bg-[#10B981] text-white" : "bg-white text-slate-500 ring-1 ring-slate-200"}`}>{item.label}</button>
             ))}
-            <button type="button" onClick={() => listQuery.refetch()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200" aria-label="Perbarui"><RefreshCw size={15} className={listQuery.isFetching ? "animate-spin" : ""} /></button>
+            <button type="button" onClick={() => listQuery.refetch()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200" aria-label="Perbarui"><RefreshCw size={15}  /></button>
           </div>
         </div>
 
-        {listQuery.isLoading ? <div className="space-y-3 py-6">{[1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-2xl bg-slate-100" />)}</div> : null}
         {listQuery.error ? <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{advancedError(listQuery.error)}</div> : null}
 
         {!listQuery.isLoading && !listQuery.error ? (

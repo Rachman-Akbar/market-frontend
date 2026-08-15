@@ -134,7 +134,7 @@ export default function PromotionPaymentsPage() {
           filters={<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid columns={columns} rows={rows} emptyText={listQuery.isLoading ? "Memuat pembayaran..." : "Pembayaran promosi belum tersedia."} actions={admin ? (row) => row.status === "pending" ? <div className="flex justify-end gap-1"><Button size="sm" onClick={() => openReview(row, "approve")}>Setujui</Button><Button size="sm" variant="destructive" onClick={() => openReview(row, "reject")}>Tolak</Button></div> : <span className="text-xs font-bold text-slate-500">Sudah ditinjau</span> : undefined} />
+          <DataGrid columns={columns} rows={rows} emptyText={listQuery.isLoading ? "" : "Pembayaran promosi belum tersedia."} actions={admin ? (row) => row.status === "pending" ? <div className="flex justify-end gap-1"><Button size="sm" onClick={() => openReview(row, "approve")}>Setujui</Button><Button size="sm" variant="destructive" onClick={() => openReview(row, "reject")}>Tolak</Button></div> : <span className="text-xs font-bold text-slate-500">Sudah ditinjau</span> : undefined} />
           {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
         </ModuleFrame>
       ) : null}

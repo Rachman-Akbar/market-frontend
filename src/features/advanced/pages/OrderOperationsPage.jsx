@@ -84,7 +84,7 @@ export default function OrderOperationsPage() {
         <DataGrid
           columns={columns}
           rows={rows}
-          emptyText={listQuery.isLoading ? "Memuat pesanan..." : "Pesanan belum tersedia."}
+          emptyText={listQuery.isLoading ? "" : "Pesanan belum tersedia."}
           selectionEnabled={selection.enabled}
           selectedIds={selection.selectedIds}
           allSelected={selection.allSelected}

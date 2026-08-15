@@ -50,6 +50,9 @@ export default function SellerProductsPage() {
   const columnVisibility = useColumnVisibility(columns, "seller-products");
   const selection = useTableSelection(rows);
   const spreadsheet = useSpreadsheetWorkspace({ module: "product", label: "Product", selectedRows: selection.selectedRows, onCompleted: () => { selection.clear(); productsQuery.refetch(); } });
+  const hppSpreadsheet = useSpreadsheetWorkspace({ module: "product-costing", label: "HPP & Harga Jual", allowBulkDelete: false, onCompleted: () => productsQuery.refetch() });
+  const spreadsheetActions = [...spreadsheet.actions, ...hppSpreadsheet.actions];
+  const activeSpreadsheet = spreadsheet.activeOperation?.payload?.module === "product-costing" ? hppSpreadsheet : spreadsheet;
   const hasActiveFilters = useMemo(() => JSON.stringify(columnFilters) !== JSON.stringify(EMPTY_COLUMN_FILTERS), [columnFilters]);
 
   useEffect(() => setPage(1), [columnFilters, deferredQuery, sort]);
@@ -77,7 +80,7 @@ export default function SellerProductsPage() {
   };
 
   return (
-    <SellerPanelShell title="Produk Toko" subtitle="Kelola product, gambar, harga, stok, status, import, export, dan penghapusan multiple.">
+    <SellerPanelShell title="Produk Toko" subtitle="Kelola product, variant, gambar, harga, status, serta import/export. Saldo stok dikelola terpisah melalui Persediaan.">
       {editor.isListActive ? (
         <>
           <EntityToolbar
@@ -91,7 +94,7 @@ export default function SellerProductsPage() {
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}
-            bulkActions={spreadsheet.actions}
+            bulkActions={spreadsheetActions}
             columns={columns}
             visibleColumns={columnVisibility.visibleKeys}
             onToggleColumn={columnVisibility.toggleColumn}
@@ -128,7 +131,7 @@ export default function SellerProductsPage() {
         </>
       ) : null}
 
-      <SpreadsheetOperationPanel workspace={spreadsheet} />
+      <SpreadsheetOperationPanel workspace={activeSpreadsheet} />
 
       <SellerProductEditor
         open={editor.open}

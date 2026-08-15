@@ -25,7 +25,7 @@ export function SellerProductToolbar({
           disabled={refreshing}
           className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-[#10B981] hover:text-[#047857] disabled:opacity-60"
         >
-          {refreshing ? "Memuat..." : "Refresh Data"}
+          Refresh Data
         </button>
         <button
           type="button"

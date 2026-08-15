@@ -19,7 +19,7 @@ export function FormModal({ open, title, subtitle, children, onClose, onSubmit, 
           <div>{dangerAction}</div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
-            <Button type="submit" disabled={busy}>{busy ? "Memproses..." : submitLabel}</Button>
+            <Button type="submit" disabled={busy}>{submitLabel}</Button>
           </div>
         </div>
       </form>

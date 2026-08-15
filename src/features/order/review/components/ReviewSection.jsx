@@ -57,7 +57,7 @@ export function ReviewSection({ reviews = [], summary = null, loading = false })
         </div>
 
         <div className="min-w-0">
-          {loading ? <p className="py-8 text-sm text-slate-500">Memuat ulasan...</p> : null}
+          
           {!loading && rows.length ? (
             <div className="divide-y divide-slate-100">
               {rows.map((review) => (

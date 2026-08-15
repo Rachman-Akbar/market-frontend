@@ -35,7 +35,7 @@ export function PromotionCarousel() {
     return () => window.clearInterval(timer);
   }, [move, promotions.length]);
 
-  if (promotionsQuery.isLoading) return <section className="aspect-[12/3] min-h-[180px] animate-pulse bg-slate-100" />;
+  if (promotionsQuery.isLoading) return null;
   if (!promotion) return null;
 
   return (

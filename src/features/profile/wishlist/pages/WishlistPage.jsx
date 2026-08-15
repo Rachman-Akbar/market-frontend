@@ -48,11 +48,6 @@ export default function WishlistPage() {
 
         <hr className={profileLayout.divider} />
 
-        {loading ? (
-          <p className="py-12 text-center text-sm text-slate-500">
-            Memuat wishlist...
-          </p>
-        ) : null}
         {!loading &&
           filteredItems.map((item) => (
             <div key={item.productId} className="min-h-[104px] py-6">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Heart, LoaderCircle, ShoppingCart, X } from "lucide-react";
+import { Heart, ShoppingCart, X } from "lucide-react";
 import { getApiMessage } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { VariantSelector } from "@/features/catalog/product/components/VariantSelector";
@@ -652,23 +652,11 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={handleCardOrderAction}
-                disabled={variantsLoading || isAdding || buyingNow}
+                
                 className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#10B981] px-3 text-xs font-bold text-white transition hover:bg-[#059669]"
               >
-                {variantsLoading || isAdding ? (
-                  <LoaderCircle size={15} className="animate-spin" />
-                ) : (
-                  <ShoppingCart size={15} />
-                )}
-                {variantsLoading
-                  ? "Memeriksa Varian..."
-                  : isAdding
-                    ? "Menambahkan..."
-                    : cartStatus === "success"
-                      ? "Ditambahkan"
-                      : cartStatus === "error"
-                        ? "Coba Lagi"
-                        : addToCartLabel}
+                <ShoppingCart size={15} />
+                {cartStatus === "success" ? "Ditambahkan" : cartStatus === "error" ? "Coba Lagi" : addToCartLabel}
               </button>
               {cartStatus === "error" && cartMessage ? (
                 <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-red-500">
@@ -683,15 +671,11 @@ export function ProductCard({
           <button
             type="button"
             onClick={handleCardOrderAction}
-            disabled={variantsLoading || isAdding || buyingNow}
+            
             className="pointer-events-auto absolute bottom-[6px] right-[4px] z-20 flex h-6 w-6 items-center justify-center text-[#8a99b5] transition hover:text-[#10B981]"
             aria-label="Atur pesanan"
           >
-            {variantsLoading || buyingNow ? (
-              <LoaderCircle size={17} className="animate-spin" />
-            ) : (
-              <ShoppingCart size={18} />
-            )}
+<ShoppingCart size={18} />
           </button>
         ) : null}
       </article>
@@ -749,12 +733,7 @@ export function ProductCard({
 
             <hr className="my-5 border-slate-200" />
 
-            {variantsLoading ? (
-              <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500">
-                <LoaderCircle size={18} className="animate-spin" />
-                Memuat pilihan varian...
-              </div>
-            ) : availableVariants.length > 0 ? (
+            {availableVariants.length > 0 ? (
               <VariantSelector
                 variants={availableVariants}
                 value={selectedVariant}
@@ -821,35 +800,20 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={handleBuyNow}
-                disabled={buyingNow || variantsLoading || selectedOutOfStock}
+                disabled={selectedOutOfStock}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#10B981] px-4 text-sm font-bold text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {buyingNow ? (
-                  <LoaderCircle size={17} className="animate-spin" />
-                ) : null}
-                {selectedOutOfStock
-                  ? "Stok Habis"
-                  : buyingNow
-                    ? "Menyiapkan Checkout..."
-                    : "Beli Sekarang"}
+{selectedOutOfStock ? "Stok Habis" : "Beli Sekarang"}
               </button>
 
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={isAdding || variantsLoading || selectedOutOfStock}
+                disabled={selectedOutOfStock}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#10B981] bg-white px-4 text-sm font-bold text-[#047857] transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
               >
-                {isAdding ? (
-                  <LoaderCircle size={17} className="animate-spin" />
-                ) : (
-                  <ShoppingCart size={17} />
-                )}
-                {selectedOutOfStock
-                  ? "Stok Habis"
-                  : isAdding
-                    ? "Menambahkan..."
-                    : "Masukkan Keranjang"}
+                <ShoppingCart size={17} />
+                {selectedOutOfStock ? "Stok Habis" : "Masukkan Keranjang"}
               </button>
             </div>
 

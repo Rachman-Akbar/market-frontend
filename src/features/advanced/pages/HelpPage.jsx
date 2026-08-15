@@ -181,14 +181,14 @@ export default function HelpPage() {
           filters={<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid columns={columns} rows={rows} onRowClick={openDetail} emptyText={listQuery.isLoading ? "Memuat Help..." : "Help belum tersedia."} actions={(row) => <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Detail</Button>} />
+          <DataGrid columns={columns} rows={rows} onRowClick={openDetail} emptyText={listQuery.isLoading ? "" : "Help belum tersedia."} actions={(row) => <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Detail</Button>} />
           {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
         </ModuleFrame>
       ) : null}
 
       <FormModal open={editor.open} title="Buat Help" subtitle="Identitas user dan toko ditentukan otomatis dari akun yang sedang login." onClose={editor.close} onSubmit={create} busy={createMutation.isPending} submitLabel="Kirim Help">
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
-        {contextQuery.isLoading ? <p className="border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">Memuat konteks akun...</p> : null}
+        
         {contextQuery.error ? <p className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{advancedError(contextQuery.error)}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Pengaju"><Input value={contextUser?.name || user?.name || "User login"} disabled /></Field>
@@ -230,7 +230,7 @@ export default function HelpPage() {
           </header>
           <div className="space-y-4 p-5">
             {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-            {ticketQuery.isLoading ? <p className="text-sm text-slate-500">Memuat detail...</p> : (
+            {ticketQuery.isLoading ? null : (
               <>
                 <div className="grid gap-3 border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
                   <div><p className="text-xs font-bold uppercase text-slate-500">Pengaju</p><p className="mt-1 text-sm font-semibold text-slate-800">{ticket?.user_name || "-"}</p></div>
@@ -241,7 +241,7 @@ export default function HelpPage() {
                 <div className="border border-slate-200 bg-white p-4"><p className="whitespace-pre-wrap text-sm text-slate-800">{ticket?.description}</p></div>
                 {admin ? <div className="flex items-center gap-2"><span className="text-sm font-bold">Status</span><select value={ticket?.status || "open"} onChange={(event) => updateStatus(event.target.value)} className="h-9 border border-slate-300 px-3 text-sm">{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select></div> : null}
                 <div className="space-y-3">{(ticket?.messages || []).map((item) => <div key={item.id} className="border border-slate-200 p-3"><div className="flex justify-between text-xs font-bold text-slate-500"><span>{item.user_name || "User"}</span><span>{item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{item.message}</p></div>)}</div>
-                <form onSubmit={sendReply} className="space-y-2"><textarea value={reply} onChange={(event) => setReply(event.target.value)} className="min-h-24 w-full border border-slate-300 p-3 text-sm" placeholder="Tulis balasan" required /><div className="flex justify-end"><Button type="submit" disabled={replyMutation.isPending}>{replyMutation.isPending ? "Mengirim..." : "Kirim Balasan"}</Button></div></form>
+                <form onSubmit={sendReply} className="space-y-2"><textarea value={reply} onChange={(event) => setReply(event.target.value)} className="min-h-24 w-full border border-slate-300 p-3 text-sm" placeholder="Tulis balasan" required /><div className="flex justify-end"><Button type="submit" disabled={replyMutation.isPending}>Kirim Balasan</Button></div></form>
               </>
             )}
           </div>

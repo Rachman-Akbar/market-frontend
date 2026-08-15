@@ -31,8 +31,8 @@ function LogoutPage({ open, pending, onClose, onConfirm }) {
         <footer className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-6 py-4">
           <button type="button" onClick={onClose} disabled={pending} className="h-10 bg-white px-4 text-sm font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100 disabled:opacity-50">Batal</button>
           <button type="button" onClick={onConfirm} disabled={pending} className="inline-flex h-10 items-center gap-2 bg-red-600 px-4 text-sm font-extrabold text-white hover:bg-red-700 disabled:opacity-60">
-            <span className={`material-symbols-outlined text-[18px] ${pending ? "animate-spin" : ""}`}>{pending ? "progress_activity" : "logout"}</span>
-            {pending ? "Memproses..." : "Logout"}
+            <span className={`material-symbols-outlined text-[18px] ${pending ? "" : ""}`}>{pending ? "logout" : "logout"}</span>
+            Logout
           </button>
         </footer>
       </section>

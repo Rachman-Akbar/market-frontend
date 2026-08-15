@@ -173,7 +173,7 @@ export function CategoryDropdown({
           <div className="mx-auto flex h-[460px] max-w-[1200px]">
             <div className="w-56 flex-shrink-0 overflow-y-auto overscroll-contain border-r border-gray-200 bg-white py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {loading && (
-                <div className="px-4 py-2 text-xs text-gray-400">Memuat...</div>
+                <div className="h-8" />
               )}
 
               {error && (

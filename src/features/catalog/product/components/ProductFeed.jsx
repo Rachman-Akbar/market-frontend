@@ -68,9 +68,6 @@ export function ProductFeed() {
         ))}
       </div>
 
-      {productsQuery.isLoading ? (
-        <div className="py-8 text-sm text-gray-500">Memuat produk...</div>
-      ) : null}
 
       {productsQuery.error ? (
         <div className="py-8 text-sm text-red-500">
@@ -92,9 +89,9 @@ export function ProductFeed() {
 
       <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-2 text-xs font-semibold text-slate-400">
         {productsQuery.isFetchingNextPage
-          ? "Memuat produk berikutnya..."
+          ? "Lihat produk berikutnya"
           : productsQuery.hasNextPage
-            ? "Geser ke bawah untuk memuat produk berikutnya"
+            ? "Geser ke bawah untuk melihat produk berikutnya"
             : products.length
               ? "Semua produk sudah ditampilkan"
               : ""}

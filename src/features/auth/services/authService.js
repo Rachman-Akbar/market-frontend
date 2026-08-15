@@ -414,8 +414,8 @@ async function loginBackendWithFirebaseUser(firebaseUser, options = {}) {
 export async function loginWithPassword(payload) {
   const email = String(payload?.email || "").trim();
   const password = String(payload?.password || "");
-  const role = normalizeRole(payload?.role || "buyer") || "buyer";
-  const storageScope = payload?.storageScope || "base";
+  const role = normalizeRole(payload?.role || payload?.intended_role || "buyer") || "buyer";
+  const storageScope = payload?.storageScope || payload?.storage_scope || "base";
 
   if (!email || !password) {
     throw new Error("Email dan password wajib diisi.");
@@ -425,7 +425,7 @@ export async function loginWithPassword(payload) {
     email,
     password,
     role,
-    device_name: resolveDeviceName(payload?.deviceName, role),
+    device_name: resolveDeviceName(payload?.deviceName || payload?.device_name, role),
   });
   const normalized = normalizeAuthPayload(response.data, {
     storageScope,

@@ -114,7 +114,7 @@ function BiodataTab({ user, refreshMe }) {
         onClick={() => mutation.mutate()}
         className={profileLayout.primaryButton}
       >
-        {mutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+        "Simpan Perubahan"
       </button>
     </div>
   );
@@ -409,7 +409,7 @@ function AddressForm({ initialValue, onClose }) {
           onClick={submit}
           className={profileLayout.primaryButton}
         >
-          {pending ? "Menyimpan..." : "Simpan Alamat"}
+          "Simpan Alamat"
         </button>
       </div>
     </div>
@@ -446,9 +446,7 @@ function AlamatTab() {
           Tambah Alamat
         </button>
       </div>
-      {addressesQuery.isLoading ? (
-        <p className="py-8 text-sm text-slate-500">Memuat alamat...</p>
-      ) : null}
+      
       {!addressesQuery.isLoading && !addresses.length ? (
         <p className="py-8 text-sm text-slate-500">
           Belum ada alamat tersimpan.
@@ -657,7 +655,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
             disabled={mutation.isPending}
             className={profileLayout.primaryButton}
           >
-            {mutation.isPending ? "Menyimpan..." : "Simpan Kata Sandi"}
+            "Simpan Kata Sandi"
           </button>
         </div>
       </div>

@@ -5,7 +5,6 @@ import {
   CreditCard,
   Info,
   Landmark,
-  LoaderCircle,
   MapPin,
   ShoppingBag,
   Store,
@@ -495,7 +494,7 @@ export default function CheckoutPage() {
           <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#10B981]">Tahap 2 dari 2</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#10B981]">Tahap 2 dari 3</p>
                 <h1 className="mt-1 text-2xl font-black text-slate-900">Periksa pesanan sebelum dikirim</h1>
                 <p className="mt-1 text-sm leading-6 text-slate-500">Pastikan produk, alamat, pengiriman, pembayaran, dan voucher sudah benar.</p>
               </div>
@@ -558,13 +557,6 @@ export default function CheckoutPage() {
             </div>
           ) : null}
 
-          {checkoutSubmitting ? (
-            <div className="mx-5 mb-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-[#047857] sm:mx-7">
-              <LoaderCircle size={18} className="shrink-0 animate-spin" />
-              <span>{submitStage === "payment" ? "Pesanan berhasil dibuat. Menyiapkan halaman pembayaran..." : "Sedang membuat pesanan. Mohon tunggu sebentar..."}</span>
-            </div>
-          ) : null}
-
           <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
             <Button
               variant="outline"
@@ -578,16 +570,7 @@ export default function CheckoutPage() {
               onClick={handleConfirmOrder}
               className="min-w-[190px]"
             >
-              {checkoutSubmitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <LoaderCircle size={17} className="animate-spin" />
-                  {submitStage === "payment" ? "Membuka Pembayaran..." : "Membuat Pesanan..."}
-                </span>
-              ) : payment === "midtrans" ? (
-                "Konfirmasi & Bayar"
-              ) : (
-                "Konfirmasi Pesanan"
-              )}
+{payment === "midtrans" ? "Konfirmasi & Bayar" : "Konfirmasi Pesanan"}
             </Button>
           </div>
         </div>
@@ -596,17 +579,16 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
+    <div className="mx-auto max-w-7xl px-4 py-6"><div className="mb-5 grid grid-cols-3 gap-2 text-center text-xs font-bold"><div className="bg-emerald-600 px-3 py-2 text-white">1 Informasi</div><div className="bg-slate-100 px-3 py-2 text-slate-500">2 Review & Konfirmasi</div><div className="bg-slate-100 px-3 py-2 text-slate-500">3 Detail Order</div></div>
       <div className="mb-6">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#10B981]">
           Checkout
         </p>
         <h1 className="mt-1 text-2xl font-black text-slate-900">
-          Selesaikan pesanan dalam satu halaman
+          Step 1 · Informasi Checkout
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Alamat, pengiriman, pembayaran, dan voucher tampil bersamaan agar
-          proses checkout lebih cepat.
+          Isi alamat, pengiriman, pembayaran, voucher, dan tipe pesanan. Setelah itu lanjut ke review sebelum konfirmasi.
         </p>
       </div>
 
@@ -627,11 +609,7 @@ export default function CheckoutPage() {
               </button>
             </div>
 
-            {addressesQuery.isLoading ? (
-              <p className="mt-4 text-sm text-slate-500">Memuat alamat...</p>
-            ) : null}
-
-            {!addressesQuery.isLoading && !addresses.length ? (
+            {!addresses.length ? (
               <button
                 type="button"
                 onClick={() => setShowAddressModal(true)}
@@ -771,11 +749,6 @@ export default function CheckoutPage() {
                 </label>
               ))}
 
-              {shippingQuery.isLoading && addressId ? (
-                <div className="flex min-h-[108px] items-center justify-center rounded-xl border border-dashed border-slate-200 px-4 text-center text-xs text-slate-500">
-                  Menghitung seluruh pengiriman yang valid...
-                </div>
-              ) : null}
             </div>
           </section>
 
@@ -869,7 +842,7 @@ export default function CheckoutPage() {
                 onChange={handleVoucherChange}
                 label="Cari dan pilih voucher"
                 vouchers={availableVouchers}
-                loading={vouchersQuery.isLoading}
+                loading={false}
                 error={vouchersQuery.error}
                 recommendedVoucher={bestVoucher}
                 onUseRecommended={handleUseRecommendedVoucher}

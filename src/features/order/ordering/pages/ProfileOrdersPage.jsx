@@ -20,11 +20,7 @@ export default function ProfileOrdersPage() {
   return (
     <div className="space-y-3">
       <h2 className="font-bold text-gray-800 text-lg">Pesanan Saya</h2>
-      {ordersQuery.isLoading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
-          Memuat pesanan...
-        </div>
-      ) : null}
+      
       {ordersQuery.error ? (
         <div className="bg-white rounded-xl border border-red-200 p-8 text-center text-red-500">
           Pesanan gagal dimuat.

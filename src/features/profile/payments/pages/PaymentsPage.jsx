@@ -88,11 +88,7 @@ export default function PaymentsPage() {
               Lihat Semua
             </Link>
           </div>
-          {ordersQuery.isLoading ? (
-            <p className="py-10 text-center text-sm text-slate-500">
-              Memuat transaksi...
-            </p>
-          ) : null}
+          
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead>

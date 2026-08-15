@@ -67,7 +67,7 @@ export default function BuyerMissionsPage() {
             disabled={missionsQuery.isFetching}
             className={profileLayout.secondaryButton}
           >
-            <RefreshCw size={16} className={missionsQuery.isFetching ? "animate-spin" : ""} />
+            <RefreshCw size={16}  />
             Perbarui
           </button>
         </div>
@@ -111,12 +111,6 @@ export default function BuyerMissionsPage() {
             </button>
           ))}
         </div>
-
-        {missionsQuery.isLoading ? (
-          <div className="grid gap-4 py-6 md:grid-cols-2">
-            {[1, 2, 3, 4].map((item) => <div key={item} className="h-56 animate-pulse rounded-2xl bg-slate-100" />)}
-          </div>
-        ) : null}
 
         {missionsQuery.error ? (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">

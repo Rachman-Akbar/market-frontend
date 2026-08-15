@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { advancedError, useDeleteFinance, useFinance, useRecordFinancePayment, useSaveFinance } from "@/features/advanced/services/advancedMarketplaceService";
+import { advancedError, useDeleteFinance, useFinance, useFinancePaymentHistory, useRecordFinancePayment, useSaveFinance } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
@@ -51,6 +51,9 @@ export default function FinancePage({ mode = "cashflow" }) {
   const [localPaymentOpen, setLocalPaymentOpen] = useState(false);
   const [paymentRow, setPaymentRow] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("transfer");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
   const panelTabs = usePanelTabs();
   const deferredQuery = useDeferredValue(query.trim());
   const editor = useEntityEditor({ createLabel: `Data Baru ${typeLabel(type)}`, getEditLabel: (row) => row.reference_number || row.title });
@@ -62,6 +65,7 @@ export default function FinancePage({ mode = "cashflow" }) {
   const meta = listQuery.data?.meta || {};
   const selection = useTableSelection(rows);
   const paymentOpen = panelTabs ? panelTabs.activeTab?.type === "finance-payment" : localPaymentOpen;
+  const paymentHistoryQuery = useFinancePaymentHistory(paymentRow?.id, paymentOpen);
   const spreadsheet = useSpreadsheetWorkspace({
     module: type,
     label: typeLabel(type),
@@ -106,12 +110,12 @@ export default function FinancePage({ mode = "cashflow" }) {
   async function submit(event) {
     event.preventDefault();
     try {
+      const { paid_amount: _paidAmount, ...editableForm } = form;
       await saveMutation.mutateAsync({
         id: editor.entity?.id,
         values: {
-          ...form,
+          ...editableForm,
           amount: Number(form.amount),
-          paid_amount: Number(form.paid_amount || 0),
           due_date: form.due_date || null,
           occurred_at: new Date(form.occurred_at).toISOString(),
         },
@@ -127,7 +131,10 @@ export default function FinancePage({ mode = "cashflow" }) {
 
   function recordPayment(row) {
     setPaymentRow(row);
-    setPaymentAmount(String(row.outstanding_amount || 0));
+    setPaymentAmount("");
+    setPaymentMethod("transfer");
+    setPaymentReference("");
+    setPaymentNotes("");
     setMessage("");
     if (panelTabs) {
       panelTabs.openOperationTab("finance-payment", { id: row.id, label: `Pembayaran ${row.reference_number || row.title}` });
@@ -150,7 +157,7 @@ export default function FinancePage({ mode = "cashflow" }) {
     event.preventDefault();
     if (!paymentRow) return;
     try {
-      await paymentMutation.mutateAsync({ id: paymentRow.id, amount: Number(paymentAmount) });
+      await paymentMutation.mutateAsync({ id: paymentRow.id, amount: Number(paymentAmount), payment_method: paymentMethod, reference_number: paymentReference || null, notes: paymentNotes || null });
       setMessage("Pembayaran berhasil dicatat.");
       editor.markListDirty();
       closePayment();
@@ -201,7 +208,7 @@ export default function FinancePage({ mode = "cashflow" }) {
           <DataGrid
             columns={columns}
             rows={rows}
-            emptyText={listQuery.isLoading ? "Memuat data..." : `${typeLabel(type)} belum tersedia.`}
+            emptyText={listQuery.isLoading ? "" : `${typeLabel(type)} belum tersedia.`}
             selectionEnabled={selection.enabled}
             selectedIds={selection.selectedIds}
             allSelected={selection.allSelected}
@@ -220,7 +227,7 @@ export default function FinancePage({ mode = "cashflow" }) {
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />
-      <ConfirmDialog open={Boolean(deleteTarget)} title={`Hapus ${deleteTarget ? typeLabel(deleteTarget.type) : "Data Keuangan"}`} message={deleteTarget ? `${deleteTarget.reference_number || deleteTarget.title} akan dihapus.` : "Data akan dihapus."} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
+      <ConfirmDialog open={Boolean(deleteTarget)} title={`Hapus ${deleteTarget ? typeLabel(deleteTarget.type) : "Data Keuangan"}`} message={deleteTarget ? `${deleteTarget.reference_number || deleteTarget.title} akan dihapus.` : "Data akan dihapus."} pending={false} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
 
 
       <FormModal
@@ -229,13 +236,36 @@ export default function FinancePage({ mode = "cashflow" }) {
         subtitle={paymentRow ? `${paymentRow.reference_number || paymentRow.title} · Sisa ${money(paymentRow.outstanding_amount)}` : "Masukkan nominal pembayaran."}
         onClose={closePayment}
         onSubmit={submitPayment}
-        busy={paymentMutation.isPending}
-        submitLabel="Simpan Pembayaran"
+        busy={false}
+        submitLabel="Simpan Cicilan"
       >
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
-        <Field label="Nominal Pembayaran" required>
-          <Input type="number" min="0.01" step="0.01" max={paymentRow?.outstanding_amount || undefined} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required />
-        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Nominal Cicilan" required>
+            <Input type="number" min="0.01" step="0.01" max={paymentRow?.outstanding_amount || undefined} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required />
+          </Field>
+          <Field label="Metode Pembayaran">
+            <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm">
+              <option value="transfer">Transfer</option><option value="cash">Tunai</option><option value="ewallet">E-Wallet</option><option value="manual">Lainnya</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Nomor Referensi"><Input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} /></Field>
+        <Field label="Catatan"><textarea value={paymentNotes} onChange={(event) => setPaymentNotes(event.target.value)} className="min-h-20 border border-slate-300 p-3 text-sm" /></Field>
+        <div className="border-t border-slate-200 pt-4">
+          <h3 className="mb-3 text-sm font-black text-slate-800">Riwayat Pembayaran</h3>
+          <div className="space-y-2">
+            {(Array.isArray(paymentHistoryQuery.data) ? paymentHistoryQuery.data : paymentHistoryQuery.data?.data || []).map((row) => (
+              <div key={row.id} className="grid gap-2 border border-slate-200 bg-slate-50 p-3 text-xs sm:grid-cols-4">
+                <span>{row.paid_at ? new Date(row.paid_at).toLocaleString("id-ID") : "-"}</span>
+                <strong>{money(row.amount)}</strong>
+                <span>{row.payment_method || "manual"}</span>
+                <span>Sisa {money(row.balance_after)}</span>
+              </div>
+            ))}
+            {!paymentHistoryQuery.data?.length ? <p className="text-xs text-slate-500">Belum ada riwayat pembayaran.</p> : null}
+          </div>
+        </div>
       </FormModal>
 
       <FormModal
@@ -244,7 +274,7 @@ export default function FinancePage({ mode = "cashflow" }) {
         subtitle="Form dibuka pada tab data tersendiri agar daftar tetap ringkas dan pekerjaan tidak tertutup modal."
         onClose={editor.close}
         onSubmit={submit}
-        busy={saveMutation.isPending}
+        busy={false}
       >
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
@@ -263,7 +293,7 @@ export default function FinancePage({ mode = "cashflow" }) {
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-24 border border-slate-300 p-3 text-sm" /></Field>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Nominal" required><Input type="number" min="1" step="0.01" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required /></Field>
-          <Field label="Sudah Dibayar"><Input type="number" min="0" step="0.01" value={form.paid_amount} onChange={(event) => setForm((current) => ({ ...current, paid_amount: event.target.value }))} /></Field>
+          <Field label="Sudah Dibayar" hint="Nilai ini hanya berubah melalui tombol Bayar agar seluruh cicilan tercatat di riwayat."><Input type="number" min="0" step="0.01" value={form.paid_amount} disabled /></Field>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Tanggal Transaksi" required><Input type="datetime-local" value={form.occurred_at} onChange={(event) => setForm((current) => ({ ...current, occurred_at: event.target.value }))} required /></Field>

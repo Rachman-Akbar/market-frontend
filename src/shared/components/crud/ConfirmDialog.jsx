@@ -40,7 +40,7 @@ export const ConfirmDialog = memo(function ConfirmDialog({
             onClick={onConfirm}
             className="h-10 rounded-xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
           >
-            {pending ? "Memproses..." : confirmLabel}
+            {confirmLabel}
           </button>
         </div>
       </div>

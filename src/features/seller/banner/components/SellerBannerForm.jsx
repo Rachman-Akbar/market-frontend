@@ -51,7 +51,7 @@ export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
           <ActiveToggle checked={values.isActive} onChange={(isActive) => setValues((current) => ({ ...current, isActive }))} />
           {message ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className="h-10 bg-emerald-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">{mutation.isPending ? "Menyimpan..." : "Simpan"}</button></div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className="h-10 bg-emerald-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan"</button></div>
       </form>
     </CrudDialog>
   );

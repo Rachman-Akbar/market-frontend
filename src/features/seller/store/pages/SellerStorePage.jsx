@@ -10,7 +10,6 @@ export default function SellerStorePage() {
   return (
     <SellerPanelShell title="Profil Toko" subtitle="Kelola identitas toko, operasional gudang, dan informasi yang tampil untuk pembeli.">
       <div className="space-y-6">
-        {storeQuery.isLoading ? <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Memuat data toko...</div> : null}
         <SellerStoreProfileCard store={store} />
         <SellerStoreSettingsPanel store={store} />
       </div>

@@ -35,7 +35,7 @@ export default function AnnouncementPage() {
         <Field label="Subjek"><Input value={form.subject} onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))} required /></Field>
         <Field label="Pesan"><textarea value={form.message} onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))} className="min-h-40 border border-slate-300 p-3 text-sm" required /></Field>
         <Field label="Lampiran URL"><textarea value={form.attachments} onChange={(event) => setForm((current) => ({ ...current, attachments: event.target.value }))} className="min-h-20 border border-slate-300 p-3 text-sm" placeholder="Satu URL per baris" /></Field>
-        <div className="flex justify-end"><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Mengirim..." : "Kirim Announcement"}</Button></div>
+        <div className="flex justify-end"><Button type="submit" disabled={mutation.isPending}>Kirim Announcement</Button></div>
       </form>
     </section>
   );

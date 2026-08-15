@@ -13,11 +13,10 @@ export function CartItemRow({
   onDecrease,
   onIncrease,
   onRemove,
+  syncing = false,
 }) {
-  const { syncingVariantIds = [] } = useCart();
   const itemKey = getItemKey(item);
   const stock = item.stock ?? item.availableStock ?? null;
-  const syncing = syncingVariantIds.includes(Number(item.variantId || 0));
   const atMaximum = stock !== null && Number(stock) > 0 && item.quantity >= stock;
 
   return (
@@ -67,7 +66,6 @@ export function CartItemRow({
 
           <div className="flex items-center gap-3">
             <div
-              aria-busy={syncing}
               className="flex h-10 items-center overflow-hidden rounded-xl border border-[#d9e1db] bg-white shadow-sm transition-shadow duration-150 focus-within:ring-2 focus-within:ring-emerald-100"
             >
               <button
@@ -79,9 +77,14 @@ export function CartItemRow({
                 <Minus size={16} strokeWidth={2.4} />
               </button>
               <span className="flex min-w-[54px] items-center justify-center gap-1 px-2 text-center text-sm font-bold tabular-nums text-[#181c1f] transition-all duration-150">
-                {item.quantity}
+{item.quantity}
                 {syncing ? (
-                  <LoaderCircle size={12} className="animate-spin text-[#10B981]" />
+                  <LoaderCircle
+                    size={13}
+                    strokeWidth={2.4}
+                    className="animate-spin text-[#047857]"
+                    aria-hidden="true"
+                  />
                 ) : null}
               </span>
               <button

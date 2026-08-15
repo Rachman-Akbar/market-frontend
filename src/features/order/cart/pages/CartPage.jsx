@@ -150,6 +150,7 @@ function StoreGroup({
   onDecrease,
   onIncrease,
   onRemove,
+  syncingVariantIds,
 }) {
   const allChecked = items.every((item) =>
     selectedKeys.includes(getItemKey(item)),
@@ -183,6 +184,7 @@ function StoreGroup({
             onDecrease={onDecrease}
             onIncrease={onIncrease}
             onRemove={onRemove}
+            syncing={syncingVariantIds.includes(Number(item.variantId))}
           />
         ))}
       </div>
@@ -278,6 +280,7 @@ function CartTab({
   onDecrease,
   onIncrease,
   onRemove,
+  syncingVariantIds,
   onClear,
   onCheckout,
   voucherCode,
@@ -340,6 +343,7 @@ function CartTab({
             onDecrease={onDecrease}
             onIncrease={onIncrease}
             onRemove={onRemove}
+            syncingVariantIds={syncingVariantIds}
           />
         ))}
       </div>
@@ -459,13 +463,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   const confirmMutation = useConfirmOrderReceived();
   const reviewMutation = useCreateReview();
 
-  if (orderQuery.isLoading) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center text-sm text-slate-500">
-        Memuat detail pesanan...
-      </div>
-    );
-  }
+  if (orderQuery.isLoading) return null;
 
   if (orderQuery.error || !order) {
     return (
@@ -513,6 +511,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   const canPay =
     !["paid", "settlement", "success"].includes(paymentStatus) &&
     Boolean(order.snapToken || order.paymentUrl || order.redirectUrl);
+  const checkoutSteps = <div className="mb-5 grid grid-cols-3 gap-2 text-center text-xs font-bold"><div className="bg-slate-100 px-3 py-2 text-slate-500">1 Informasi</div><div className="bg-slate-100 px-3 py-2 text-slate-500">2 Review & Konfirmasi</div><div className="bg-emerald-600 px-3 py-2 text-white">3 Detail Order</div></div>;
 
   const handleReceived = async () => {
     try {
@@ -560,6 +559,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      {checkoutSteps}
       <button
         type="button"
         onClick={onBack}
@@ -681,7 +681,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
           <p className="mt-4 text-xs text-slate-500">
             Metode bayar: {order.paymentMethod || "-"}
           </p>
-          {String(order.status).toLowerCase() === "shipped" ? <button type="button" disabled={confirmMutation.isPending} onClick={handleReceived} className="mt-4 w-full rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:opacity-60">{confirmMutation.isPending ? "Memproses..." : "Pesanan Sudah Diterima"}</button> : null}
+          {String(order.status).toLowerCase() === "shipped" ? <button type="button" disabled={confirmMutation.isPending} onClick={handleReceived} className="mt-4 w-full rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:opacity-60">Pesanan Sudah Diterima</button> : null}
           {canPay ? (
             <button
               type="button"
@@ -694,7 +694,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
           ) : null}
         </aside>
       </div>
-      {reviewTarget ? <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/55 p-4"><form onSubmit={handleReview} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-[#10B981]">Review Produk</p><h3 className="mt-1 font-black text-slate-900">{reviewTarget.productName}</h3></div><button type="button" onClick={() => setReviewTarget(null)} className="text-3xl text-slate-400">×</button></div><label className="mt-5 grid gap-1 text-sm font-bold text-slate-700">Rating<select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="h-10 rounded-md border border-slate-300 px-3">{[5,4,3,2,1].map((value) => <option key={value} value={value}>{value} bintang</option>)}</select></label><label className="mt-4 grid gap-1 text-sm font-bold text-slate-700">Ulasan<textarea value={reviewForm.review} onChange={(event) => setReviewForm((current) => ({ ...current, review: event.target.value }))} className="min-h-28 rounded-md border border-slate-300 p-3 text-sm" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setReviewTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold">Batal</button><button type="submit" disabled={reviewMutation.isPending} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{reviewMutation.isPending ? "Mengirim..." : "Kirim Review"}</button></div></form></div> : null}
+      {reviewTarget ? <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/55 p-4"><form onSubmit={handleReview} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-[#10B981]">Review Produk</p><h3 className="mt-1 font-black text-slate-900">{reviewTarget.productName}</h3></div><button type="button" onClick={() => setReviewTarget(null)} className="text-3xl text-slate-400">×</button></div><label className="mt-5 grid gap-1 text-sm font-bold text-slate-700">Rating<select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="h-10 rounded-md border border-slate-300 px-3">{[5,4,3,2,1].map((value) => <option key={value} value={value}>{value} bintang</option>)}</select></label><label className="mt-4 grid gap-1 text-sm font-bold text-slate-700">Ulasan<textarea value={reviewForm.review} onChange={(event) => setReviewForm((current) => ({ ...current, review: event.target.value }))} className="min-h-28 rounded-md border border-slate-300 p-3 text-sm" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setReviewTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold">Batal</button><button type="submit" disabled={reviewMutation.isPending} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">Kirim Review</button></div></form></div> : null}
     </div>
   );
 }
@@ -895,6 +895,7 @@ export default function CartPage() {
     removeItem,
     clearCart,
     addItem,
+    syncingVariantIds,
   } = useCart();
   const {
   items: wishlistSource,
@@ -1086,6 +1087,7 @@ export default function CartPage() {
               onDecrease={handleDecrease}
               onIncrease={handleIncrease}
               onRemove={(item) => removeItem(item.productId, item.variantId)}
+              syncingVariantIds={syncingVariantIds}
               onClear={clearCart}
               onCheckout={goCheckout}
               voucherCode={voucherCode}

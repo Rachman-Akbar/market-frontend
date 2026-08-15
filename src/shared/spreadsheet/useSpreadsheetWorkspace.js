@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { usePanelTabs } from "@/shared/layout/tabs";
 
-export function useSpreadsheetWorkspace({ module, label, selectedRows = [], onCompleted, allowBulkDelete = true, getRowId }) {
+export function useSpreadsheetWorkspace({ module, label, selectedRows = [], onCompleted, allowImport = true, allowExport = true, allowBulkDelete = true, getRowId }) {
   const tabs = usePanelTabs();
   const selectedIds = useMemo(() => selectedRows.map((row) => Number(getRowId ? getRowId(row) : row?.id)).filter(Boolean), [selectedRows, getRowId]);
   const activeOperation = ["import", "export", "bulk-delete"].includes(tabs?.activeTab?.type) ? tabs.activeTab : null;
@@ -22,9 +22,9 @@ export function useSpreadsheetWorkspace({ module, label, selectedRows = [], onCo
       onCompleted?.();
     },
     actions: [
-      { key: "import", label: "Import Excel", icon: "upload_file", requiresSelection: false, onClick: openImport },
-      { key: "export", label: selectedIds.length ? `Export ${selectedIds.length} data` : "Export semua data", icon: "download", requiresSelection: false, onClick: openExport },
-      ...(allowBulkDelete ? [{ key: "delete", label: "Hapus data terpilih", icon: "delete", danger: true, requiresSelection: true, onClick: openBulkDelete }] : []),
+      ...(allowImport ? [{ key: `${module}-import`, label: `Import ${label}`, icon: "upload_file", requiresSelection: false, onClick: openImport }] : []),
+      ...(allowExport ? [{ key: `${module}-export`, label: selectedIds.length ? `Export ${selectedIds.length} ${label}` : `Export ${label}`, icon: "download", requiresSelection: false, onClick: openExport }] : []),
+      ...(allowBulkDelete ? [{ key: `${module}-delete`, label: `Hapus ${label} terpilih`, icon: "delete", danger: true, requiresSelection: true, onClick: openBulkDelete }] : []),
     ],
   };
 }

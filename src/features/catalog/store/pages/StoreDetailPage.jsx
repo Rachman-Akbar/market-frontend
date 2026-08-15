@@ -12,6 +12,7 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
   const { slug, id } = useParams();
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
+  const [activeShowcaseId, setActiveShowcaseId] = useState("all");
   const loadMoreRef = useRef(null);
   const deferredSearch = useDeferredValue(search.trim());
   const storeBySlugQuery = useStoreBySlug(slug, { enabled: Boolean(slug) });
@@ -20,7 +21,8 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
   const store = storeOverride || storeQuery.data;
   const bannersQuery = useStoreBanners(store?.id);
   const showcasesQuery = usePublicShowcases(store?.id);
-  const showcases = (showcasesQuery.data?.rows || []).map((showcase) => ({ ...showcase, products: (showcase.products || []).map((product) => normalizeProduct({ ...product, store })) }));
+  const showcases = useMemo(() => (showcasesQuery.data?.rows || []).map((showcase) => ({ ...showcase, products: (showcase.products || []).map((product) => normalizeProduct({ ...product, store })) })), [showcasesQuery.data, store]);
+  const activeShowcase = useMemo(() => activeShowcaseId === "all" ? null : showcases.find((showcase) => String(showcase.id) === String(activeShowcaseId)) || null, [activeShowcaseId, showcases]);
   const productsQuery = useStoreProducts(store?.id, {
     per_page: 24,
     ...(deferredSearch ? { search: deferredSearch } : {}),
@@ -37,10 +39,16 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
     });
   }, [productsQuery.data]);
   const location = useMemo(() => [store?.city, store?.province].filter(Boolean).join(", "), [store?.city, store?.province]);
+  const displayedProducts = useMemo(() => {
+    if (!activeShowcase) return products;
+    const needle = searchDraft.trim().toLowerCase();
+    if (!needle) return activeShowcase.products || [];
+    return (activeShowcase.products || []).filter((product) => String(product.name || "").toLowerCase().includes(needle) || String(product.sku || "").toLowerCase().includes(needle));
+  }, [activeShowcase, products, searchDraft]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
-    if (!target || !productsQuery.hasNextPage) return undefined;
+    if (!target || activeShowcase || !productsQuery.hasNextPage) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -52,11 +60,17 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [productsQuery.fetchNextPage, productsQuery.hasNextPage, productsQuery.isFetchingNextPage]);
+  }, [activeShowcase, productsQuery.fetchNextPage, productsQuery.hasNextPage, productsQuery.isFetchingNextPage]);
 
   const submitSearch = (event) => {
     event.preventDefault();
-    setSearch(searchDraft.trim());
+    if (!activeShowcase) setSearch(searchDraft.trim());
+  };
+
+  const selectShowcase = (id) => {
+    setActiveShowcaseId(String(id));
+    setSearchDraft("");
+    setSearch("");
   };
 
   if (!storeOverride && storeQuery.isLoading) {
@@ -99,15 +113,28 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
         </div>
       </section>
 
-      {showcases.length ? <section className="space-y-8">
-        {showcases.map((showcase) => <div key={showcase.id}><div className="mb-4"><div className="flex items-center gap-2"><h2 className="text-xl font-extrabold text-slate-900">{showcase.name}</h2><span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase text-emerald-700">Etalase</span></div>{showcase.description ? <p className="mt-1 text-sm text-slate-500">{showcase.description}</p> : null}</div>{showcase.products?.length ? <ProductGrid products={showcase.products} /> : <p className="border border-slate-200 bg-white p-6 text-sm text-slate-500">Produk etalase belum tersedia.</p>}</div>)}
-      </section> : null}
+      {showcases.length ? (
+        <section className="border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">Etalase Toko</h2>
+              <p className="mt-0.5 text-xs text-slate-500">Pilih etalase untuk melihat kelompok produk yang kamu cari.</p>
+            </div>
+            <span className="text-xs font-bold text-slate-400">{showcases.length} etalase</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button type="button" onClick={() => selectShowcase("all")} className={`shrink-0 border px-4 py-2 text-sm font-extrabold transition ${activeShowcaseId === "all" ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700"}`}>Semua Produk</button>
+            {showcases.map((showcase) => <button key={showcase.id} type="button" onClick={() => selectShowcase(showcase.id)} className={`shrink-0 border px-4 py-2 text-sm font-extrabold transition ${String(activeShowcaseId) === String(showcase.id) ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700"}`}>{showcase.name}<span className={`ml-2 text-[11px] ${String(activeShowcaseId) === String(showcase.id) ? "text-emerald-100" : "text-slate-400"}`}>{showcase.products_count ?? showcase.products?.length ?? 0}</span></button>)}
+          </div>
+          {activeShowcase?.description ? <p className="mt-3 border-l-2 border-emerald-500 pl-3 text-sm text-slate-500">{activeShowcase.description}</p> : null}
+        </section>
+      ) : null}
 
       <section>
         <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900">Produk dari {toTitleCase(store.name)}</h2>
-            <p className="mt-1 text-sm text-slate-500">Hanya produk active dan published yang ditampilkan.</p>
+            <h2 className="text-xl font-extrabold text-slate-900">{activeShowcase ? activeShowcase.name : `Produk dari ${toTitleCase(store.name)}`}</h2>
+            <p className="mt-1 text-sm text-slate-500">{activeShowcase ? `${displayedProducts.length} produk dalam etalase ini.` : "Hanya produk active dan published yang ditampilkan."}</p>
           </div>
           <form onSubmit={submitSearch} className="flex w-full max-w-sm items-center border border-slate-200 bg-white px-3 py-2.5">
             <span className="material-symbols-outlined mr-2 text-[19px] text-slate-400">search</span>
@@ -115,7 +142,7 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
               value={searchDraft}
               onChange={(event) => setSearchDraft(event.target.value)}
               className="w-full text-sm outline-none"
-              placeholder="Cari produk lalu tekan Enter"
+              placeholder={activeShowcase ? "Cari di etalase ini..." : "Cari produk lalu tekan Enter"}
             />
             {searchDraft ? (
               <button
@@ -135,16 +162,16 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
         <AsyncState
           loading={productsQuery.isLoading}
           error={productsQuery.error ? getStorefrontError(productsQuery.error) : ""}
-          empty={!productsQuery.isLoading && !products.length}
-          emptyText="Produk toko belum tersedia."
+          empty={!productsQuery.isLoading && !displayedProducts.length}
+          emptyText={activeShowcase ? "Produk pada etalase ini belum tersedia." : "Produk toko belum tersedia."}
         />
-        {products.length ? <ProductGrid products={products} /> : null}
+        {displayedProducts.length ? <ProductGrid products={displayedProducts} /> : null}
         <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
-          {productsQuery.isFetchingNextPage
-            ? "Memuat produk berikutnya..."
-            : productsQuery.hasNextPage
-              ? "Geser ke bawah untuk memuat produk berikutnya"
-              : products.length
+          {!activeShowcase && productsQuery.isFetchingNextPage
+            ? "Lihat produk berikutnya"
+            : !activeShowcase && productsQuery.hasNextPage
+              ? "Geser ke bawah untuk melihat produk berikutnya"
+              : !activeShowcase && products.length
                 ? "Semua produk toko sudah ditampilkan"
                 : ""}
         </div>

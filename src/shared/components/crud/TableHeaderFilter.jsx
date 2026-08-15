@@ -26,6 +26,13 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
   minPlaceholder = "Minimum",
   maxPlaceholder = "Maksimum",
   className,
+  headerProps,
+  columnKey,
+  columnStyle,
+  onResizeStart,
+  onResetWidth,
+  dragging = false,
+  dropTarget = false,
 }) {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -224,7 +231,12 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
   ) : null;
 
   return (
-    <th className={cn("relative whitespace-nowrap px-4 py-3", className)}>
+    <th
+      {...headerProps}
+      style={columnStyle}
+      className={cn("group relative select-none whitespace-nowrap px-4 py-3", dragging && "opacity-45", dropTarget && !dragging && "bg-emerald-50", className)}
+      title="Tarik header untuk mengubah urutan kolom. Tarik garis kanan untuk mengubah lebar."
+    >
       <button
         ref={buttonRef}
         type="button"
@@ -235,6 +247,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
         )}
         aria-expanded={open}
       >
+        <span className="material-symbols-outlined shrink-0 cursor-grab text-[16px] text-slate-300 opacity-0 transition-opacity group-hover:opacity-100">drag_indicator</span>
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {activeSort ? (
           <span className="material-symbols-outlined text-[16px]">
@@ -243,6 +256,18 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
         ) : null}
         <span className={cn("material-symbols-outlined text-[17px]", activeFilter ? "font-fill" : "")}>filter_alt</span>
       </button>
+      <button
+        type="button"
+        aria-label={`Ubah lebar kolom ${label}`}
+        onPointerDown={(event) => onResizeStart?.(event, columnKey)}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onResetWidth?.(columnKey);
+        }}
+        draggable={false}
+        className="absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none border-0 bg-transparent p-0 outline-none before:absolute before:right-[3px] before:top-[18%] before:h-[64%] before:w-px before:bg-slate-300 before:opacity-0 before:transition-opacity hover:before:opacity-100 group-hover:before:opacity-100"
+      />
       {typeof document !== "undefined" && menu ? createPortal(menu, document.body) : null}
     </th>
   );

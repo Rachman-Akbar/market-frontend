@@ -187,7 +187,6 @@ export function ProductDetailClient({ slug }) {
   if (loading) {
     return (
       <main className="mx-auto max-w-[1200px] px-4 py-8">
-        <div className="text-sm text-gray-500">Memuat detail produk...</div>
       </main>
     );
   }
@@ -380,7 +379,7 @@ export function ProductDetailClient({ slug }) {
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#10B981] px-5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-[18px]">chat</span>
-                  {startConversation.isPending ? "Membuka Chat..." : ownStore ? "Toko Anda" : "Chat Penjual"}
+                  {ownStore ? "Toko Anda" : "Chat Penjual"}
                 </button>
                 <Link
                   to={storeHref}

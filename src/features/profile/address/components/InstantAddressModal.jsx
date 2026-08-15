@@ -303,7 +303,7 @@ export default function InstantAddressModal({
             <div className="flex items-start gap-3">
               {destinationState.loading ? (
                 <LoaderCircle
-                  className="mt-0.5 animate-spin text-[#10B981]"
+                  className="mt-0.5 text-[#10B981]"
                   size={18}
                 />
               ) : form.komerceDestinationId ? (
@@ -364,7 +364,7 @@ export default function InstantAddressModal({
             className="h-11 rounded-xl bg-[#10B981] px-5 text-sm font-black text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {createMutation.isPending
-              ? "Menyimpan..."
+              ? "Simpan"
               : "Simpan dan Pilih Alamat"}
           </button>
         </div>

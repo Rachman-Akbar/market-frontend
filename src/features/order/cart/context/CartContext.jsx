@@ -17,7 +17,7 @@ import {
 
 const CartContext = createContext(null);
 const CART_KEY = ["order", "cart"];
-const QUANTITY_SYNC_DELAY = 220;
+const QUANTITY_SYNC_DELAY = 180;
 
 function normalizeCartItem(item = {}) {
   const attributes =
@@ -240,7 +240,7 @@ export function CartProvider({ children }) {
     }
 
     quantitySyncRef.current.delete(id);
-    setSyncingVariantIds((rows) => rows.filter((row) => row !== id));
+    setSyncingVariantIds((current) => current.filter((value) => value !== id));
   }, []);
 
   const flushQuantity = useCallback(
@@ -265,9 +265,6 @@ export function CartProvider({ children }) {
         inFlight: true,
         needsFlush: false,
       });
-      setSyncingVariantIds((rows) =>
-        rows.includes(id) ? rows : [...rows, id],
-      );
 
       try {
         await updateCartItem({ variantId: id, quantity: sentQuantity });
@@ -276,8 +273,7 @@ export function CartProvider({ children }) {
         const latest = quantitySyncRef.current.get(id);
 
         if (!latest) {
-          setSyncingVariantIds((rows) => rows.filter((row) => row !== id));
-          return;
+                return;
         }
 
         const hasNewQuantity =
@@ -297,7 +293,7 @@ export function CartProvider({ children }) {
         }
 
         quantitySyncRef.current.delete(id);
-        setSyncingVariantIds((rows) => rows.filter((row) => row !== id));
+        setSyncingVariantIds((current) => current.filter((value) => value !== id));
         await queryClient.invalidateQueries({ queryKey: CART_KEY });
       }
     },
@@ -334,6 +330,10 @@ export function CartProvider({ children }) {
         return recalculateCart(current, nextItems);
       });
 
+      setSyncingVariantIds((current) =>
+        current.includes(id) ? current : [...current, id],
+      );
+
       const previous = quantitySyncRef.current.get(id);
 
       if (previous?.timer) {
@@ -361,7 +361,65 @@ export function CartProvider({ children }) {
 
   const addMutation = useMutation({
     mutationFn: addCartItem,
-    onSuccess: synchronizeCart,
+    onMutate: async (item) => {
+      const variantId = Number(item.variantId ?? item.variant_id ?? item.product_variant_id ?? 0);
+      const productId = Number(item.productId ?? item.product_id ?? item.id ?? 0);
+      const quantity = Math.max(1, Number(item.quantity || 1));
+      const previous = queryClient.getQueryData(CART_KEY);
+
+      if (!variantId) {
+        return { previous };
+      }
+
+      queryClient.setQueryData(CART_KEY, (current) => {
+        const base = current || { items: [], totalItems: 0, totalPrice: 0 };
+        const existing = base.items?.find((row) => Number(row.variantId) === variantId);
+
+        if (existing) {
+          const stock = Number(existing.stock || item.stock || 0);
+          const nextQuantity = stock > 0
+            ? Math.min(stock, Number(existing.quantity || 0) + quantity)
+            : Number(existing.quantity || 0) + quantity;
+          const nextItems = base.items.map((row) =>
+            Number(row.variantId) === variantId
+              ? {
+                  ...row,
+                  quantity: nextQuantity,
+                  subtotal: Number(row.price || item.price || 0) * nextQuantity,
+                }
+              : row,
+          );
+          return recalculateCart(base, nextItems);
+        }
+
+        const optimisticItem = {
+          cartItemId: 0,
+          productId,
+          variantId,
+          productName: item.productName || item.product_name || "Produk",
+          variantLabel: item.variantLabel || item.variant_label || "",
+          storeId: Number(item.storeId ?? item.store_id ?? 0),
+          storeName: item.storeName || item.store_name || "Toko",
+          sku: item.sku || "",
+          price: Number(item.price || 0),
+          quantity,
+          subtotal: Number(item.price || 0) * quantity,
+          stock: Number(item.stock || 0),
+          imageUrl: item.imageUrl || item.image_url || item.image || "",
+          attributes: item.attributes || {},
+        };
+
+        return recalculateCart(base, [...(base.items || []), optimisticItem]);
+      });
+
+      return { previous };
+    },
+    onError: (_error, _item, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(CART_KEY, context.previous);
+      }
+    },
+    onSettled: synchronizeCart,
   });
 
   const removeMutation = useMutation({
@@ -397,7 +455,6 @@ export function CartProvider({ children }) {
         if (entry?.timer) window.clearTimeout(entry.timer);
       });
       quantitySyncRef.current.clear();
-      setSyncingVariantIds([]);
       return clearRemoteCart();
     },
     onSuccess: synchronizeCart,
@@ -425,7 +482,6 @@ export function CartProvider({ children }) {
       syncingVariantIds,
       mutating:
         addMutation.isPending ||
-        syncingVariantIds.length > 0 ||
         removeMutation.isPending ||
         clearMutation.isPending,
     }),

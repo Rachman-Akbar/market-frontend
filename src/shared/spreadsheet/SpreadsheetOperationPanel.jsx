@@ -2,6 +2,18 @@ import { useMemo, useState } from "react";
 import { bulkDeleteSpreadsheet, downloadSpreadsheetTemplate, exportSpreadsheet, getSpreadsheetError, importSpreadsheet, previewSpreadsheetImport } from "@/shared/spreadsheet/spreadsheetService";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 
+const MODULE_HELP = {
+  product: { relation: "Product mengelola identitas, kategori, variant, SKU, harga, dan gambar. Saldo stok tidak diubah melalui import Product.", content: "Setelah Product dibuat, gunakan import Stok Produk untuk saldo dan HPP & Harga Jual untuk resep bahan. Ketiga modul berdiri terpisah." },
+  "raw-material": { relation: "Master bahan baku berdiri sendiri. Toko Seller diambil dari sesi dan kode bahan harus unik per toko.", content: "Import ini tidak mengubah stok. Stok bahan baku dikelola melalui modul Stok Bahan Baku." },
+  "raw-material-stock": { relation: "Gunakan raw_material_code yang sudah tersedia. Import stok tidak membuat master bahan baku baru.", content: "Delta positif adalah restock; unit_cost dipakai untuk average cost tertimbang. Delta negatif adalah pemakaian." },
+  "product-costing": { relation: "Gunakan product_id atau product_name yang sudah tersedia dan materials dengan format KODE:QTY|KODE:QTY.", content: "Biaya bahan selalu diambil dari average cost database. Import HPP tidak mengubah stok produk atau bahan baku." },
+  stock: { relation: "Gunakan SKU variant yang sudah tersedia pada toko. Import stok tidak membuat Product atau Bahan Baku baru.", content: "Penambahan stok produk akan memakai bahan baku resep HPP secara otomatis jika resep tersedia." },
+  income: { relation: "Toko Seller diambil dari sesi. order_number dan counterparty_email hanya dihubungkan jika data sudah tersedia.", content: "Import hanya mencatat transaksi pemasukan dan tidak membuat Order atau User baru." },
+  expense: { relation: "Toko Seller diambil dari sesi. order_number dan counterparty_email hanya dihubungkan jika data sudah tersedia.", content: "Import hanya mencatat transaksi pengeluaran dan tidak membuat Order atau User baru." },
+  receivable: { relation: "Toko Seller diambil dari sesi. Nilai terbayar tidak dapat diedit melalui import update.", content: "Gunakan fitur Bayar untuk cicilan agar histori pembayaran tetap lengkap." },
+  payable: { relation: "Toko Seller diambil dari sesi. Nilai terbayar tidak dapat diedit melalui import update.", content: "Gunakan fitur Bayar untuk cicilan agar histori pembayaran tetap lengkap." },
+};
+
 function Header({ icon, eyebrow, title, description, onClose }) {
   return (
     <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -41,6 +53,7 @@ function ImportPanel({ operation, workspace }) {
   const [importMode, setImportMode] = useState("create");
   const module = operation.payload?.module;
   const label = operation.payload?.label;
+  const help = MODULE_HELP[module] || null;
 
   const downloadTemplate = async () => {
     setTemplatePending(true);
@@ -150,13 +163,13 @@ function ImportPanel({ operation, workspace }) {
           </Step>
           <Step number="2" title="Unduh template resmi">
             Template berisi Template Kosong, 10 Contoh Kasus Import yang rinci, dan Penjelasan Kolom.
-            <div className="mt-3"><button type="button" onClick={downloadTemplate} disabled={templatePending} className="inline-flex h-10 items-center gap-2 bg-slate-900 px-4 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-60"><span className={`material-symbols-outlined text-[18px] ${templatePending ? "animate-spin" : ""}`}>{templatePending ? "progress_activity" : "download"}</span>{templatePending ? "Menyiapkan..." : "Download Template"}</button></div>
+            <div className="mt-3"><button type="button" onClick={downloadTemplate} disabled={templatePending} className="inline-flex h-10 items-center gap-2 bg-slate-900 px-4 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-60"><span className={`material-symbols-outlined text-[18px] ${templatePending ? "" : ""}`}>download</span>Download Template</button></div>
           </Step>
-          <Step number="3" title="Isi relasi menggunakan nama">
-            Store, Catalog Group, Category, parent Category, dan target Promotion diisi menggunakan nama, bukan ID. Nama dibersihkan dan dicocokkan tanpa peka kapital untuk mencegah data ganda.
+          <Step number="3" title="Periksa relasi modul">
+            {help?.relation || "Relasi diisi sesuai Penjelasan Kolom pada template. Data relasi yang wajib tersedia tidak dibuat otomatis tanpa aturan yang jelas."}
           </Step>
-          <Step number="4" title="Isi data dan gambar">
-            Gambar dapat diisi sebagai URL/path atau ditempel langsung pada cell. Format JPG, JPEG, PNG, dan WEBP didukung.
+          <Step number="4" title="Isi data sesuai fungsi modul">
+            {help?.content || "Isi hanya kolom yang memang menjadi tanggung jawab modul ini. Jangan mencampur data dari modul lain ke satu import."}
           </Step>
           <Step number="5" title="Pilih file Excel">
             <label className="mt-1 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center hover:border-emerald-500 hover:bg-emerald-50/40">
@@ -172,12 +185,12 @@ function ImportPanel({ operation, workspace }) {
           <div className="mt-4 space-y-3 text-sm text-slate-600">
             <p>Mode aktif: <strong>{importMode === "create" ? "Import Data Baru" : "Import Update Data"}</strong>.</p>
             <p>File diperiksa terlebih dahulu sebelum penyimpanan.</p>
-            <p>Category atau Catalog Group yang belum ada masuk antrean konfirmasi Lanjutkan/Batal.</p>
-            <p>Relasi kompleks seperti Toko dan Product target tidak dibuat otomatis.</p>
+            <p>Relasi wajib diperiksa sebelum penyimpanan.</p>
+            <p>Master dari modul lain tidak dibuat otomatis oleh import ini.</p>
             <p>Data gagal otomatis dibuatkan file Excel error beserta penyebabnya.</p>
           </div>
           <button type="button" onClick={submit} disabled={!file || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-45">
-            <span className={`material-symbols-outlined text-[19px] ${pending ? "animate-spin" : ""}`}>{pending ? "progress_activity" : "fact_check"}</span>
+            <span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>fact_check</span>
             {pending ? "Memvalidasi..." : "Validasi & Import"}
           </button>
         </aside>
@@ -191,6 +204,8 @@ function ExportPanel({ operation, workspace }) {
   const [pending, setPending] = useState(false);
   const ids = operation.payload?.ids || [];
   const label = operation.payload?.label;
+  const module = operation.payload?.module;
+  const supportsImages = ["product", "category", "promotion", "banner"].includes(module);
 
   const submit = async () => {
     setPending(true);
@@ -207,14 +222,14 @@ function ExportPanel({ operation, workspace }) {
 
   return (
     <div className="overflow-hidden border border-slate-200 bg-white">
-      <Header icon="download" eyebrow="Export Excel" title={`Export ${label}`} description="File berisi data tabel dan preview thumbnail gambar yang tersedia." onClose={workspace.close} />
+      <Header icon="download" eyebrow="Export Excel" title={`Export ${label}`} description={supportsImages ? "File berisi data tabel dan preview thumbnail gambar yang tersedia." : "File berisi data database sesuai scope toko dan modul yang dipilih."} onClose={workspace.close} />
       <div className="p-6">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="bg-slate-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Cakupan</p><p className="mt-2 text-lg font-black text-slate-900">{ids.length ? `${ids.length} data dipilih` : "Semua data"}</p></div>
           <div className="bg-slate-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Format</p><p className="mt-2 text-lg font-black text-slate-900">Excel .xlsx</p></div>
-          <div className="bg-slate-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Gambar</p><p className="mt-2 text-lg font-black text-slate-900">URL + thumbnail</p></div>
+          <div className="bg-slate-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Isi</p><p className="mt-2 text-lg font-black text-slate-900">{supportsImages ? "Data + gambar" : "Data realtime"}</p></div>
         </div>
-        <button type="button" onClick={submit} disabled={pending} className="mt-6 inline-flex h-11 items-center justify-center gap-2 bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60"><span className={`material-symbols-outlined text-[19px] ${pending ? "animate-spin" : ""}`}>{pending ? "progress_activity" : "download"}</span>{pending ? "Menyiapkan file..." : "Mulai Export"}</button>
+        <button type="button" onClick={submit} disabled={pending} className="mt-6 inline-flex h-11 items-center justify-center gap-2 bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60"><span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>download</span>Mulai Export</button>
       </div>
     </div>
   );
@@ -258,7 +273,7 @@ function DeletePanel({ operation, workspace }) {
           <span className="material-symbols-outlined text-4xl text-red-600">warning</span>
           <h3 className="mt-3 text-base font-black text-red-900">Konfirmasi penghapusan</h3>
           <p className="mt-2 text-sm leading-6 text-red-800">Sebanyak {ids.length} data akan dihapus. Proses ini tetap berjalan di backend dan dipantau melalui antrean.</p>
-          <button type="button" onClick={submit} disabled={!ids.length || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700 disabled:opacity-45"><span className={`material-symbols-outlined text-[19px] ${pending ? "animate-spin" : ""}`}>{pending ? "progress_activity" : "delete"}</span>{pending ? "Menghapus..." : "Hapus Data"}</button>
+          <button type="button" onClick={submit} disabled={!ids.length || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700 disabled:opacity-45"><span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>delete</span>Hapus Data</button>
         </aside>
       </div>
     </div>

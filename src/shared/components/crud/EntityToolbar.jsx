@@ -78,8 +78,8 @@ export const EntityToolbar = memo(function EntityToolbar({
         ) : null}
         <BulkActionsMenu selectedCount={selectedCount} actions={bulkActions} />
         <ColumnVisibilityMenu columns={columns} visibleKeys={visibleColumns} onToggle={onToggleColumn} onShowAll={onShowAllColumns} onReset={onResetColumns} />
-        <button type="button" onClick={onRefresh} disabled={refreshing} className="inline-flex h-10 items-center justify-center gap-2 bg-slate-100 px-3 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-60">
-          <span className={`material-symbols-outlined text-[19px] ${refreshing ? "animate-spin" : ""}`}>refresh</span>
+        <button type="button" onClick={onRefresh}  className="inline-flex h-10 items-center justify-center gap-2 bg-slate-100 px-3 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-60">
+          <span className={`material-symbols-outlined text-[19px] `}>refresh</span>
           <span className="hidden sm:inline">Refresh</span>
         </button>
         {!hideCreate ? (

@@ -21,7 +21,7 @@ export default function AdminDashboardPage() {
         </>
       }
     >
-      {dashboardQuery.isLoading ? <p className="py-8 text-sm text-slate-500">Memuat dashboard...</p> : null}
+      
       {dashboardQuery.error ? <p className="py-8 text-sm text-red-600">{dashboardQuery.error.message}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

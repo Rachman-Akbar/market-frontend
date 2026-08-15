@@ -7,6 +7,7 @@ import { validateFields, minimumNumber, required } from "@/core/utils/formValida
 import { ProductEditorTabs } from "@/features/seller/product/components/ProductEditorTabs";
 import { ProductImageFields } from "@/features/seller/product/components/ProductImageFields";
 import { ProductStockFields } from "@/features/seller/product/components/ProductStockFields";
+import { ProductCostingFields } from "@/features/seller/product/components/ProductCostingFields";
 import { ProductVariantFields } from "@/features/seller/product/components/ProductVariantFields";
 import { createClientId } from "@/core/utils/clientId";
 import { toTitleCase } from "@/shared/utils/textFormatter";
@@ -282,7 +283,7 @@ export function SellerProductEditor({
       onClose={onClose}
       size="max-w-6xl"
       title={product ? "Edit Produk" : "Tambah Produk"}
-      subtitle="Informasi produk dipisahkan ke tab Umum, Variant, Gambar, dan Stok agar lebih mudah dikelola."
+      subtitle="Product mengelola identitas, variant, gambar, harga, dan HPP. Perubahan saldo stok dilakukan melalui Persediaan agar histori dan bahan baku tetap sinkron."
     >
       <form onSubmit={submit}>
         <ProductEditorTabs activeTab={activeSection} onChange={setActiveSection} errorTabs={getErrorTabs(errors)} />
@@ -434,7 +435,7 @@ export function SellerProductEditor({
                   <div>
                     <span className="material-symbols-outlined text-3xl text-slate-400">inventory_2</span>
                     <p className="mt-2 text-sm font-extrabold text-slate-700">Produk tanpa variant</p>
-                    <p className="mt-1 text-xs text-slate-500">SKU, harga, dan stok dapat diisi pada tab Stok.</p>
+                    <p className="mt-1 text-xs text-slate-500">SKU dan harga dapat diatur pada tab Stok. Saldo stok dikelola melalui menu Persediaan.</p>
                   </div>
                 </div>
               )}
@@ -459,17 +460,10 @@ export function SellerProductEditor({
           ) : null}
 
           {activeSection === "stock" ? (
-            <ProductStockFields
-              mode={values.mode}
-              sku={values.sku}
-              price={values.price}
-              stock={values.stock}
-              variants={values.variants}
-              errors={errors}
-              onSimpleChange={setField}
-              onVariantsChange={(variants) => setField("variants", variants)}
-            />
+            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
           ) : null}
+
+          {activeSection === "costing" ? <ProductCostingFields productId={product?.id} /> : null}
 
           {message ? <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
@@ -479,8 +473,8 @@ export function SellerProductEditor({
           {product && onDelete ? (
             <button type="button" onClick={() => onDelete(product)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600 hover:bg-red-100">Hapus</button>
           ) : null}
-          <button type="submit" disabled={mutation.isPending} className={`h-10 px-5 text-sm font-extrabold text-white disabled:opacity-60 ${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
-            {mutation.isPending ? "Menyimpan..." : product ? "Simpan Perubahan" : "Tambah Produk"}
+          <button type="submit"  className={`h-10 px-5 text-sm font-extrabold text-white disabled:opacity-60 ${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
+            {product ? "Simpan Perubahan" : "Tambah Produk"}
           </button>
         </div>
       </form>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -16,17 +16,14 @@ export function ProductCheckoutPanel({
   const [qty, setQty] = useState(1);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-  const [buyingNow, setBuyingNow] = useState(false);
+  const addCartPendingRef = useRef(false);
 
   const navigate = useNavigate();
   const location = useLocation();
 
   const { isAuthenticated } = useAuth();
 
-  const {
-    addItem,
-    mutating: cartMutating,
-  } = useCart();
+  const { addItem } = useCart();
 
   const {
     toggleItem,
@@ -102,7 +99,12 @@ export function ProductCheckoutPanel({
       return;
     }
 
+    if (addCartPendingRef.current) {
+      return;
+    }
+
     try {
+      addCartPendingRef.current = true;
       setMessage("");
       setMessageType("");
 
@@ -110,6 +112,13 @@ export function ProductCheckoutPanel({
         productId,
         variantId,
         quantity: qty,
+        productName: product?.name || "Produk",
+        variantLabel: activeVariant?.name || "",
+        price,
+        stock,
+        imageUrl: image || "",
+        storeId: Number(product?.store_id || product?.store?.id || 0),
+        storeName: product?.store_name || product?.store?.name || product?.brand || "Toko",
       });
 
       setMessageType("success");
@@ -124,10 +133,12 @@ export function ProductCheckoutPanel({
           "Produk gagal ditambahkan ke keranjang.",
         ),
       );
+    } finally {
+      addCartPendingRef.current = false;
     }
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!requireLogin()) {
       return;
     }
@@ -139,7 +150,6 @@ export function ProductCheckoutPanel({
     }
 
     try {
-      setBuyingNow(true);
       setMessage("");
       setMessageType("");
 
@@ -181,8 +191,6 @@ export function ProductCheckoutPanel({
           "Checkout langsung gagal diproses.",
         ),
       );
-    } finally {
-      setBuyingNow(false);
     }
   };
 
@@ -294,32 +302,20 @@ export function ProductCheckoutPanel({
       <div className="mb-6 space-y-2">
         <button
           type="button"
-          disabled={
-            cartMutating ||
-            buyingNow ||
-            !stock
-          }
+          disabled={!stock}
           onClick={handleBuyNow}
           className="w-full rounded-lg bg-[#10B981] py-2.5 font-bold text-white transition-colors hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {buyingNow
-            ? "Menyiapkan Checkout..."
-            : "Beli Sekarang"}
+          Beli Sekarang
         </button>
 
         <button
           type="button"
-          disabled={
-            cartMutating ||
-            buyingNow ||
-            !stock
-          }
+          disabled={!stock}
           onClick={handleAddCart}
           className="w-full rounded-lg border border-[#10B981] bg-white py-2.5 font-bold text-[#047857] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {cartMutating && !buyingNow
-            ? "Menambahkan..."
-            : "+ Keranjang"}
+          + Keranjang
         </button>
 
         {message ? (

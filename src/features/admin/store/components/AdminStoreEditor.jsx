@@ -80,7 +80,7 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-5 text-sm font-extrabold text-white disabled:opacity-60">{mutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}</button>
+          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-5 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Perubahan"</button>
         </div>
       </form>
     </CrudDialog>

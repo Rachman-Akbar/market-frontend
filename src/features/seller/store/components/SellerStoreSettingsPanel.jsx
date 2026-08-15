@@ -315,7 +315,7 @@ export function SellerStoreSettingsPanel({ store }) {
             disabled={pending}
             className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60"
           >
-            {pending ? "Menyimpan..." : "Simpan Perubahan"}
+            "Simpan Perubahan"
           </button>
         </div>
       </div>

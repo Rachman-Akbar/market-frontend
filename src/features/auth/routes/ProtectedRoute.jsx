@@ -1,14 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
-function LoadingScreen() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white">
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#10B981]" />
-    </div>
-  );
-}
-
 function normalizeRoles(values = []) {
   return Array.isArray(values)
     ? values.map((role) => String(role || "").toLowerCase().trim()).filter(Boolean)
@@ -28,7 +20,7 @@ export default function ProtectedRoute({
     roles: accountRoles,
   } = useAuth();
 
-  if (initializing) return <LoadingScreen />;
+  if (initializing) return null;
 
   if (!isAuthenticated) {
     return <Navigate to={loginPath} state={{ from: location }} replace />;

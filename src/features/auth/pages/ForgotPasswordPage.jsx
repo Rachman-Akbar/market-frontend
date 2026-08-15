@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
           disabled={loading}
           className="h-12 w-full rounded-xl bg-[#10B981] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Memproses..." : "Kirim Link Reset"}
+          Kirim Link Reset
         </Button>
       </form>
 

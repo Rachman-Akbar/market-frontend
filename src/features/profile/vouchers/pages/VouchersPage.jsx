@@ -109,11 +109,7 @@ export default function VouchersPage() {
         </div>
         <hr className={profileLayout.divider} />
 
-        {vouchersQuery.isLoading ? (
-          <p className="py-12 text-center text-sm text-slate-500">
-            Memuat voucher...
-          </p>
-        ) : null}
+        
         {vouchersQuery.error ? (
           <p className="py-12 text-center text-sm text-red-600">
             {vouchersQuery.error.message}

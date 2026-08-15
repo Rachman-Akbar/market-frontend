@@ -19,9 +19,6 @@ export function CategoryGrid() {
   return (
     <div>
       <h2 className="text-lg font-bold text-gray-800 mb-4">Kategori Populer</h2>
-      {navigationQuery.isLoading && (
-        <div className="text-sm text-gray-500">Memuat kategori...</div>
-      )}
       {navigationQuery.error && (
         <div className="text-sm text-red-500">
           {navigationQuery.error.message || "Gagal memuat kategori populer"}

@@ -157,7 +157,6 @@ export default function SearchClient() {
           <p className="text-sm text-[#3e4a39] mb-4">
             Menampilkan hasil pencarian untuk <strong className="text-[#1b1c1c]">"{query || "Semua Produk"}"</strong>
           </p>
-          {productsQuery.isLoading ? <div className="text-sm text-gray-500 py-8">Memuat hasil pencarian...</div> : null}
           {productsQuery.error ? <div className="text-sm text-red-500 py-8">{productsQuery.error.message}</div> : null}
           {!productsQuery.isLoading && !productsQuery.error && !products.length ? <div className="text-sm text-gray-500 py-8">Produk tidak ditemukan.</div> : null}
           {!productsQuery.isLoading && !productsQuery.error && products.length ? (
@@ -169,9 +168,9 @@ export default function SearchClient() {
           ) : null}
           <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
             {productsQuery.isFetchingNextPage
-              ? "Memuat produk berikutnya..."
+              ? "Lihat produk berikutnya"
               : productsQuery.hasNextPage
-                ? "Geser ke bawah untuk memuat produk berikutnya"
+                ? "Geser ke bawah untuk melihat produk berikutnya"
                 : products.length
                   ? "Semua produk sudah ditampilkan"
                   : ""}

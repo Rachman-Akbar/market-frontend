@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
@@ -27,7 +27,6 @@ export default function RoleSwitchPage() {
   const navigate = useNavigate();
   const { refreshMe, switchRole } = useAuth();
   const started = useRef(false);
-  const [message, setMessage] = useState("Memeriksa akses akun...");
 
   useEffect(() => {
     if (started.current) return;
@@ -62,7 +61,6 @@ export default function RoleSwitchPage() {
       }
 
       if (targetRole === "seller" && !resolveStore(currentSession)?.id) {
-        setMessage("Toko belum tersedia. Membuka pendaftaran toko...");
         navigate(
           "/auth/seller/onboarding",
           {
@@ -80,8 +78,6 @@ export default function RoleSwitchPage() {
         navigate(redirect, { replace: true });
         return;
       }
-
-      setMessage(`Menyiapkan sesi ${targetRole === "admin" ? "Admin" : "Seller"}...`);
 
       try {
         await switchRole(targetRole, {
@@ -111,12 +107,5 @@ export default function RoleSwitchPage() {
     prepareSession();
   }, [location.search, navigate, refreshMe, switchRole]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-6">
-      <div className="text-center">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#10B981]" />
-        <p className="mt-4 text-sm font-semibold text-slate-600">{message}</p>
-      </div>
-    </div>
-  );
+  return null;
 }

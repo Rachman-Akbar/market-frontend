@@ -48,7 +48,6 @@ export const InlineActiveSwitch = memo(function InlineActiveSwitch({
       </span>
       <span className={cn("inline-flex items-center gap-1 font-bold", checked ? "text-emerald-700" : "text-slate-500")}>
         {label}
-        {pending ? <span className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" /> : null}
       </span>
     </button>
   );

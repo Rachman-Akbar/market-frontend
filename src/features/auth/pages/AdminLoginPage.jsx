@@ -15,9 +15,9 @@ export default function AdminLoginPage() {
     try {
       const session = await loginWithPassword({
         ...form,
-        intended_role: "admin",
-        device_name: "marketplace-web-admin",
-        storage_scope: "window",
+        role: "admin",
+        deviceName: "marketplace-web-admin",
+        storageScope: "window",
       });
       const activeRole = String(session?.activeRole || session?.active_role || session?.user?.role || "").toLowerCase();
       const roles = Array.isArray(session?.roles || session?.user?.roles) ? (session?.roles || session?.user?.roles).map((role) => String(role?.name || role || "").toLowerCase()) : [];

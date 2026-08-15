@@ -48,9 +48,7 @@ export default function GroupChatPage() {
           </label>
         </div>
         <div className={profileLayout.listScroll}>
-          {groupsQuery.isLoading ? (
-            <p className="p-6 text-sm text-slate-500">Memuat grup...</p>
-          ) : null}
+          
           {groups.map((group) => (
             <button
               key={group.id}

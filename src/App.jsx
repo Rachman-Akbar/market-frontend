@@ -67,13 +67,7 @@ const ReviewsPage = lazy(() => import("@/features/advanced/pages/ReviewsPage"));
 const RealtimeChatPage = lazy(() => import("@/features/advanced/pages/RealtimeChatPage"));
 
 
-function LoadingScreen() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-[#10B981]" />
-    </div>
-  );
-}
+function LoadingScreen() { return null; }
 
 function renderBuyerRoutes() {
   return (
