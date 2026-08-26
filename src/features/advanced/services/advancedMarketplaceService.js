@@ -310,7 +310,7 @@ export function useConversation(id) {
     queryKey: [...advancedKeys.conversations, id],
     queryFn: () => communicationOne(`/conversations/${id}`),
     enabled: Boolean(id),
-    refetchInterval: () => getEchoStatus() === "connected" ? false : 5000,
+    refetchInterval: () => getEchoStatus() === "connected" ? false : 15000,
     refetchOnWindowFocus: true,
   });
 }

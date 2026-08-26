@@ -17,6 +17,8 @@ import {
   readStoredSession,
   registerWithPassword as registerWithPasswordRequest,
   requestPasswordReset,
+  resetPassword as resetPasswordRequest,
+  changePassword as changePasswordRequest,
   switchActiveRole,
 } from "@/features/auth/services/authService";
 import {
@@ -172,6 +174,38 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const resetPassword = useCallback(async (payload) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await resetPasswordRequest(payload);
+      return true;
+    } catch (authError) {
+      const message = getApiErrorMessage(authError);
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const changePassword = useCallback(async (payload) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await changePasswordRequest(payload);
+      return true;
+    } catch (authError) {
+      const message = getApiErrorMessage(authError);
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -250,6 +284,8 @@ export function AuthProvider({ children }) {
       registerWithPassword,
       loginWithGoogle,
       forgotPassword,
+      resetPassword,
+      changePassword,
       logout,
       switchRole,
       refreshMe: syncMe,
@@ -257,6 +293,7 @@ export function AuthProvider({ children }) {
     }),
     [
       activeRole,
+      changePassword,
       error,
       forgotPassword,
       hasRole,
@@ -267,6 +304,7 @@ export function AuthProvider({ children }) {
       loginWithPassword,
       logout,
       registerWithPassword,
+      resetPassword,
       roles,
       session?.store,
       session?.token,

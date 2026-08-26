@@ -493,6 +493,43 @@ export async function requestPasswordReset(email) {
   return true;
 }
 
+export async function resetPassword({ email, token, password, password_confirmation }) {
+  if (!email || !token || !password) {
+    throw new Error("Data tidak lengkap.");
+  }
+
+  if (password !== password_confirmation) {
+    throw new Error("Konfirmasi password tidak cocok.");
+  }
+
+  const response = await authApi.post(getAuthPath("reset-password"), {
+    email,
+    token,
+    password,
+    password_confirmation,
+  });
+
+  return response.data;
+}
+
+export async function changePassword({ current_password, new_password, new_password_confirmation }) {
+  if (!current_password || !new_password) {
+    throw new Error("Semua field wajib diisi.");
+  }
+
+  if (new_password !== new_password_confirmation) {
+    throw new Error("Konfirmasi password tidak cocok.");
+  }
+
+  const response = await authApi.post(getAuthPath("change-password"), {
+    current_password,
+    new_password,
+    new_password_confirmation,
+  });
+
+  return response.data;
+}
+
 export async function fetchCurrentAuthUser() {
   const currentSession = readStoredSession();
 

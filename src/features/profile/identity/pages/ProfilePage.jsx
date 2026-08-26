@@ -664,11 +664,58 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
 }
 
 function KeamananTab({ onLogout }) {
+  const { changePassword } = useAuth();
+  const [form, setForm] = useState({
+    current_password: "",
+    new_password: "",
+    new_password_confirmation: "",
+  });
+  const [message, setMessage] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const isGoogleAccount = Boolean(
+    useAuth()?.user?.firebase_uid || useAuth()?.user?.firebaseUid,
+  );
+
   const currentDevice = useMemo(
     () =>
       `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`,
     [],
   );
+
+  const handleChangePassword = async () => {
+    setMessage("");
+    setSuccessMsg("");
+
+    if (!form.current_password) {
+      setMessage("Password saat ini wajib diisi.");
+      return;
+    }
+    if (!form.new_password || form.new_password.length < 8) {
+      setMessage("Password baru minimal 8 karakter.");
+      return;
+    }
+    if (form.new_password !== form.new_password_confirmation) {
+      setMessage("Konfirmasi password tidak cocok.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await changePassword({
+        current_password: form.current_password,
+        new_password: form.new_password,
+        new_password_confirmation: form.new_password_confirmation,
+      });
+      setSuccessMsg("Password berhasil diubah! Semua sesi lain telah logout.");
+      setForm({ current_password: "", new_password: "", new_password_confirmation: "" });
+    } catch (err) {
+      setMessage(err.message || "Gagal mengubah password.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-[760px]">
       <div className="mb-8 flex min-h-[64px] gap-3 border-l-2 border-[#10B981] bg-[#ECFDF5] px-4 py-3 text-sm leading-6 text-slate-600">
@@ -678,6 +725,63 @@ function KeamananTab({ onLogout }) {
           dan perbarui kata sandi melalui pengaturan keamanan.
         </p>
       </div>
+
+      {!isGoogleAccount && (
+        <div className="mb-8">
+          <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+            Ubah Kata Sandi
+          </h3>
+          <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-6">
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Password saat ini</span>
+              <input
+                type="password"
+                value={form.current_password}
+                onChange={(e) => setForm((p) => ({ ...p, current_password: e.target.value }))}
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
+                autoComplete="current-password"
+              />
+            </label>
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Password baru</span>
+              <input
+                type="password"
+                value={form.new_password}
+                onChange={(e) => setForm((p) => ({ ...p, new_password: e.target.value }))}
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Konfirmasi password baru</span>
+              <input
+                type="password"
+                value={form.new_password_confirmation}
+                onChange={(e) => setForm((p) => ({ ...p, new_password_confirmation: e.target.value }))}
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
+                autoComplete="new-password"
+              />
+            </label>
+
+            {message && (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p>
+            )}
+            {successMsg && (
+              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{successMsg}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleChangePassword}
+              disabled={saving}
+              className="h-11 rounded-xl bg-[#10B981] px-6 text-sm font-black text-white shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {saving ? "Menyimpan..." : "Ubah Password"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
         Perangkat Aktif
       </h3>

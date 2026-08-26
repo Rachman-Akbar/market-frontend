@@ -53,6 +53,8 @@ function normalizeStore(row = {}) {
       closeTime: detail.close_time || detail.closeTime || "",
       instagramUrl: detail.instagram_url || detail.instagramUrl || "",
       websiteUrl: detail.website_url || detail.websiteUrl || "",
+      whatsappUrl: detail.whatsapp_url || detail.whatsappUrl || "",
+      tiktokUrl: detail.tiktok_url || detail.tiktokUrl || "",
     },
   };
 }

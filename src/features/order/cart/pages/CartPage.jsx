@@ -25,7 +25,7 @@ import {
   useOrderDetail,
   useOrders,
 } from "@/features/order/ordering/orderService";
-import { advancedError, useCreateReview } from "@/features/advanced/services/advancedMarketplaceService";
+import { advancedError, useCreateReview, useReviews } from "@/features/advanced/services/advancedMarketplaceService";
 import { CartItemRow } from "@/features/order/cart/components/CartItemRow";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
@@ -208,7 +208,7 @@ function CartSummary({
   );
   const shipping = 0;
   const discount = 0;
-  const total = subtotal;
+  const total = subtotal + shipping - discount;
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
@@ -903,6 +903,7 @@ export default function CartPage() {
 } = useWishlist();
 
   const ordersQuery = useOrders({ per_page: 30 });
+  const reviewsQuery = useReviews({ per_page: 50 });
   const requestedTab = searchParams.get("tab");
   const activeTab = tabs.some((tab) => tab.key === requestedTab)
     ? requestedTab
@@ -1110,7 +1111,7 @@ export default function CartPage() {
               <OrderTab items={orderItems} onOpen={openOrderDetail} />
             )
           ) : null}
-          {activeTab === "review" ? <ReviewTab items={[]} /> : null}
+          {activeTab === "review" ? <ReviewTab items={reviewsQuery.data?.rows || []} /> : null}
         </div>
 
         {activeTab === "cart" && sortedCartItems.length ? (

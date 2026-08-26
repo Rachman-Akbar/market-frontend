@@ -222,7 +222,7 @@ export function useSellerProducts(params = {}) {
       };
     },
     enabled: Boolean(isAuthenticated && activeRole === "seller" && storeId),
-    staleTime: 0,
+    staleTime: 30_000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });

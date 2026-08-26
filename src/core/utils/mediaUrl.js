@@ -16,6 +16,10 @@ function resolveLocalAbsoluteUrl(raw) {
       return raw;
     }
 
+    if (import.meta.env.DEV) {
+      return raw;
+    }
+
     const storageIndex = parsed.pathname.indexOf("/storage/");
 
     if (storageIndex >= 0) {

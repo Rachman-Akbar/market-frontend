@@ -9,6 +9,7 @@ import ProfileLayout from "@/features/profile/ProfileLayout";
 import ProtectedRoute from "@/features/auth/routes/ProtectedRoute";
 import SellerOnboardingGuard from "@/features/auth/routes/SellerOnboardingGuard";
 import GuestRoute from "@/features/auth/routes/GuestRoute";
+import ErrorBoundary from "@/shared/components/feedback/ErrorBoundary";
 
 const HomePage = lazy(() => import("@/features/catalog/HomePage"));
 const SearchPage = lazy(() => import("@/features/catalog/product/pages/SearchPage"));
@@ -24,6 +25,7 @@ const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
 const AdminLoginPage = lazy(() => import("@/features/auth/pages/AdminLoginPage"));
 const RegisterPage = lazy(() => import("@/features/auth/pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("@/features/auth/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/features/auth/pages/ResetPasswordPage"));
 const RoleSwitchPage = lazy(() => import("@/features/auth/pages/RoleSwitchPage"));
 const SellerOnboardingPage = lazy(() => import("@/features/auth/pages/SellerOnboardingPage"));
 const SellerDashboardPage = lazy(() => import("@/features/seller/dashboard/pages/SellerDashboardPage"));
@@ -34,6 +36,7 @@ const SellerPromotionPage = lazy(() => import("@/features/seller/promotion/pages
 const SellerStorePage = lazy(() => import("@/features/seller/store/pages/SellerStorePage"));
 const SellerStorePreviewPage = lazy(() => import("@/features/seller/store/pages/SellerStorePreviewPage"));
 const SellerOrdersPage = lazy(() => import("@/features/seller/order/pages/SellerOrdersPage"));
+const SchedulePage = lazy(() => import("@/features/seller/planner/pages/SchedulePage"));
 const AdminDashboardPage = lazy(() => import("@/features/admin/dashboard/pages/AdminDashboardPage"));
 const AdminProductsPage = lazy(() => import("@/features/admin/product/pages/AdminProductsPage"));
 const AdminCatalogGroupPage = lazy(() => import("@/features/admin/catalogGroup/pages/AdminCatalogGroupPage"));
@@ -67,7 +70,16 @@ const ReviewsPage = lazy(() => import("@/features/advanced/pages/ReviewsPage"));
 const RealtimeChatPage = lazy(() => import("@/features/advanced/pages/RealtimeChatPage"));
 
 
-function LoadingScreen() { return null; }
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#e0e3e7] border-t-[#10B981]" />
+        <p className="text-sm text-[#5f5e5e]">Memuat...</p>
+      </div>
+    </div>
+  );
+}
 
 function renderBuyerRoutes() {
   return (
@@ -97,6 +109,7 @@ function renderAuthenticationRoutes() {
           <Route path="/auth/login" element={<LoginPage portal="buyer" />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         </Route>
       </Route>
       <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -144,6 +157,7 @@ function renderSellerRoutes() {
           <Route path="/seller/orders" element={<SellerOrdersPage />} />
           <Route path="/seller/customers" element={<CustomersPage />} />
           <Route path="/seller/order-operations" element={<OrderOperationsPage />} />
+          <Route path="/seller/planner" element={<SchedulePage />} />
           <Route path="/seller/cashflow" element={<FinancePage mode="cashflow" />} />
           <Route path="/seller/receivables-payables" element={<FinancePage mode="receivables" />} />
           <Route path="/seller/showcases" element={<ShowcasePage />} />
@@ -201,16 +215,18 @@ function renderAdminRoutes() {
 export default function App() {
   return (
     <AppLayout>
-      <Suspense fallback={<LoadingScreen />}>
-        <Routes>
-          {renderBuyerRoutes()}
-          {renderAuthenticationRoutes()}
-          {renderAccountRoutes()}
-          {renderSellerRoutes()}
-          {renderAdminRoutes()}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            {renderBuyerRoutes()}
+            {renderAuthenticationRoutes()}
+            {renderAccountRoutes()}
+            {renderSellerRoutes()}
+            {renderAdminRoutes()}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </AppLayout>
   );
 }
