@@ -60,8 +60,6 @@ export function useAdminProducts(params = {}) {
     queryKey: adminProductKeys.list(params),
     queryFn: () => getAdminProducts(params),
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 
@@ -70,8 +68,6 @@ export function useAdminProductStores() {
     queryKey: adminProductKeys.stores,
     queryFn: getAdminProductStores,
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 

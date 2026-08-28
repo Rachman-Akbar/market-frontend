@@ -1,4 +1,5 @@
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { getAdminMode, setAdminMode } from "@/features/admin/adminMode";
 import { AdminNotificationDrawer } from "@/features/admin/notifications/components/AdminNotificationDrawer";
 import { AdminRealtimeNotificationProvider, useAdminRealtimeNotifications } from "@/features/admin/notifications/context/AdminRealtimeNotificationContext";
 import { PanelHeader } from "@/shared/layout/PanelHeader";
@@ -15,6 +16,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/promotions", label: "Promosi", icon: "campaign", group: "Penjualan" },
   { href: "/admin/promotion-payments", label: "Pembayaran Promosi", icon: "paid", group: "Penjualan" },
   { href: "/admin/orders", label: "Pesanan", icon: "receipt_long", group: "Penjualan" },
+  { href: "/admin/ppob", label: "PPOB & Top Up", icon: "phone_android", group: "Penjualan" },
   { href: "/admin/customers", label: "Pelanggan", icon: "person_search", group: "Penjualan" },
   { href: "/admin/order-operations", label: "Order", icon: "shopping_bag", group: "Penjualan" },
   { href: "/admin/reviews", label: "Review", icon: "reviews", group: "Penjualan" },
@@ -33,7 +35,26 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan" },
   { href: "/admin/help", label: "Help", icon: "support_agent", group: "Bantuan" },
   { href: "/admin/roles", label: "Role", icon: "admin_panel_settings", group: "Manajemen", hiddenInSidebar: true },
+  { href: "/admin/store-context", label: "Monitoring Toko", icon: "monitor_heart", group: "Toko" },
 ];
+
+function AdminModeSwitchButton() {
+  const mode = getAdminMode();
+  const isSeller = mode === "seller";
+  return (
+    <button
+      type="button"
+      onClick={() => setAdminMode(isSeller ? "monitor" : "seller")}
+      title={isSeller ? "Beralih ke Monitoring Toko" : "Beralih ke Panel Seller"}
+      className="relative flex h-10 items-center gap-1.5 rounded-lg bg-white px-2.5 text-slate-600 hover:bg-slate-50"
+      aria-label={isSeller ? "Beralih ke Monitoring Toko" : "Beralih ke Panel Seller"}
+    >
+      <span className="material-symbols-outlined text-[20px]">{isSeller ? "monitor_heart" : "storefront"}</span>
+      <span className="hidden text-xs font-extrabold md:inline">{isSeller ? "Monitoring" : "Seller"}</span>
+      <span className="material-symbols-outlined text-[15px] text-slate-400">swap_horiz</span>
+    </button>
+  );
+}
 
 function AdminLayoutContent() {
   const { user } = useAuth();
@@ -57,6 +78,7 @@ function AdminLayoutContent() {
               notificationConnected={realtime.connected}
               onNotificationClick={() => realtime.setOpen(true)}
               mobileNavigation={<PanelMobileNavigation items={ADMIN_NAV_ITEMS} activeClassName="bg-teal-50 text-teal-700" badges={realtime.badges} />}
+              modeHeader={<AdminModeSwitchButton />}
             />
             <PanelTabBar />
             <main className="min-w-0 max-w-full overflow-x-hidden px-3 py-3 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="w-full min-w-0 max-w-full" /></main>

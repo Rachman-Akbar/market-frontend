@@ -16,9 +16,9 @@ export function createAppQueryClient() {
       queries: {
         staleTime: 30 * 1000,
         gcTime: 10 * 60 * 1000,
-        refetchOnMount: "always",
-        refetchOnWindowFocus: true,
-        refetchOnReconnect: true,
+        refetchOnMount: true,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
         retry: shouldRetry,
       },
       mutations: {

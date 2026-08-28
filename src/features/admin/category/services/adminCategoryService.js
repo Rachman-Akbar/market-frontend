@@ -89,8 +89,6 @@ export function useAdminCategoryList() {
     queryKey: adminCategoryKeys.all,
     queryFn: getAdminCategories,
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 

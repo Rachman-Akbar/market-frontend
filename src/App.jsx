@@ -37,7 +37,7 @@ const SellerStorePage = lazy(() => import("@/features/seller/store/pages/SellerS
 const SellerStorePreviewPage = lazy(() => import("@/features/seller/store/pages/SellerStorePreviewPage"));
 const SellerOrdersPage = lazy(() => import("@/features/seller/order/pages/SellerOrdersPage"));
 const SchedulePage = lazy(() => import("@/features/seller/planner/pages/SchedulePage"));
-const AdminDashboardPage = lazy(() => import("@/features/admin/dashboard/pages/AdminDashboardPage"));
+const AdminHomePage = lazy(() => import("@/features/admin/dashboard/pages/AdminHomePage"));
 const AdminProductsPage = lazy(() => import("@/features/admin/product/pages/AdminProductsPage"));
 const AdminCatalogGroupPage = lazy(() => import("@/features/admin/catalogGroup/pages/AdminCatalogGroupPage"));
 const AdminCategoryPage = lazy(() => import("@/features/admin/category/pages/AdminCategoryPage"));
@@ -48,6 +48,8 @@ const AdminRolesPage = lazy(() => import("@/features/admin/identity/pages/AdminR
 const AdminStoresPage = lazy(() => import("@/features/admin/store/pages/AdminStoresPage"));
 const AdminBannersPage = lazy(() => import("@/features/admin/banner/pages/AdminBannersPage"));
 const AdminOrdersPage = lazy(() => import("@/features/admin/order/pages/AdminOrdersPage"));
+const AdminPpobPage = lazy(() => import("@/features/admin/ppob/pages/AdminPpobPage"));
+const AdminStoreContextPage = lazy(() => import("@/features/admin/storeContext/pages/AdminStoreContextPage"));
 const ProfilePage = lazy(() => import("@/features/profile/identity/pages/ProfilePage"));
 const AddressesPage = lazy(() => import("@/features/profile/address/pages/AddressesPage"));
 const GroupChatPage = lazy(() => import("@/features/profile/chat/pages/GroupChatPage"));
@@ -63,6 +65,7 @@ const HelpPage = lazy(() => import("@/features/advanced/pages/HelpPage"));
 const MissionsPage = lazy(() => import("@/features/advanced/pages/MissionsPage"));
 const BuyerHelpPage = lazy(() => import("@/features/profile/help/pages/BuyerHelpPage"));
 const BuyerMissionsPage = lazy(() => import("@/features/profile/missions/pages/BuyerMissionsPage"));
+const PpobPage = lazy(() => import("@/features/ppob/pages/PpobPage"));
 const PromotionPaymentsPage = lazy(() => import("@/features/advanced/pages/PromotionPaymentsPage"));
 const AnnouncementPage = lazy(() => import("@/features/advanced/pages/AnnouncementPage"));
 const OrderOperationsPage = lazy(() => import("@/features/advanced/pages/OrderOperationsPage"));
@@ -92,6 +95,7 @@ function renderBuyerRoutes() {
       <Route path="/stores" element={<StoreDirectoryPage />} />
       <Route path="/stores/id/:id" element={<StoreDetailPage />} />
       <Route path="/stores/:slug" element={<StoreDetailPage />} />
+      <Route path="/ppob" element={<PpobPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout/*" element={<CheckoutPage />} />
@@ -182,12 +186,13 @@ function renderAdminRoutes() {
   return (
     <Route element={<ProtectedRoute roles={["admin"]} loginPath="/admin/login" />}>
       <Route element={<AdminLayout />}>
-        <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/admin" element={<AdminHomePage />} />
         <Route path="/admin/products" element={<AdminProductsPage />} />
         <Route path="/admin/stock" element={<StockPage />} />
         <Route path="/admin/vouchers" element={<AdminVoucherPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionPage />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
+        <Route path="/admin/ppob" element={<AdminPpobPage />} />
         <Route path="/admin/customers" element={<CustomersPage />} />
         <Route path="/admin/order-operations" element={<OrderOperationsPage />} />
         <Route path="/admin/cashflow" element={<FinancePage mode="cashflow" />} />
@@ -206,6 +211,7 @@ function renderAdminRoutes() {
         <Route path="/admin/catalog-groups" element={<AdminCatalogGroupPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/stores" element={<AdminStoresPage />} />
+        <Route path="/admin/store-context" element={<AdminStoreContextPage />} />
         <Route path="/admin/roles" element={<AdminRolesPage />} />
       </Route>
     </Route>

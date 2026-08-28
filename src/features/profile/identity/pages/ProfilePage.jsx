@@ -25,6 +25,11 @@ import {
   useUpdateAddress,
 } from "@/features/profile/address/addressService";
 import { apiClient, getApiMessage } from "@/core/utils/apiClient";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import {
+  getMediaUploadError,
+  uploadMarketplaceImage,
+} from "@/shared/services/mediaUploadService";
 import AddressMapTracker from "@/features/profile/address/components/AddressMapTracker";
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
 import { cn } from "@/shared/utils/utils";
@@ -816,6 +821,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   useEffect(() => setActiveTab(defaultTab), [defaultTab]);
 
@@ -825,11 +831,44 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
     email: authUser?.email || "",
     username:
       authUser?.username || String(authUser?.email || "user").split("@")[0],
+    avatar: authUser?.avatar || authUser?.photoURL || "",
   };
   const initial = user.name.slice(0, 1).toUpperCase();
+  const avatarUrl = resolveMediaUrl(user.avatar);
   const isGoogleAccount = Boolean(
     authUser?.firebase_uid || authUser?.firebaseUid,
   );
+
+  const avatarMutation = useMutation({
+    mutationFn: async (file) => {
+      const uploaded = await uploadMarketplaceImage(file, "profiles");
+      const response = await apiClient.put(
+        `/api/v1/identity/users/${user.id}`,
+        { avatar: uploaded.url },
+      );
+      return response.data;
+    },
+    onSuccess: async () => {
+      await refreshMe?.();
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      console.error(getMediaUploadError(error));
+    },
+  });
+
+  const handlePhotoChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || photoBusy) return;
+    setPhotoBusy(true);
+    try {
+      await avatarMutation.mutateAsync(file);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   const handleLogout = async () => {
     await logout?.();
     queryClient.clear();
@@ -847,7 +886,15 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
       >
         <div className="flex min-h-[300px] flex-col items-center border-b border-[#e5e7eb] px-8 py-8 text-center">
           <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-[#10B981] text-5xl font-bold text-white shadow-inner">
-            {initial}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={user.name}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              initial
+            )}
           </div>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">
             {user.name}
@@ -855,8 +902,20 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
           <span className="mb-6 text-sm font-medium text-[#10B981]">
             @{user.username}
           </span>
-          <button type="button" className={profileLayout.secondaryButton}>
-            Ubah Foto
+          <button
+            type="button"
+            disabled={photoBusy}
+            onClick={() => document.getElementById("profile-avatar-input")?.click()}
+            className={profileLayout.secondaryButton}
+          >
+            <input
+              id="profile-avatar-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+            {photoBusy ? "Mengunggah..." : "Ubah Foto"}
           </button>
         </div>
         <div className="py-2">

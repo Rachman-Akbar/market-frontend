@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/shared/utils/utils";
 import { cva } from "class-variance-authority";
 
@@ -16,8 +17,8 @@ const badgeVariants = cva(
   }
 );
 
-function Badge({ className, variant, ...props }) {
+const Badge = memo(function Badge({ className, variant, ...props }) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
-}
+});
 
 export { Badge, badgeVariants };

@@ -77,8 +77,6 @@ export function useAdminStores(params = {}) {
     queryKey: adminStoreKeys.list(params),
     queryFn: () => getAdminStores(params),
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 

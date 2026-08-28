@@ -1,7 +1,9 @@
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+
 export function ProfileIdentityCard({ user = null }) {
   const name = user?.name || "Pengguna";
   const email = user?.email || "Email belum tersedia";
-  const avatar = user?.avatar || user?.photoURL || "";
+  const avatar = resolveMediaUrl(user?.avatar || user?.photoURL || "");
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">

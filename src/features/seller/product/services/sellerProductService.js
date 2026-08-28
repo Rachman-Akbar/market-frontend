@@ -223,17 +223,15 @@ export function useSellerProducts(params = {}) {
     },
     enabled: Boolean(isAuthenticated && activeRole === "seller" && storeId),
     staleTime: 30_000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 
 export function useSellerProductCategories(options = {}) {
-  return useQuery({ queryKey: sellerProductKeys.categories, queryFn: getSellerProductCategories, staleTime: 30000, refetchOnWindowFocus: true, ...options });
+  return useQuery({ queryKey: sellerProductKeys.categories, queryFn: getSellerProductCategories, staleTime: 30000, ...options });
 }
 
 export function useSellerProductAttributes(options = {}) {
-  return useQuery({ queryKey: sellerProductKeys.attributes, queryFn: getSellerProductAttributes, staleTime: 30000, refetchOnWindowFocus: true, ...options });
+  return useQuery({ queryKey: sellerProductKeys.attributes, queryFn: getSellerProductAttributes, staleTime: 30000, ...options });
 }
 
 function refreshSellerProductQueries(queryClient) {

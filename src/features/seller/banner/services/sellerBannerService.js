@@ -61,8 +61,6 @@ export function useSellerBanners() {
     },
     enabled: Boolean(activeRole === "seller" && storeId),
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 

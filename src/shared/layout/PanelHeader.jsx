@@ -57,6 +57,7 @@ function PanelHeaderComponent({
   notificationCount,
   notificationConnected,
   onNotificationClick,
+  modeHeader,
 }) {
   const initial = userName?.slice(0, 1)?.toUpperCase() || "U";
   const center = useNotificationCenter();
@@ -95,6 +96,7 @@ function PanelHeaderComponent({
             {actionHref ? (
               <Link to={actionHref} className={cn("hidden rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-slate-700 transition sm:inline-flex", actionClassName)}>{actionLabel}</Link>
             ) : null}
+            {modeHeader ? <>{modeHeader}</> : null}
             <button type="button" onClick={() => onNotificationClick ? onNotificationClick() : center.setOpen(true)} className={cn("relative flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-600 transition", notificationClassName)} aria-label="Notifikasi">
               <span className={`material-symbols-outlined text-[20px] ${unreadCount ? "animate-pulse text-amber-600" : ""}`}>{unreadCount ? "notifications_active" : "notifications"}</span>
               {unreadCount ? <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, unreadCount)}</span> : null}

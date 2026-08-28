@@ -1,6 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getEcho, getEchoStatus, subscribeEchoStatus } from "@/core/realtime/echo";
 import {
@@ -13,22 +11,6 @@ import {
 
 const AdminRealtimeNotificationContext = createContext(null);
 
-const MODULE_ROUTES = {
-  orders: "/admin/orders",
-  support: "/admin/help",
-  promotion_payments: "/admin/promotion-payments",
-  stores: "/admin/stores",
-  chat: "/admin/chat",
-};
-
-const MODULE_QUERY_KEYS = {
-  orders: [["admin", "orders"], ["order", "orderings"]],
-  support: [["advanced", "tickets"]],
-  promotion_payments: [["advanced", "promotion-payments"]],
-  stores: [["admin", "stores"]],
-  chat: [["communication", "conversations"]],
-};
-
 function addUnique(current, incoming) {
   if (!incoming?.id) return current;
   if (current.some((item) => Number(item.id) === Number(incoming.id))) return current;
@@ -37,8 +19,6 @@ function addUnique(current, incoming) {
 
 export function AdminRealtimeNotificationProvider({ children }) {
   const { user, activeRole } = useAuth();
-  const location = useLocation();
-  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [moduleCounts, setModuleCounts] = useState({});
@@ -80,14 +60,6 @@ export function AdminRealtimeNotificationProvider({ children }) {
     }
   }, [activeRole, applyState, user?.id]);
 
-  const invalidateActiveModule = useCallback((module) => {
-    const route = MODULE_ROUTES[module];
-    if (!route || location.pathname !== route) return;
-    (MODULE_QUERY_KEYS[module] || []).forEach((key) => {
-      queryClient.invalidateQueries({ queryKey: key });
-    });
-  }, [location.pathname, queryClient]);
-
   const receiveRealtime = useCallback((payload) => {
     const incoming = normalizeRealtimeAdminNotification(payload);
     if (!incoming?.id) return;
@@ -100,8 +72,7 @@ export function AdminRealtimeNotificationProvider({ children }) {
       ...current,
       [incoming.module]: Number(current[incoming.module] || 0) + 1,
     }));
-    invalidateActiveModule(incoming.module);
-  }, [invalidateActiveModule]);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;

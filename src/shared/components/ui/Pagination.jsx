@@ -1,3 +1,5 @@
+import { memo, useCallback, useMemo } from "react";
+
 function createPages(current, total) {
   const safeCurrent = Math.max(1, Number(current) || 1);
   const safeTotal = Math.max(1, Number(total) || 1);
@@ -23,15 +25,20 @@ function createPages(current, total) {
     }, []);
 }
 
-export function Pagination({ current = 1, total = 1, onChange = () => {} }) {
+const noop = () => {};
+
+export const Pagination = memo(function Pagination({ current = 1, total = 1, onChange = noop }) {
   const safeCurrent = Math.max(1, Number(current) || 1);
   const safeTotal = Math.max(1, Number(total) || 1);
-  const pages = createPages(safeCurrent, safeTotal);
+  const pages = useMemo(() => createPages(safeCurrent, safeTotal), [safeCurrent, safeTotal]);
 
-  function moveTo(page) {
-    if (page < 1 || page > safeTotal || page === safeCurrent) return;
-    onChange(page);
-  }
+  const moveTo = useCallback(
+    (page) => {
+      if (page < 1 || page > safeTotal || page === safeCurrent) return;
+      onChange(page);
+    },
+    [safeTotal, safeCurrent, onChange]
+  );
 
   return (
     <div className="flex items-center justify-center gap-2 mt-12">
@@ -73,4 +80,4 @@ export function Pagination({ current = 1, total = 1, onChange = () => {} }) {
       </button>
     </div>
   );
-}
+});

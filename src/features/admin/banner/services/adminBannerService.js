@@ -57,7 +57,7 @@ function refreshBannerQueries(queryClient) {
 }
 
 export function useAdminBanners(params = {}) {
-  return useQuery({ queryKey: adminBannerKeys.list(params), queryFn: () => getAdminBanners(params), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
+  return useQuery({ queryKey: adminBannerKeys.list(params), queryFn: () => getAdminBanners(params), staleTime: 0, refetchOnMount: "always", });
 }
 
 export function useCreateAdminBanner() {

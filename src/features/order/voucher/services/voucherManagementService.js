@@ -104,8 +104,6 @@ export function useManagedVouchers(portal, params = {}) {
     queryKey: [...voucherManagementKeys[portal], params],
     queryFn: () => getManagedVouchers(portal, params),
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 

@@ -1,11 +1,28 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { SkeletonLine, Skeleton } from "@/shared/components/feedback/Skeleton";
 import {
   getCategoryHref,
   useCategoriesMenu,
 } from "@/features/catalog/category/services/categoryService";
+import {
+  createPpobTransaction,
+  getPpobAdminError,
+} from "@/features/ppob/services/ppobService";
+import { usePpobCatalog } from "@/features/ppob/hooks/usePpobCatalog";
 
-const TABS = ["Pulsa", "Paket Data", "Listrik PLN", "Roaming"];
+const DEFAULT_CATEGORY = "pulsa";
+
+const CATEGORY_ICONS = {
+  pulsa: "phone_android",
+  data: "wifi",
+  "token-listrik": "bolt",
+  tagihan: "receipt_long",
+  internet: "router",
+  voucher: "confirmation_number",
+};
 
 function flattenCategories(categories = []) {
   return categories.flatMap((category) => [
@@ -14,13 +31,174 @@ function flattenCategories(categories = []) {
   ]);
 }
 
+function formatRupiah(value) {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+// Functional "Top Up & Tagihan" widget reusing the PPOB catalog + buyer endpoint.
+function TopUpSection() {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const notifications = useNotificationCenter();
+
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [productId, setProductId] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const catalog = usePpobCatalog(category);
+  const categories = catalog.categories;
+  const products = catalog.products;
+  const isLoadingProducts = catalog.isLoadingProducts;
+
+  const selected = useMemo(
+    () => products.find((p) => String(p.id) === productId) || null,
+    [products, productId]
+  );
+
+  const requireLogin = useCallback(() => {
+    notifications.push({ type: "info", title: "Perlu Masuk", message: "Silakan masuk untuk melakukan pembelian." });
+    navigate("/auth/login");
+  }, [notifications, navigate]);
+
+  const buy = useCallback(async () => {
+    if (!isAuthenticated) {
+      requireLogin();
+      return;
+    }
+    if (!selected) {
+      notifications.push({ type: "error", title: "Top Up", message: "Pilih produk terlebih dahulu." });
+      return;
+    }
+    if (!customerId.trim()) {
+      notifications.push({ type: "error", title: "Top Up", message: "Masukkan nomor HP / ID pelanggan." });
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await createPpobTransaction(selected.id, customerId.trim());
+      notifications.push({
+        type: "success",
+        title: "Top Up Berhasil",
+        message: `"${selected.name}" (${customerId.trim()}) • status ${res?.status || "pending"}.`,
+      });
+      setCustomerId("");
+      setProductId("");
+    } catch (e) {
+      notifications.push({ type: "error", title: "Top Up Gagal", message: getPpobAdminError(e, "Transaksi gagal diproses.") });
+    } finally {
+      setBusy(false);
+    }
+  }, [isAuthenticated, requireLogin, selected, customerId, notifications]);
+
+  const selectCategory = useCallback((key) => {
+    setCategory(key);
+    setProductId("");
+  }, []);
+
+  return (
+    <div className="p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-base font-bold">Top Up &amp; Tagihan</h3>
+        <Link to="/ppob" className="text-[#10B981] text-xs font-semibold hover:underline">
+          Lihat Semua
+        </Link>
+      </div>
+
+      {isLoadingProducts && !products.length ? (
+        <div className="grid grid-cols-1 gap-2" aria-busy="true">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-3/4" />
+        </div>
+      ) : categories.length === 0 ? (
+        <p className="text-xs text-gray-400">Layanan belum tersedia saat ini.</p>
+      ) : (
+        <>
+          <div className="flex items-center border-b border-gray-100 mb-4 overflow-x-auto hide-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => selectCategory(cat.key)}
+                className={`px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap border-b-2 -mb-px flex items-center gap-1 ${
+                  category === cat.key ? "text-[#10B981] border-[#10B981]" : "text-gray-500 border-transparent hover:text-gray-700"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[15px]">{CATEGORY_ICONS[cat.key] || "category"}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Pilih Produk{catalog.operatorName ? ` (${catalog.operatorName})` : ""}</p>
+              <select
+                value={productId}
+                onChange={(e) => setProductId(e.target.value)}
+                disabled={isLoadingProducts}
+                className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981] disabled:bg-gray-50"
+                style={{ borderRadius: 5 }}
+              >
+                <option value="">{isLoadingProducts ? "Memuat..." : "Pilih layanan"}</option>
+                {products.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.name} — {formatRupiah(p.sellingPrice)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">No. HP / ID Pelanggan</p>
+              <input
+                type="text"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                placeholder="Masukan Nomor"
+                inputMode="numeric"
+                className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981]"
+                style={{ borderRadius: 5 }}
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 mb-1">Total Bayar</p>
+                <p className="px-2 py-2 text-xs font-bold text-gray-700 border border-gray-200 bg-gray-50" style={{ borderRadius: 5 }}>
+                  {selected ? formatRupiah(selected.sellingPrice) : "—"}
+                </p>
+              </div>
+              <button
+                onClick={buy}
+                disabled={busy || !customerId.trim() || !productId}
+                className="px-4 py-2 bg-[#10B981] text-white text-xs font-semibold hover:bg-[#0EA371] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ borderRadius: 5 }}
+              >
+                {busy ? "Memproses..." : selected ? "Beli" : "Bayar"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <button
+        onClick={requireLogin}
+        className="mt-3 text-xs font-semibold text-[#10B981] hover:underline"
+      >
+        Belum punya akun? Masuk untuk transaksi.
+      </button>
+    </div>
+  );
+}
+
 export function CategorySection() {
-  const [activeTab, setActiveTab] = useState(0);
   const categoriesQuery = useCategoriesMenu();
   const quickLinks = useMemo(
     () => flattenCategories(categoriesQuery.data?.data || []).slice(0, 7),
     [categoriesQuery.data],
   );
+
+  const [activeTab, setActiveTab] = useState(0);
+  const TABS = ["Pulsa", "Paket Data", "Listrik PLN", "Roaming"];
 
   return (
     <div
@@ -28,7 +206,7 @@ export function CategorySection() {
       style={{ borderRadius: 5 }}
     >
       <div
-        className="grid grid-cols-2 divide-x divide-gray-100"
+        className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_1.15fr] divide-y lg:divide-y-0 lg:divide-x divide-gray-100"
         style={{ borderRadius: 5 }}
       >
         <div className="p-5">
@@ -63,78 +241,22 @@ export function CategorySection() {
               </span>
             </div>
           </div>
-        </div>
 
-        <div className="p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-base font-bold">Top Up &amp; Tagihan</h3>
-            <a
-              href="#"
-              className="text-[#10B981] text-xs font-semibold hover:underline"
+          {TABS.map((tab, i) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(i)}
+              className={`mt-2 w-full text-left px-3 py-2 text-xs font-semibold transition-colors ${
+                activeTab === i ? "bg-[#10B981]/10 text-[#10B981]" : "text-gray-600 hover:bg-gray-50"
+              }`}
+              style={{ borderRadius: 5 }}
             >
-              Lihat Semua
-            </a>
-          </div>
-
-          <div className="flex items-center border-b border-gray-100 mb-4">
-            {TABS.map((tab, i) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(i)}
-                className={`px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap border-b-2 -mb-px ${
-                  i === activeTab
-                    ? "text-[#10B981] border-[#10B981]"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-            <button className="ml-auto p-1 text-gray-400 hover:text-gray-600">
-              <span className="material-symbols-outlined text-[18px]">
-                more_vert
-              </span>
+              {tab}
             </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 items-end">
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Jenis Produk Listrik</p>
-              <select
-                className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981]"
-                style={{ borderRadius: 5 }}
-              >
-                <option value="">Pilih layanan</option>
-              </select>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">No. Meter/ID Pel</p>
-              <input
-                type="text"
-                placeholder="Masukan Nomor"
-                className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981]"
-                style={{ borderRadius: 5 }}
-              />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Nominal</p>
-              <div className="flex gap-1">
-                <select
-                  className="flex-1 px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981]"
-                  style={{ borderRadius: 5 }}
-                >
-                  <option value="">Pilih nominal</option>
-                </select>
-                <button
-                  className="px-3 py-2 bg-gray-100 text-gray-400 text-xs font-semibold border border-gray-200 cursor-not-allowed"
-                  style={{ borderRadius: 5 }}
-                >
-                  Bayar
-                </button>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
+
+        <TopUpSection />
       </div>
 
       <div className="mt-3 flex items-center gap-2 overflow-x-auto hide-scrollbar">

@@ -58,8 +58,6 @@ export function useAdminCatalogGroups() {
     queryKey: adminCatalogGroupKeys.all,
     queryFn: getAdminCatalogGroups,
     staleTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
   });
 }
 

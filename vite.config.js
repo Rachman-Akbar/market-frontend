@@ -68,5 +68,27 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+
+            if (id.includes("scheduler") || (id.includes("node_modules/react") && !id.includes("react-router"))) return "vendor-react";
+            if (id.includes("react-router") || id.includes("history")) return "vendor-router";
+            if (id.includes("@tanstack")) return "vendor-query";
+            if (id.includes("@radix-ui") || id.includes("radix")) return "vendor-radix";
+            if (id.includes("axios")) return "vendor-http";
+            if (id.includes("@reverb") || id.includes("laravel-echo") || id.includes("pusher")) return "vendor-realtime";
+            if (id.includes("xlsx") || id.includes("file-saver")) return "vendor-xlsx";
+            if (id.includes("recharts") || id.includes("victory")) return "vendor-charts";
+            if (id.includes("dompurify") || id.includes("marked") || id.includes("quill")) return "vendor-editor";
+
+            return undefined;
+          },
+        },
+      },
+    },
   };
 });

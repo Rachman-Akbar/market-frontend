@@ -158,6 +158,7 @@ export function Navbar() {
           </div>
           <div className="hidden items-center gap-5 lg:flex">
             <Link to="/promotions" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Promo</Link>
+            <Link to="/ppob" className="whitespace-nowrap transition-colors hover:text-[#10B981]">PPOB &amp; Top Up</Link>
             <span className="whitespace-nowrap">Pusat Edukasi Seller</span>
             <span className="whitespace-nowrap">Ziip Care</span>
           </div>
