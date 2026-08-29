@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/shared/components/ui/Card";
 import { Input } from "@/shared/components/ui/Input";
 import { Badge } from "@/shared/components/ui/Badge";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
-import { SkeletonProductGrid } from "@/shared/components/feedback/Skeleton";
+import { SkeletonProductGrid, Skeleton, SkeletonLine, SkeletonTable } from "@/shared/components/feedback/Skeleton";
+import { OverflowMenu } from "@/shared/components/ui/OverflowMenu";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import {
   usePpobTransactions,
@@ -132,31 +133,50 @@ const BuyTab = memo(function BuyTab({ catalog, category, onSelectCategory, opera
       {/* Category selector */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => onSelectCategory(cat.key)}
-                className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  category === cat.key ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                <span className="material-symbols-outlined text-base">{CATEGORY_ICONS[cat.key] || "category"}</span>
-                {cat.label}
-              </button>
-            ))}
-          </div>
+          {isLoadingProducts && !categories.length ? (
+            <div className="space-y-3" aria-busy="true">
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-8 w-20 rounded-full" />
+                <Skeleton className="h-8 w-24 rounded-full" />
+                <Skeleton className="h-8 w-28 rounded-full" />
+                <Skeleton className="h-8 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-9 w-64 max-w-full" />
+            </div>
+          ) : (
+            <>
+              <OverflowMenu
+                items={categories}
+                maxVisible={5}
+                buttonLabel="Lainnya"
+                buttonClass="py-2"
+                menuClassName="w-56"
+                renderItem={(cat) => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => onSelectCategory(cat.key)}
+                    className={`flex w-full items-center gap-1 px-3 py-2 text-sm font-semibold transition-colors ${
+                      category === cat.key ? "bg-orange-50 text-orange-600" : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">{CATEGORY_ICONS[cat.key] || "category"}</span>
+                    {cat.label}
+                  </button>
+                )}
+              />
 
-          <div className="mt-4 max-w-xs">
-            <SearchableSelect
-              value={operatorId}
-              onChange={setOperatorId}
-              options={operators.map((o) => ({ value: String(o.id), label: o.name }))}
-              placeholder="Semua operator"
-              emptyText="Tidak ada operator"
-            />
-          </div>
+              <div className="mt-4 max-w-xs">
+                <SearchableSelect
+                  value={operatorId}
+                  onChange={setOperatorId}
+                  options={operators.map((o) => ({ value: String(o.id), label: o.name }))}
+                  placeholder="Semua operator"
+                  emptyText="Tidak ada operator"
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -253,7 +273,8 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
                 emptyText="—"
               />
             </div>
-            <AsyncState loading={res.isLoading} error={res.error ? getPpobAdminError(res.error, "Gagal memuat riwayat.") : ""} empty={!res.isLoading && !effectiveRows.length} emptyText="Belum ada transaksi." />
+            <AsyncState loading={false} error={res.error ? getPpobAdminError(res.error, "Gagal memuat riwayat.") : ""} empty={!res.isLoading && !effectiveRows.length} emptyText="Belum ada transaksi." />
+            {res.isLoading ? <SkeletonTable rows={5} cols={5} /> : null}
             {!res.isLoading && effectiveRows.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[560px] text-left text-sm">

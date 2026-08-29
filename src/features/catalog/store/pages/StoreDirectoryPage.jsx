@@ -1,8 +1,24 @@
 import { useDeferredValue, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StoreCard } from "@/features/catalog/store/components/StoreCard";
+import { Skeleton, SkeletonLine } from "@/shared/components/feedback/Skeleton";
 import { getStorefrontError, useStores } from "@/features/catalog/store/services/storefrontService";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
+
+function StoreSkeletonCard() {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4">
+      <Skeleton className="h-24 w-full" />
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-14 w-14 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <SkeletonLine className="w-3/4" />
+          <SkeletonLine className="w-1/2" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StoreDirectoryPage() {
   const [searchParams] = useSearchParams();
@@ -56,11 +72,16 @@ export default function StoreDirectoryPage() {
           </div>
         </div>
         <AsyncState
-          loading={storesQuery.isLoading}
+          loading={false}
           error={storesQuery.error ? getStorefrontError(storesQuery.error) : ""}
           empty={!storesQuery.isLoading && !stores.length}
           emptyText="Toko aktif belum tersedia."
         />
+        {storesQuery.isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-busy="true">
+            {Array.from({ length: 8 }).map((_, i) => <StoreSkeletonCard key={i} />)}
+          </div>
+        ) : null}
         {stores.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {stores.map((store) => <StoreCard key={store.id} store={store} />)}

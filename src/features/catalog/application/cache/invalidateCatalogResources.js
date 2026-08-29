@@ -5,7 +5,7 @@ export async function invalidateCatalogResources(queryClient, queryKeys = [], ca
   cacheMatches.forEach((match) => invalidateCatalogQueries(match));
 
   if (cacheMatches.some((match) => match.includes("categories") || match.includes("catalog-groups"))) {
-    invalidateCategoryNavigationCache();
+    invalidateCategoryNavigationCache(queryClient);
   }
 
   await Promise.all(

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { FilterSidebar } from "@/shared/components/ui/FilterSidebar";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
+import { Skeleton, SkeletonProductGrid } from "@/shared/components/feedback/Skeleton";
 import { flattenProductPages, useInfiniteProducts } from "@/features/catalog/product/services/productService";
 import { getCategories } from "@/features/catalog/category/services/categoryService";
 
@@ -158,6 +159,14 @@ export default function SearchClient() {
             Menampilkan hasil pencarian untuk <strong className="text-[#1b1c1c]">"{query || "Semua Produk"}"</strong>
           </p>
           {productsQuery.error ? <div className="text-sm text-red-500 py-8">{productsQuery.error.message}</div> : null}
+          {productsQuery.isLoading ? (
+            <div className="pt-2">
+              <SkeletonProductGrid count={10} columns="grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4" />
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <Skeleton className="h-4 w-48" />
+              </div>
+            </div>
+          ) : null}
           {!productsQuery.isLoading && !productsQuery.error && !products.length ? <div className="text-sm text-gray-500 py-8">Produk tidak ditemukan.</div> : null}
           {!productsQuery.isLoading && !productsQuery.error && products.length ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">

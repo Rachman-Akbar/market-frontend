@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ProductGrid } from "@/features/catalog/product/components/ProductGrid";
 import { StoreBannerCarousel } from "@/features/catalog/store/components/StoreBannerCarousel";
+import { Skeleton, SkeletonProductGrid, SkeletonLine } from "@/shared/components/feedback/Skeleton";
 import { getStorefrontError, useStoreBanners, useStoreById, useStoreBySlug, useStoreProducts } from "@/features/catalog/store/services/storefrontService";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { toTitleCase } from "@/shared/utils/textFormatter";
@@ -74,7 +75,22 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
   };
 
   if (!storeOverride && storeQuery.isLoading) {
-    return <main className="mx-auto max-w-[1200px] px-4 py-12"><AsyncState loading /></main>;
+    return (
+      <main className="mx-auto max-w-[1200px] space-y-6 px-4 py-6" aria-busy="true">
+        <Skeleton className="h-56 w-full" />
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-20 w-20 rounded-2xl" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <SkeletonLine className="h-6 w-2/5" />
+              <SkeletonLine className="h-4 w-1/4" />
+              <SkeletonLine className="h-4 w-3/5" />
+            </div>
+          </div>
+        </section>
+        <SkeletonProductGrid count={8} />
+      </main>
+    );
   }
 
   if ((!storeOverride && storeQuery.error) || !store) {
@@ -159,12 +175,15 @@ export default function StoreDetailPage({ storeOverride = null, embedded = false
             ) : null}
           </form>
         </div>
-        <AsyncState
-          loading={productsQuery.isLoading}
-          error={productsQuery.error ? getStorefrontError(productsQuery.error) : ""}
-          empty={!productsQuery.isLoading && !displayedProducts.length}
-          emptyText={activeShowcase ? "Produk pada etalase ini belum tersedia." : "Produk toko belum tersedia."}
-        />
+        {productsQuery.isLoading ? (
+          <SkeletonProductGrid count={8} />
+        ) : (
+          <AsyncState
+            error={productsQuery.error ? getStorefrontError(productsQuery.error) : ""}
+            empty={!displayedProducts.length}
+            emptyText={activeShowcase ? "Produk pada etalase ini belum tersedia." : "Produk toko belum tersedia."}
+          />
+        )}
         {displayedProducts.length ? <ProductGrid products={displayedProducts} /> : null}
         <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
           {!activeShowcase && productsQuery.isFetchingNextPage

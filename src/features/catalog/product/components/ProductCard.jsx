@@ -562,6 +562,7 @@ export function ProductCard({
             <img
               src={displayImage}
               alt={displayTitle}
+              loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
             />
           ) : (

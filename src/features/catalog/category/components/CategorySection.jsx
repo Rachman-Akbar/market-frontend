@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
-import { SkeletonLine, Skeleton } from "@/shared/components/feedback/Skeleton";
+import { SkeletonLine, Skeleton, SkeletonProductGrid } from "@/shared/components/feedback/Skeleton";
+import { OverflowMenu } from "@/shared/components/ui/OverflowMenu";
 import {
   getCategoryHref,
   useCategoriesMenu,
@@ -106,7 +107,7 @@ function TopUpSection() {
       </div>
 
       {isLoadingProducts && !products.length ? (
-        <div className="grid grid-cols-1 gap-2" aria-busy="true">
+        <div className="space-y-2" aria-busy="true">
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-3/4" />
@@ -114,40 +115,54 @@ function TopUpSection() {
       ) : categories.length === 0 ? (
         <p className="text-xs text-gray-400">Layanan belum tersedia saat ini.</p>
       ) : (
-        <>
-          <div className="flex items-center border-b border-gray-100 mb-4 overflow-x-auto hide-scrollbar">
-            {categories.map((cat) => (
-              <button
-                key={cat.key}
-                onClick={() => selectCategory(cat.key)}
-                className={`px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap border-b-2 -mb-px flex items-center gap-1 ${
-                  category === cat.key ? "text-[#10B981] border-[#10B981]" : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[15px]">{CATEGORY_ICONS[cat.key] || "category"}</span>
-                {cat.label}
-              </button>
-            ))}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_260px]">
+          {/* Left: services (collapsible into 3-dot when too many) */}
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-semibold text-gray-500">Kategori Layanan</p>
+            <OverflowMenu
+              items={categories}
+              maxVisible={4}
+              buttonLabel="Lainnya"
+              className="pb-1"
+              menuClassName="w-56"
+              renderItem={(cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => selectCategory(cat.key)}
+                  className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    category === cat.key
+                      ? "text-[#10B981] bg-[#10B981]/10"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+                  style={{ borderRadius: 999 }}
+                >
+                  <span className="material-symbols-outlined text-[15px]">{CATEGORY_ICONS[cat.key] || "category"}</span>
+                  {cat.label}
+                </button>
+              )}
+            />
           </div>
 
-          <div className="grid grid-cols-1 gap-2">
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Pilih Produk{catalog.operatorName ? ` (${catalog.operatorName})` : ""}</p>
-              <select
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                disabled={isLoadingProducts}
-                className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981] disabled:bg-gray-50"
-                style={{ borderRadius: 5 }}
-              >
-                <option value="">{isLoadingProducts ? "Memuat..." : "Pilih layanan"}</option>
-                {products.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.name} — {formatRupiah(p.sellingPrice)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Right: purchase container (kept stable, never shifted) */}
+          <div className="min-w-0">
+            <p className="mb-1 text-xs text-gray-500">Pilih Produk{catalog.operatorName ? ` (${catalog.operatorName})` : ""}</p>
+            <select
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+              disabled={isLoadingProducts}
+              className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981] disabled:bg-gray-50"
+              style={{ borderRadius: 5 }}
+            >
+              <option value="">{isLoadingProducts ? "Memuat..." : "Pilih layanan"}</option>
+              {products.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name} — {formatRupiah(p.sellingPrice)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 md:col-span-2">
             <div>
               <p className="text-xs text-gray-500 mb-1">No. HP / ID Pelanggan</p>
               <input
@@ -177,7 +192,7 @@ function TopUpSection() {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       <button
@@ -196,84 +211,103 @@ export function CategorySection() {
     () => flattenCategories(categoriesQuery.data?.data || []).slice(0, 7),
     [categoriesQuery.data],
   );
-
-  const [activeTab, setActiveTab] = useState(0);
-  const TABS = ["Pulsa", "Paket Data", "Listrik PLN", "Roaming"];
+  const loading = categoriesQuery.isLoading;
 
   return (
-    <div
-      className="bg-white border border-gray-100 p-4"
-      style={{ borderRadius: 5 }}
-    >
+    <div className="bg-white border border-gray-100 p-4" style={{ borderRadius: 5 }}>
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_1.15fr] divide-y lg:divide-y-0 lg:divide-x divide-gray-100"
+        className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] divide-y lg:divide-y-0 lg:divide-x divide-gray-100"
         style={{ borderRadius: 5 }}
       >
-        <div className="p-5">
+        <div className="min-w-0 p-5">
           <h3 className="text-base font-bold mb-3">Kategori Populer</h3>
 
-          <div
-            className="relative overflow-hidden flex items-center justify-between px-6 py-4 mb-0"
-            style={{
-              borderRadius: 5,
-              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-              minHeight: 96,
-            }}
-          >
-            <div className="text-white z-10">
-              <p className="text-xs font-semibold opacity-90">
-                Yuk, belanja di Tokopedia
-              </p>
-              <p className="text-xs opacity-75 mb-3">
-                Barang lengkap dari beragam kategori
-              </p>
-              <button
-                className="px-4 py-1.5 border border-white/60 text-white text-xs font-semibold hover:bg-white/20 transition-colors"
-                style={{ borderRadius: 5 }}
+          {loading ? (
+            <div className="space-y-3" aria-busy="true">
+              <Skeleton className="h-24 w-full" />
+              <SkeletonLine className="h-8 w-full" />
+              <SkeletonLine className="h-8 w-4/5" />
+              <SkeletonLine className="h-8 w-3/5" />
+            </div>
+          ) : (
+            <>
+              <div
+                className="relative overflow-hidden flex items-center justify-between px-6 py-4 mb-0"
+                style={{
+                  borderRadius: 5,
+                  background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                  minHeight: 96,
+                }}
               >
-                Cek Sekarang
-              </button>
-            </div>
+                <div className="relative z-10 text-white">
+                  <p className="text-xs font-semibold opacity-90">Yuk, belanja di Ziip</p>
+                  <p className="text-xs opacity-75 mb-3">Barang lengkap dari beragam kategori</p>
+                  <Link
+                    to="/search"
+                    className="inline-block px-4 py-1.5 border border-white/60 text-white text-xs font-semibold hover:bg-white/20 transition-colors"
+                    style={{ borderRadius: 5 }}
+                  >
+                    Cek Sekarang
+                  </Link>
+                </div>
 
-            <div className="absolute right-4 bottom-0 opacity-90">
-              <span className="material-symbols-outlined text-[52px]">
-                shopping_bag
-              </span>
-            </div>
-          </div>
+                <div className="absolute right-4 bottom-0 opacity-90 pointer-events-none">
+                  <span className="material-symbols-outlined text-[52px]">shopping_bag</span>
+                </div>
+              </div>
 
-          {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(i)}
-              className={`mt-2 w-full text-left px-3 py-2 text-xs font-semibold transition-colors ${
-                activeTab === i ? "bg-[#10B981]/10 text-[#10B981]" : "text-gray-600 hover:bg-gray-50"
-              }`}
-              style={{ borderRadius: 5 }}
-            >
-              {tab}
-            </button>
-          ))}
+              <OverflowMenu
+                items={["Pulsa", "Paket Data", "Listrik PLN", "Roaming"]}
+                maxVisible={3}
+                buttonLabel="Lainnya"
+                className="mt-4"
+                menuClassName="w-44"
+                renderItem={(label) => (
+                  <Link
+                    key={label}
+                    to="/search"
+                    className="block w-full px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-[#10B981]"
+                    style={{ borderRadius: 5 }}
+                  >
+                    {label}
+                  </Link>
+                )}
+              />
+            </>
+          )}
         </div>
 
         <TopUpSection />
       </div>
 
-      <div className="mt-3 flex items-center gap-2 overflow-x-auto hide-scrollbar">
-        {quickLinks.map((item) => (
-          <Link
-            key={item.id || item.slug}
-            to={getCategoryHref(item)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs text-gray-700 hover:border-[#10B981] hover:text-[#10B981] transition-colors whitespace-nowrap flex-shrink-0"
-            style={{ borderRadius: 20 }}
-          >
-            <span className="material-symbols-outlined text-[14px] text-[#10B981]">
-              category
-            </span>
-            {item.name}
-          </Link>
-        ))}
-      </div>
+      {loading ? (
+        <div className="mt-3 flex items-center gap-2" aria-busy="true">
+          <Skeleton className="h-7 w-28 rounded-full" />
+          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-7 w-32 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
+        </div>
+      ) : (
+        <div className="mt-3">
+          <OverflowMenu
+            items={quickLinks}
+            maxVisible={6}
+            buttonLabel="Lainnya"
+            className="mb-1"
+            menuClassName="w-56"
+            renderItem={(item) => (
+              <Link
+                key={item.id || item.slug}
+                to={getCategoryHref(item)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#10B981] transition-colors"
+              >
+                <span className="material-symbols-outlined text-[14px] text-[#10B981]">category</span>
+                {item.name}
+              </Link>
+            )}
+          />
+        </div>
+      )}
     </div>
   );
 }

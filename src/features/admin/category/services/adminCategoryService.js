@@ -77,7 +77,7 @@ export async function deleteAdminCategory(id) {
 function refreshCategoryQueries(queryClient) {
   invalidateCatalogQueries("categories");
   invalidateCatalogQueries("catalog-groups");
-  invalidateCategoryNavigationCache();
+  invalidateCategoryNavigationCache(queryClient);
   queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
   queryClient.invalidateQueries({ queryKey: ["catalog", "categories"] });
   queryClient.invalidateQueries({ queryKey: ["catalog", "catalog-groups"] });

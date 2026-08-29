@@ -28,6 +28,7 @@ import {
 import { advancedError, useCreateReview, useReviews } from "@/features/advanced/services/advancedMarketplaceService";
 import { CartItemRow } from "@/features/order/cart/components/CartItemRow";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
+import { Skeleton, SkeletonLine } from "@/shared/components/feedback/Skeleton";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
 import { formatPrice } from "@/shared/utils/utils";
 
@@ -463,7 +464,25 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   const confirmMutation = useConfirmOrderReceived();
   const reviewMutation = useCreateReview();
 
-  if (orderQuery.isLoading) return null;
+  if (orderQuery.isLoading) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6" aria-busy="true">
+        <div className="flex items-center gap-3 mb-5">
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="space-y-3">
+          <SkeletonLine className="h-5 w-full" />
+          <SkeletonLine className="h-5 w-3/4" />
+          <SkeletonLine className="h-5 w-1/2" />
+        </div>
+        <div className="mt-6 space-y-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   if (orderQuery.error || !order) {
     return (

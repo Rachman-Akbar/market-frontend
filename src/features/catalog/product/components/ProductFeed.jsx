@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
+import { Skeleton, SkeletonProductGrid } from "@/shared/components/feedback/Skeleton";
 import { flattenProductPages, useInfiniteProducts } from "@/features/catalog/product/services/productService";
 import { useCatalogGroups } from "@/features/catalog/cataloggroup/services/catalogGroupService";
 
@@ -72,6 +73,15 @@ export function ProductFeed() {
       {productsQuery.error ? (
         <div className="py-8 text-sm text-red-500">
           {productsQuery.error.message || "Gagal memuat produk"}
+        </div>
+      ) : null}
+
+      {productsQuery.isLoading ? (
+        <div className="pt-2">
+          <SkeletonProductGrid count={12} columns="grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6" />
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <Skeleton className="h-4 w-48" />
+          </div>
         </div>
       ) : null}
 

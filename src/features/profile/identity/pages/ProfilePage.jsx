@@ -678,15 +678,10 @@ function KeamananTab({ onLogout }) {
   const [message, setMessage] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [saving, setSaving] = useState(false);
-  const isGoogleAccount = Boolean(
-    useAuth()?.user?.firebase_uid || useAuth()?.user?.firebaseUid,
-  );
+  const authUser = useAuth()?.user;
+  const isGoogleAccount = Boolean(authUser?.firebase_uid || authUser?.firebaseUid);
 
-  const currentDevice = useMemo(
-    () =>
-      `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`,
-    [],
-  );
+  const currentDevice = `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`;
 
   const handleChangePassword = async () => {
     setMessage("");
@@ -850,7 +845,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
     },
     onSuccess: async () => {
       await refreshMe?.();
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
     },
     onError: (error) => {
       console.error(getMediaUploadError(error));

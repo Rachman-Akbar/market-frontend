@@ -1,13 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, unwrapCollection } from "@/core/utils/apiClient";
-import { getCatalogGroups } from "@/features/catalog/cataloggroup/services/catalogGroupService";
-import { getCategories } from "@/features/catalog/category/services/categoryService";
 import { formatPrice } from "@/shared/utils/utils";
 
 const keys = {
   dashboard: ["admin", "dashboard"],
-  catalogGroups: ["admin", "catalog-groups"],
-  categories: ["admin", "categories"],
 };
 
 function normalizeStatus(value = "") {
@@ -17,26 +13,6 @@ function normalizeStatus(value = "") {
   if (["shipped", "delivery"].includes(status)) return "Dikirim";
   if (["cancelled", "failed", "expired"].includes(status)) return "Dibatalkan";
   return status ? status.replace(/_/g, " ") : "Pending";
-}
-
-function flattenCategories(rows = [], parents = new Map(), groups = new Map(), result = []) {
-  rows.forEach((row) => {
-    const groupId = String(row.catalog_group_id ?? "");
-    result.push({
-      id: row.id ?? row.key,
-      group: groups.get(groupId) || row.raw?.catalog_group?.name || "-",
-      name: row.name,
-      slug: row.slug,
-      level: Number(row.level || 1),
-      parent: parents.get(String(row.parent_id ?? "")) || "-",
-      products: Number(row.raw?.products_count ?? row.raw?.product_count ?? 0),
-      status: row.is_active === false ? "inactive" : "active",
-      visibility: row.is_visible_in_menu === false ? "Disembunyikan" : "Menu",
-    });
-    parents.set(String(row.id), row.name);
-    flattenCategories(row.children || [], parents, groups, result);
-  });
-  return result;
 }
 
 async function getAdminDashboardData() {
@@ -96,50 +72,10 @@ async function getAdminDashboardData() {
   };
 }
 
-async function getCatalogGroupAdminRows() {
-  const { data } = await getCatalogGroups({ per_page: 100 });
-  return data.map((row) => ({
-    id: row.id ?? row.key,
-    name: row.name,
-    slug: row.slug,
-    sortOrder: row.sort_order,
-    categories: Number(row.raw?.categories_count ?? row.raw?.category_count ?? 0),
-    products: Number(row.raw?.products_count ?? row.raw?.product_count ?? 0),
-    status: row.is_active ? "active" : "inactive",
-    owner: row.raw?.owner?.name || row.raw?.owner_name || "Catalog",
-    updatedAt: row.raw?.updated_at || "-",
-  }));
-}
-
-async function getCategoryAdminRows() {
-  const [{ data: categoryTree }, { data: groups }] = await Promise.all([
-    getCategories(),
-    getCatalogGroups({ per_page: 100 }),
-  ]);
-  const groupMap = new Map(groups.map((group) => [String(group.id), group.name]));
-  return flattenCategories(categoryTree, new Map(), groupMap, []);
-}
-
 export function useAdminDashboard() {
   return useQuery({
     queryKey: keys.dashboard,
     queryFn: getAdminDashboardData,
     staleTime: 60000,
-  });
-}
-
-export function useAdminCatalogGroups() {
-  return useQuery({
-    queryKey: keys.catalogGroups,
-    queryFn: getCatalogGroupAdminRows,
-    staleTime: 300000,
-  });
-}
-
-export function useAdminCategories() {
-  return useQuery({
-    queryKey: keys.categories,
-    queryFn: getCategoryAdminRows,
-    staleTime: 300000,
   });
 }

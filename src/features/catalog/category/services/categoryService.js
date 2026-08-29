@@ -45,7 +45,11 @@ function getCategoryChildren(category = {}) {
   );
 }
 
-export function invalidateCategoryNavigationCache() {}
+export function invalidateCategoryNavigationCache(queryClient) {
+  if (!queryClient) return;
+  queryClient.invalidateQueries({ queryKey: categoryKeys.navigation });
+  queryClient.invalidateQueries({ queryKey: categoryKeys.menu });
+}
 
 export function extractCategories(value) {
   if (!value) return [];
