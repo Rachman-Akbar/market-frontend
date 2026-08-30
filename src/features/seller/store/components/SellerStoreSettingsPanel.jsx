@@ -8,6 +8,7 @@ import {
 import { toTitleCase } from "@/shared/utils/textFormatter";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
+import { DayPicker, TimePicker } from "@/shared/components/form";
 
 const emptyForm = {
   store_name: "",
@@ -201,20 +202,37 @@ export function SellerStoreSettingsPanel({ store }) {
           {[
             ["owner_name", "Nama pemilik"],
             ["owner_phone", "Telepon pemilik"],
-            ["open_days", "Hari operasional"],
-            ["open_time", "Jam buka", "time"],
-            ["close_time", "Jam tutup", "time"],
-          ].map(([key, label, type]) => (
+          ].map(([key, label]) => (
             <label key={key} className="space-y-1.5">
               <span className="text-xs font-bold text-slate-500">{label}</span>
               <input
-                type={type || "text"}
+                type="text"
                 value={form[key]}
                 onChange={change(key)}
                 className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
               />
             </label>
           ))}
+          <div className="space-y-1.5">
+            <span className="text-xs font-bold text-slate-500">
+              Hari operasional
+            </span>
+            <DayPicker value={form.open_days} onChange={change("open_days")} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold text-slate-500">
+                Jam buka
+              </span>
+              <TimePicker value={form.open_time} onChange={change("open_time")} />
+            </div>
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold text-slate-500">
+                Jam tutup
+              </span>
+              <TimePicker value={form.close_time} onChange={change("close_time")} />
+            </div>
+          </div>
           <label className="space-y-1.5">
             <span className="text-xs font-bold text-slate-500">
               Kebijakan pengiriman

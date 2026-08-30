@@ -1,9 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 
 export function useEntityEditor(options = {}) {
   const tabs = usePanelTabs();
-  const skipNextCloseRef = useRef(false);
   const [localState, setLocalState] = useState({ open: false, entity: null });
 
   const create = useCallback(() => {
@@ -23,10 +22,6 @@ export function useEntityEditor(options = {}) {
   }, [options, tabs]);
 
   const close = useCallback(() => {
-    if (skipNextCloseRef.current) {
-      skipNextCloseRef.current = false;
-      return;
-    }
     if (tabs) {
       tabs.closeActiveTab();
       return;
@@ -35,12 +30,8 @@ export function useEntityEditor(options = {}) {
   }, [tabs]);
 
   const completeSave = useCallback(() => {
-    if (tabs?.activeTab?.type === "edit") {
+    if (tabs?.activeTab && (tabs.activeTab.type === "create" || tabs.activeTab.type === "edit")) {
       tabs.closeActiveTab();
-      return;
-    }
-    if (tabs?.activeTab?.type === "create") {
-      skipNextCloseRef.current = true;
       return;
     }
     if (!tabs && localState.entity) {

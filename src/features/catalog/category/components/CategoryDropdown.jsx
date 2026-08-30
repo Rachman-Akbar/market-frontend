@@ -11,11 +11,7 @@ import {
 import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
 import VoucherDropdownPage from "@/features/order/voucher/components/VoucherDropdown";
 import { toTitleCase } from "@/shared/utils/textFormatter";
-
-function sameCategory(a, b) {
-  if (!a || !b) return false;
-  return String(a.key ?? a.id ?? a.slug) === String(b.key ?? b.id ?? b.slug);
-}
+import { Skeleton } from "@/shared/components/feedback/Skeleton";
 
 export function CategoryDropdown({
   open,
@@ -25,7 +21,6 @@ export function CategoryDropdown({
   const dropdownRef = useRef(null);
   const [rendered, setRendered] = useState(open);
   const [activeGroup, setActiveGroup] = useState(VOUCHER_GROUP_KEY);
-  const [activeL1, setActiveL1] = useState(null);
   const navigationQuery = useCategoryNavigation({ enabled: open || rendered });
   const groups = navigationQuery.data?.groups || [];
   const categoriesByGroup = navigationQuery.data?.categoriesByGroup || {};
@@ -47,12 +42,12 @@ export function CategoryDropdown({
       [];
     return Array.isArray(list) ? list : [];
   }, [activeGroupKey, categoriesByGroup, isVoucherActive]);
-  const current = useMemo(() => {
-    if (isVoucherActive) return null;
-    if (activeL1 && l1List.some((item) => sameCategory(item, activeL1)))
-      return activeL1;
-    return l1List[0] ?? null;
-  }, [activeL1, isVoucherActive, l1List]);
+
+  const levelTwoList = useMemo(() => {
+    return (l1List || []).flatMap((l1) =>
+      Array.isArray(l1.children) ? l1.children : []
+    );
+  }, [l1List]);
 
   const handleSetActiveGroup = useCallback(
     (groupKey) => {
@@ -106,11 +101,6 @@ export function CategoryDropdown({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleClose, open]);
-
-  useEffect(() => {
-    if (!open || isVoucherActive || !activeGroupKey) return;
-    setActiveL1(l1List[0] ?? null);
-  }, [activeGroupKey, isVoucherActive, l1List, open]);
 
   if (!rendered) return null;
 
@@ -170,111 +160,83 @@ export function CategoryDropdown({
             error={voucherError}
           />
         ) : (
-          <div className="mx-auto flex h-[460px] max-w-[1200px]">
-            <div className="w-56 flex-shrink-0 overflow-y-auto overscroll-contain border-r border-gray-200 bg-white py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {loading && (
-                <div className="h-8" />
-              )}
+          <div className="mx-auto max-h-[460px] max-w-[1200px] overflow-y-auto overscroll-contain bg-white p-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {loading && (
+              <div className="flex max-w-md flex-col gap-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-56" />
+                <Skeleton className="h-3 w-48" />
+                <Skeleton className="h-3 w-60" />
+              </div>
+            )}
 
-              {error && (
-                <div className="px-4 py-2 text-xs text-red-500">{error}</div>
-              )}
+            {error && (
+              <div className="px-4 py-2 text-xs text-red-500">{error}</div>
+            )}
 
-              {!loading && !error && !l1List.length && (
-                <div className="px-4 py-2 text-xs text-gray-400">
-                  Kategori belum tersedia
-                </div>
-              )}
+            {!loading && !error && !levelTwoList.length && (
+              <div className="py-2 text-sm text-gray-400">
+                Kategori belum tersedia
+              </div>
+            )}
 
-              {l1List.map((category) => {
-                const isActive = sameCategory(current, category);
-
-                return (
-                  <button
-                    key={category.key || category.id || category.slug}
-                    type="button"
-                    onMouseEnter={() => setActiveL1(category)}
-                    onClick={() => setActiveL1(category)}
-                    className={`w-full border-l-4 bg-white px-5 py-2.5 text-left text-sm transition-[border-color,color,background-color,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                      isActive
-                        ? "border-[#10B981] font-bold text-[#10B981]"
-                        : "border-transparent font-medium text-gray-600 hover:text-gray-900"
-                    }`}
+            {!loading && !error && levelTwoList.length > 0 && (
+              <div className="columns-2 gap-8 space-y-7 md:columns-3 xl:columns-4">
+                {levelTwoList.map((levelTwo) => (
+                  <div
+                    key={levelTwo.key || levelTwo.id || levelTwo.slug}
+                    className="break-inside-avoid"
                   >
-                    {toTitleCase(category.name)}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex-1 overflow-y-auto overscroll-contain bg-white p-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {current ? (
-                <>
-                  <div className="mb-5 border-b border-gray-100 pb-3">
                     <Link
-                      to={getCategoryHref(current)}
+                      to={getCategoryHref(levelTwo)}
                       onClick={handleClose}
-                      className="block text-xl font-bold tracking-tight text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
+                      className="mb-2 flex items-center gap-2 text-sm font-bold text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
                     >
-                      {current.name}
+                      {levelTwo.image_url && (
+                        <img
+                          src={levelTwo.image_url}
+                          alt=""
+                          className="h-5 w-5 flex-shrink-0 rounded object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                      {levelTwo.name}
                     </Link>
-                  </div>
 
-                  {Array.isArray(current.children) &&
-                  current.children.length ? (
-                    <div className="columns-3 gap-8 space-y-6">
-                      {current.children.map((levelTwo) => (
-                        <div
-                          key={levelTwo.key || levelTwo.id || levelTwo.slug}
-                          className="break-inside-avoid"
-                        >
-                          <Link
-                            to={getCategoryHref(levelTwo)}
-                            onClick={handleClose}
-                            className="mb-2 block text-sm font-bold text-gray-900 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
+                    {Array.isArray(levelTwo.children) &&
+                    levelTwo.children.length ? (
+                      <ul className="space-y-1.5">
+                        {levelTwo.children.map((levelThree) => (
+                          <li
+                            key={
+                              levelThree.key ||
+                              levelThree.id ||
+                              levelThree.slug
+                            }
                           >
-                            {levelTwo.name}
-                          </Link>
-
-                          {Array.isArray(levelTwo.children) &&
-                          levelTwo.children.length ? (
-                            <ul className="space-y-1.5">
-                              {levelTwo.children.map((levelThree) => (
-                                <li
-                                  key={
-                                    levelThree.key ||
-                                    levelThree.id ||
-                                    levelThree.slug
-                                  }
-                                >
-                                  <Link
-                                    to={getCategoryHref(levelThree)}
-                                    onClick={handleClose}
-                                    className="block text-xs text-gray-500 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
-                                  >
-                                    {levelThree.name}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-400">
-                      Sub kategori belum tersedia
-                    </div>
-                  )}
-                </>
-              ) : (
-                !loading && (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                    Pilih kategori di sebelah kiri untuk melihat detail
+                            <Link
+                              to={getCategoryHref(levelThree)}
+                              onClick={handleClose}
+                              className="flex items-center gap-1.5 text-xs text-gray-500 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#10B981]"
+                            >
+                              {levelThree.image_url && (
+                                <img
+                                  src={levelThree.image_url}
+                                  alt=""
+                                  className="h-4 w-4 flex-shrink-0 rounded object-cover"
+                                  loading="lazy"
+                                />
+                              )}
+                              {levelThree.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

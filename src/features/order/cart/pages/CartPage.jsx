@@ -26,11 +26,13 @@ import {
   useOrders,
 } from "@/features/order/ordering/orderService";
 import { advancedError, useCreateReview, useReviews } from "@/features/advanced/services/advancedMarketplaceService";
+import OrderReviewModal from "@/features/order/review/components/OrderReviewModal";
 import { CartItemRow } from "@/features/order/cart/components/CartItemRow";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
 import { Skeleton, SkeletonLine } from "@/shared/components/feedback/Skeleton";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
 import { formatPrice } from "@/shared/utils/utils";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 
 const tabs = [
   { key: "wishlist", label: "Wishlist" },
@@ -459,10 +461,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   const [paying, setPaying] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const [reviewTarget, setReviewTarget] = useState(null);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, review: "" });
   const confirmMutation = useConfirmOrderReceived();
-  const reviewMutation = useCreateReview();
 
   if (orderQuery.isLoading) {
     return (
@@ -543,18 +542,6 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
     }
   };
 
-  const handleReview = async (event) => {
-    event.preventDefault();
-    if (!reviewTarget?.id) return;
-    try {
-      await reviewMutation.mutateAsync({ order_item_id: Number(reviewTarget.id), rating: Number(reviewForm.rating), review: reviewForm.review || null });
-      setActionMessage("Review berhasil dikirim.");
-      setReviewTarget(null);
-      setReviewForm({ rating: 5, review: "" });
-    } catch (error) {
-      setActionMessage(advancedError(error));
-    }
-  };
 
   const handlePayNow = async () => {
     try {
@@ -648,7 +635,6 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
                 </div>
                 <div className="shrink-0 text-right">
                   <strong className="text-sm text-slate-900">{formatPrice(item.subtotal || item.price * item.quantity)}</strong>
-                  {["received", "completed"].includes(String(order.status).toLowerCase()) ? <button type="button" onClick={() => setReviewTarget(item)} className="mt-2 block text-xs font-bold text-[#047857] hover:text-[#10B981]">Beri Review</button> : null}
                 </div>
               </div>
             ))}
@@ -713,7 +699,6 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
           ) : null}
         </aside>
       </div>
-      {reviewTarget ? <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/55 p-4"><form onSubmit={handleReview} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase text-[#10B981]">Review Produk</p><h3 className="mt-1 font-black text-slate-900">{reviewTarget.productName}</h3></div><button type="button" onClick={() => setReviewTarget(null)} className="text-3xl text-slate-400">×</button></div><label className="mt-5 grid gap-1 text-sm font-bold text-slate-700">Rating<select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="h-10 rounded-md border border-slate-300 px-3">{[5,4,3,2,1].map((value) => <option key={value} value={value}>{value} bintang</option>)}</select></label><label className="mt-4 grid gap-1 text-sm font-bold text-slate-700">Ulasan<textarea value={reviewForm.review} onChange={(event) => setReviewForm((current) => ({ ...current, review: event.target.value }))} className="min-h-28 rounded-md border border-slate-300 p-3 text-sm" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setReviewTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold">Batal</button><button type="submit" disabled={reviewMutation.isPending} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">Kirim Review</button></div></form></div> : null}
     </div>
   );
 }
@@ -746,11 +731,17 @@ function OrderTab({ items, onOpen }) {
             </span>
           </div>
           <div className="flex gap-4 py-4">
-            <img
-              src={order.imageUrl}
-              alt={order.productName}
-              className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
-            />
+            {order.imageUrl ? (
+              <img
+                src={order.imageUrl}
+                alt={order.productName}
+                className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300">
+                <PackageCheck size={28} />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="mb-1 flex items-center gap-2 text-sm font-bold text-[#181c1f]">
                 <Store size={16} className="text-[#10B981]" />
@@ -805,101 +796,153 @@ function Stars({ rating }) {
   );
 }
 
-function ReviewTab({ items }) {
-  if (!items.length) {
-    return (
-      <EmptyState
-        icon={MessageSquareText}
-        title="Review belum tersedia"
-        description="Ulasan pembelian yang sudah selesai akan ditampilkan di tab ini."
-      />
-    );
-  }
-
-  const totalRating = items.reduce(
-    (sum, item) => sum + Number(item.rating || 0),
-    0,
-  );
-  const averageRating = totalRating / items.length;
-  const distribution = [5, 4, 3, 2, 1].map((rating) => ({
-    rating,
-    count: items.filter((item) => Number(item.rating) === rating).length,
-  }));
+function ReviewTab({ items, reviews = [], onReviewItem, onOpenProduct }) {
+  const reviewableItems = items.filter((item) => !item.reviewed);
 
   return (
-    <div className="grid grid-cols-12 gap-6">
-      <aside className="col-span-12 lg:col-span-4">
-        <div className="rounded-xl border border-[#e0e3e7] bg-white p-5 shadow-sm lg:sticky lg:top-24">
-          <div className="flex items-center gap-3">
-            <Star size={42} className="fill-[#f59e0b] text-[#f59e0b]" />
-            <div>
-              <p className="text-5xl font-bold text-[#181c1f]">
-                {averageRating.toFixed(1)}
-                <span className="ml-1 text-lg font-normal text-[#5f5e5e]">
-                  / 5.0
-                </span>
-              </p>
-              <p className="mt-1 text-sm text-[#5f5e5e]">
-                {items.length} ulasan
-              </p>
-            </div>
+    <div className="space-y-6">
+      <section className="rounded-xl border border-[#e0e3e7] bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-[#181c1f]">
+              Produk yang Perlu Direview
+            </h3>
+            <p className="mt-1 text-sm text-[#5f5e5e]">
+              Produk dari pesanan yang sudah selesai/diterima. Beri rating dan
+              ulasan di sini — satu tempat untuk semua toko.
+            </p>
           </div>
-          <hr className="my-5 border-[#e0e3e7]" />
-          <div className="space-y-3">
-            {distribution.map(({ rating, count }) => {
-              const width = Math.round((count / items.length) * 100);
-              return (
-                <div
-                  key={rating}
-                  className="flex items-center gap-2 text-xs text-[#5f5e5e]"
-                >
-                  <Star size={14} className="fill-[#f59e0b] text-[#f59e0b]" />
-                  <span className="w-3">{rating}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#ebeef2]">
-                    <div
-                      className="h-full rounded-full bg-[#047857]"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                  <span className="w-8 text-right">{width}%</span>
-                </div>
-              );
-            })}
-          </div>
+          {reviewableItems.length ? (
+            <span className="round-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#047857]">
+              {reviewableItems.length} produk
+            </span>
+          ) : null}
         </div>
-      </aside>
 
-      <div className="col-span-12 space-y-4 lg:col-span-8">
-        {items.map((review) => (
-          <div
-            key={review.id}
-            className="rounded-xl border border-[#e0e3e7] bg-white p-4 shadow-sm"
-          >
-            <div className="flex gap-4">
-              <img
-                src={review.imageUrl}
-                alt={review.productName}
-                className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Stars rating={review.rating} />
-                  <span className="text-xs text-[#5f5e5e]">{review.date}</span>
+        {reviewableItems.length ? (
+          <div className="mt-4 divide-y divide-[#ebeef2]">
+            {reviewableItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-4 py-4"
+              >
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.productName}
+                    className="h-16 w-16 flex-shrink-0 rounded-lg border border-[#e0e3e7] object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300">
+                    <PackageCheck size={26} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <h4 className="line-clamp-1 text-sm font-bold text-[#181c1f]">
+                    {item.productName}
+                  </h4>
+                  <p className="mt-0.5 text-xs text-[#5f5e5e]">
+                    Varian: {item.variantLabel || "-"}
+                  </p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[#047857]">
+                    <Store size={13} />
+                    {item.storeName}
+                  </p>
+                  {item.orderNumber ? (
+                    <p className="mt-0.5 text-[11px] text-slate-400">
+                      {item.orderNumber}
+                    </p>
+                  ) : null}
                 </div>
-                <h3 className="line-clamp-1 text-base font-bold text-[#181c1f]">
-                  {review.productName}
-                </h3>
-                <p className="mt-1 text-xs text-[#5f5e5e]">
-                  {review.reviewer} • Variant: {review.variantLabel}
-                </p>
-                <p className="mt-3 text-sm leading-6 text-[#181c1f]">
-                  {review.content}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => onReviewItem?.(item)}
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-bold text-white transition hover:bg-[#059669]"
+                >
+                  <Star size={15} className="fill-white text-white" />
+                  Beri Review
+                </button>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-dashed border-[#e0e3e7] bg-slate-50 p-8 text-center">
+            <MessageSquareText size={30} className="mx-auto text-slate-300" />
+            <p className="mt-3 text-sm font-semibold text-slate-600">
+              Belum ada produk yang perlu direview
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Setelah pesanan diterima/selesai, produk di sini siap diberi
+              rating dan ulasan.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {reviews.length ? (
+        <section className="rounded-xl border border-[#e0e3e7] bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-bold text-[#181c1f]">
+            Review yang Sudah Dikirim
+          </h3>
+          <div className="mt-3 divide-y divide-[#ebeef2]">
+            {reviews.map((review) => (
+              <article
+                key={review.id}
+                className="group cursor-pointer py-4 first:pt-0 last:pb-0"
+                onClick={() => onOpenProduct?.(review)}
+                title="Lihat produk dan ulasan Anda"
+              >
+                <div className="flex gap-4">
+                  {review.imageUrl ? (
+                    <img
+                      src={review.imageUrl}
+                      alt={review.productName}
+                      className="h-14 w-14 flex-shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300">
+                      <PackageCheck size={24} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <Stars rating={review.rating} />
+                      <span className="text-xs text-[#5f5e5e]">
+                        {review.date}
+                      </span>
+                    </div>
+                    <h4 className="line-clamp-1 text-sm font-bold text-[#181c1f] group-hover:text-[#047857]">
+                      {review.productName}
+                    </h4>
+                    {review.content ? (
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#5f5e5e]">
+                        {review.content}
+                      </p>
+                    ) : null}
+                    {review.media && review.media.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {review.media.map((url, index) => (
+                          <img
+                            key={`${review.id}-media-${index}`}
+                            src={resolveMediaUrl(url)}
+                            alt={`Lampiran ${index + 1}`}
+                            className="h-12 w-12 rounded-md border border-slate-200 object-cover"
+                            loading="lazy"
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                    <p className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#047857]">
+                      Lihat produk & ulasan
+                      <ArrowRight size={13} />
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -974,6 +1017,70 @@ export default function CartPage() {
     );
   }, [ordersQuery.data?.data, sortBy]);
   const [selectedKeys, setSelectedKeys] = useState([]);
+
+  const reviewedReviewRows = useMemo(() => {
+    return (reviewsQuery.data?.rows || []).filter(
+      (review) => review.order_item_id,
+    );
+  }, [reviewsQuery.data?.rows]);
+
+  const reviewedItemIds = useMemo(() => {
+    return new Set(reviewedReviewRows.map((review) => String(review.order_item_id)));
+  }, [reviewedReviewRows]);
+
+  const reviewableItems = useMemo(() => {
+    const allOrders = ordersQuery.data?.data || [];
+    const reviewable = [];
+    for (const order of allOrders) {
+      const status = String(order.status || "").toLowerCase();
+      if (!["received", "completed"].includes(status)) continue;
+      const items = order.items && order.items.length
+        ? order.items
+        : (order.subOrders || []).flatMap((sub) => sub.items || []);
+      for (const item of items) {
+        if (!item || !item.id) continue;
+        reviewable.push({
+          id: item.id,
+          orderItemId: item.id,
+          productId: item.productId,
+          productName: item.productName || "Produk",
+          variantLabel: item.variantLabel || item.sku || "-",
+          imageUrl: item.imageUrl || "",
+          storeName: item.storeName || order.subOrders?.[0]?.storeName || "Toko",
+          orderNumber: order.orderNumber || order.order_number || "-",
+          reviewed: reviewedItemIds.has(String(item.id)),
+        });
+      }
+    }
+    return reviewable;
+  }, [ordersQuery.data?.data, reviewedItemIds]);
+
+  const existingReviews = useMemo(() => {
+    return reviewedReviewRows.map((review) => ({
+      id: review.id,
+      productId: review.product_id,
+      productSlug: review.product_slug || "",
+      productName: review.product_name || "Produk",
+      rating: Number(review.rating || 0),
+      date: review.created_at
+        ? new Date(review.created_at).toLocaleDateString("id-ID")
+        : "-",
+      content: review.review || "",
+      imageUrl: resolveMediaUrl(review.product_thumbnail),
+      media: Array.isArray(review.media) ? review.media : [],
+    }));
+  }, [reviewedReviewRows]);
+
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const handleReviewSaved = () => {
+    setReviewTarget(null);
+  };
+
+  const handleOpenProductReview = (review) => {
+    const slug = review.productSlug || review.productId || "";
+    if (!slug) return;
+    navigate(`/products/${slug}#review-${review.id}`);
+  };
 
   const changeTab = (tab) => {
     const next = new URLSearchParams(searchParams);
@@ -1130,8 +1237,22 @@ export default function CartPage() {
               <OrderTab items={orderItems} onOpen={openOrderDetail} />
             )
           ) : null}
-          {activeTab === "review" ? <ReviewTab items={reviewsQuery.data?.rows || []} /> : null}
+          {activeTab === "review" ? (
+            <ReviewTab
+              items={reviewableItems}
+              reviews={existingReviews}
+              onReviewItem={setReviewTarget}
+              onOpenProduct={handleOpenProductReview}
+            />
+          ) : null}
         </div>
+
+        <OrderReviewModal
+          item={reviewTarget}
+          open={Boolean(reviewTarget)}
+          onClose={() => setReviewTarget(null)}
+          onSaved={handleReviewSaved}
+        />
 
         {activeTab === "cart" && sortedCartItems.length ? (
           <div className="mt-6 lg:hidden">

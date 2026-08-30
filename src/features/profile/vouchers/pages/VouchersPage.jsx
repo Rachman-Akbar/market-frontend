@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
-import { Gift, Search, TicketPercent, Truck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Gift, Lock, Search, TicketPercent, Trophy, Truck } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import VoucherDetailModal from "@/features/order/voucher/components/VoucherDetailModal";
+import MissionRequirementModal from "@/features/order/voucher/components/MissionRequirementModal";
 import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
+import { useMissions } from "@/features/advanced/services/advancedMarketplaceService";
 import { formatPrice } from "@/shared/utils/utils";
 
 const FILTERS = [
@@ -31,11 +33,118 @@ function getVoucherValue(voucher) {
   return formatPrice(voucher.discountValue);
 }
 
+const MISSION_EVENT_LABEL = {
+  login: "Login",
+  order_completed: "Selesaikan Pesanan",
+  review_submitted: "Beri Review",
+  purchase_amount: "Total Belanja",
+  product_purchased: "Beli Produk",
+};
+
+function isMissionCompleted(row) {
+  return ["completed", "rewarded"].includes(String(row?.status || "").toLowerCase());
+}
+
+function ProfileMissions() {
+  const missionsQuery = useMissions({}, false);
+  const missions = missionsQuery.data?.rows || [];
+  const active = missions.filter((row) => !isMissionCompleted(row));
+  const completedCount = missions.filter(isMissionCompleted).length;
+
+  if (missionsQuery.isLoading) {
+    return (
+      <div className="py-8 text-center text-sm text-slate-400">Memuat misi...</div>
+    );
+  }
+
+  if (missionsQuery.error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        Misi belum dapat dimuat.
+      </div>
+    );
+  }
+
+  if (!missions.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-8 border-t border-[#e5e7eb] pt-8">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <span className={profileLayout.contentEyebrow}>Rewards center</span>
+          <h3 className="mt-1 text-lg font-semibold text-slate-950">
+            Ikuti Misi untuk Mendapatkan Voucher
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Selesaikan misi di bawah untuk membuka voucher terkunci pada halaman ini.
+          </p>
+        </div>
+        <Link
+          to="/profile/missions"
+          className={`${profileLayout.secondaryButton} shrink-0`}
+        >
+          Lihat semua ({completedCount} selesai)
+        </Link>
+      </div>
+
+      {active.length ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {active.map((mission) => {
+            const label =
+              MISSION_EVENT_LABEL[mission.event_type] || "Aktivitas";
+            const progress = Math.min(
+              100,
+              Math.max(0, Number(mission.progress_percent || 0)),
+            );
+
+            return (
+              <Link
+                key={mission.id}
+                to="/profile/missions"
+                className="flex items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-4 transition hover:border-[#10B981]"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
+                  <Trophy size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    {mission.name || label}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {label} · Hadiah:{" "}
+                    {mission.voucher?.name || "Voucher"}
+                  </p>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e5e7eb]">
+                    <div
+                      className="h-full rounded-full bg-[#10B981]"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="shrink-0 text-xs font-bold text-[#10B981]">
+                  {Math.round(progress)}%
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[#e5e7eb] bg-slate-50 p-4 text-sm text-slate-500">
+          Semua misi telah selesai. Selesaikan misi baru untuk membuka voucher.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function VouchersPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [lockedVoucher, setLockedVoucher] = useState(null);
   const vouchersQuery = useActiveVouchers();
   const vouchers = vouchersQuery.data || [];
   const filteredVouchers = useMemo(() => {
@@ -54,6 +163,15 @@ export default function VouchersPage() {
   }, [filter, keyword, vouchers]);
 
   const closeVoucher = useCallback(() => setSelectedVoucher(null), []);
+
+  const openVoucher = useCallback((voucher) => {
+    if (voucher?.isLocked) {
+      setLockedVoucher(voucher);
+      return;
+    }
+
+    setSelectedVoucher(voucher);
+  }, []);
 
   const useVoucher = useCallback(
     (voucher) => {
@@ -117,21 +235,24 @@ export default function VouchersPage() {
         ) : null}
         {filteredVouchers.map((voucher) => {
           const Icon = getVoucherIcon(voucher);
+          const locked = Boolean(voucher.isLocked);
           return (
             <div
               key={voucher.id}
               role="button"
               tabIndex={0}
-              onClick={() => setSelectedVoucher(voucher)}
+              onClick={() => openVoucher(voucher)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  setSelectedVoucher(voucher);
+                  openVoucher(voucher);
                 }
               }}
-              className="grid min-h-[128px] w-full cursor-pointer gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center"
+              className={`grid min-h-[128px] w-full cursor-pointer gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center ${
+                locked ? "opacity-70" : ""
+              }`}
             >
-              <div className="h-24 w-full overflow-hidden rounded-xl text-[#10B981] ring-1 ring-[#e5e7eb] md:h-[104px]">
+              <div className="relative h-24 w-full overflow-hidden rounded-xl text-[#10B981] ring-1 ring-[#e5e7eb] md:h-[104px]">
                 {voucher.imageUrl ? (
                   <img
                     src={voucher.imageUrl}
@@ -146,15 +267,28 @@ export default function VouchersPage() {
                     </b>
                   </div>
                 )}
+                {locked ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/45">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700">
+                      <Lock size={17} />
+                    </span>
+                  </div>
+                ) : null}
               </div>
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <h3 className="text-base font-semibold text-slate-950">
                     {voucher.name}
                   </h3>
-                  <span className="rounded-full bg-[#D1FAE5] px-2 py-0.5 text-[11px] font-semibold text-[#10B981]">
-                    Aktif
-                  </span>
+                  {locked ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                      <Lock size={11} /> Terkunci
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-[#D1FAE5] px-2 py-0.5 text-[11px] font-semibold text-[#10B981]">
+                      Aktif
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Kode: {voucher.code}
@@ -170,16 +304,29 @@ export default function VouchersPage() {
                     : "tanpa batas"}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  useVoucher(voucher);
-                }}
-                className="inline-flex h-10 items-center justify-center rounded-full bg-[#10B981] px-5 text-sm font-semibold text-white transition hover:bg-[#059669]"
-              >
-                Pakai
-              </button>
+              {locked ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openVoucher(voucher);
+                  }}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-amber-100 px-5 text-sm font-semibold text-amber-700 transition hover:bg-amber-200"
+                >
+                  <Lock size={14} /> Buka Misi
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    useVoucher(voucher);
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-full bg-[#10B981] px-5 text-sm font-semibold text-white transition hover:bg-[#059669]"
+                >
+                  Pakai
+                </button>
+              )}
               <hr className="border-[#e5e7eb] md:col-span-3" />
             </div>
           );
@@ -200,11 +347,19 @@ export default function VouchersPage() {
         ) : null}
       </div>
 
+      <ProfileMissions />
+
       <VoucherDetailModal
         voucher={selectedVoucher}
         open={Boolean(selectedVoucher)}
         onClose={closeVoucher}
         onUse={useVoucher}
+      />
+
+      <MissionRequirementModal
+        voucher={lockedVoucher}
+        open={Boolean(lockedVoucher)}
+        onClose={() => setLockedVoucher(null)}
       />
     </section>
   );

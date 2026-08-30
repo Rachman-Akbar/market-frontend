@@ -147,6 +147,30 @@ export default function CategoryPage() {
       <section className="bg-[#10B981] text-white py-10">
         <div className="max-w-[1200px] mx-auto px-6">
           <h2 className="text-2xl font-bold mb-8">{categoryName}</h2>
+          {levelThreeCards.length ? (
+            <div className="mb-8 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+              {levelThreeCards.map((child) => (
+                <Link
+                  key={child.id || child.slug}
+                  to={getCategoryHref(child)}
+                  className="group overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 transition hover:ring-emerald-300"
+                >
+                  <div className="aspect-square overflow-hidden bg-slate-100">
+                    {child.image_url ? (
+                      <img src={child.image_url} alt={child.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-slate-300">
+                        <span className="material-symbols-outlined text-4xl">category</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-3 py-3 text-center text-sm font-extrabold text-slate-800 group-hover:text-emerald-700">
+                    {child.name}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : null}
           {!!categoryBubbles.length && (
             <div className="relative group">
               <div
@@ -191,39 +215,6 @@ export default function CategoryPage() {
       </section>
 
       <div className="max-w-[1200px] mx-auto px-6 py-6">
-        {levelThreeCards.length ? (
-          <section className="mb-7">
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900">Pilihan {categoryName}</h3>
-                <p className="mt-1 text-sm text-slate-500">Pilih kategori Level 3 untuk melihat produk yang lebih spesifik.</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {levelThreeCards.map((child) => (
-                <Link
-                  key={child.id || child.slug}
-                  to={getCategoryHref(child)}
-                  className="group overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 transition hover:ring-emerald-300"
-                >
-                  <div className="aspect-square overflow-hidden bg-slate-100">
-                    {child.image_url ? (
-                      <img src={child.image_url} alt={child.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-slate-300">
-                        <span className="material-symbols-outlined text-4xl">category</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="px-3 py-3 text-center text-sm font-extrabold text-slate-800 group-hover:text-emerald-700">
-                    {child.name}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
         <nav className="text-xs text-[#3e4a39] mb-6">
           <span>Beranda</span>
           <span className="mx-2">&gt;</span>

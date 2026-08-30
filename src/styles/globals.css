@@ -134,3 +134,12 @@ body,
   width: 0;
   height: 0;
 }
+
+@keyframes review-flash {
+  0% {
+    background-color: #d1fae5;
+  }
+  100% {
+    background-color: transparent;
+  }
+}

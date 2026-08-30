@@ -13,6 +13,7 @@ import {
 } from "@/features/seller/store/services/sellerStoreService";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { DayPicker, TimePicker } from "@/shared/components/form";
 import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 
 const STEPS = [
@@ -806,30 +807,15 @@ export default function SellerOnboardingPage() {
 
             {step === 3 ? (
               <div className="space-y-6">
-                <div className="grid gap-5 sm:grid-cols-3">
-                  <Field label="Hari operasional" required>
-                    <Input
-                      value={form.open_days}
-                      onChange={change("open_days")}
-                      placeholder="Senin - Sabtu"
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
-                    />
-                  </Field>
+                <Field label="Hari operasional" required helper="Pilih hari toko buka">
+                  <DayPicker value={form.open_days} onChange={change("open_days")} />
+                </Field>
+                <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Jam buka" required>
-                    <Input
-                      type="time"
-                      value={form.open_time}
-                      onChange={change("open_time")}
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
-                    />
+                    <TimePicker value={form.open_time} onChange={change("open_time")} />
                   </Field>
                   <Field label="Jam tutup" required>
-                    <Input
-                      type="time"
-                      value={form.close_time}
-                      onChange={change("close_time")}
-                      className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
-                    />
+                    <TimePicker value={form.close_time} onChange={change("close_time")} />
                   </Field>
                 </div>
 

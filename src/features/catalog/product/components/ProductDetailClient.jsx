@@ -99,7 +99,7 @@ export function ProductDetailClient({ slug }) {
   const variantsQuery = useProductVariants(baseProduct?.id, {
     enabled: Boolean(baseProduct?.id && !baseProduct?.variants?.length),
   });
-  const reviewsQuery = usePublicReviews(baseProduct?.id, { per_page: 20 });
+  const reviewsQuery = usePublicReviews(baseProduct?.id, { per_page: 100 });
 
   const product = useMemo(() => {
     if (!baseProduct) return null;

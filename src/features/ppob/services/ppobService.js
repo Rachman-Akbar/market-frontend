@@ -88,10 +88,16 @@ export function normalizePpobTransaction(row = {}) {
     customerName: row.customer_name || null,
     totalAmount: Number(row.total_amount || 0),
     status: row.status || "pending",
+    paymentStatus: row.payment_status || "pending",
+    paymentMethod: row.payment_method || null,
+    snapToken: row.snap_token || null,
+    midtransClientKey: row.midtrans_client_key || null,
+    midtransIsProduction: row.midtrans_is_production != null ? Boolean(row.midtrans_is_production) : null,
     providerMessage: row.provider_message || null,
     trId: row.tr_id || null,
     sn: row.sn || null,
     createdAt: row.created_at || null,
+    paidAt: row.paid_at || null,
     completedAt: row.completed_at || null,
     operator: row.operator || null,
     raw: row,
@@ -141,7 +147,7 @@ export function usePpobProducts(category, operatorId) {
 
 export async function createPpobTransaction(productId, customerId) {
   const response = await apiClient.post("/api/v1/ppob/transactions", { product_id: productId, customer_id: customerId });
-  return response.data?.data || response.data;
+  return normalizePpobTransaction(response.data?.data || response.data);
 }
 
 export async function checkPpobTransactionStatus(id) {
@@ -162,7 +168,11 @@ export function usePpobTransactions(params = {}) {
 }
 
 export function useCreatePpobTransaction() {
-  return useMutation({ mutationFn: ({ productId, customerId }) => createPpobTransaction(productId, customerId) });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, customerId }) => createPpobTransaction(productId, customerId),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["ppob", "transactions"] }),
+  });
 }
 
 export function useCheckPpobTransactionStatus() {

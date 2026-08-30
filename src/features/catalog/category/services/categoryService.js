@@ -69,6 +69,24 @@ export function extractCategories(value) {
   return [];
 }
 
+export function normalizeCategoryTree(category = {}, fallback = {}) {
+  const normalized = {
+    ...normalizeCategory(category, fallback),
+    children: [],
+  };
+
+  normalized.children = getCategoryChildren(category).map((child) =>
+    normalizeCategoryTree(child, {
+      parent_id: normalized.id ?? category.parent_id ?? fallback.parent_id ?? null,
+      parent_key: normalized.key,
+      catalog_group_id: normalized.catalog_group_id,
+      level: Number(normalized.level || 1) + 1,
+    })
+  );
+
+  return normalized;
+}
+
 export function normalizeCategory(category = {}, fallback = {}) {
   const id = category.id ?? category.category_id ?? category.categoryId ?? null;
   const name = category.name || category.title || category.nama || "Kategori";
@@ -305,7 +323,7 @@ export async function getCategoryByPath(path) {
   const payload = await catalogRequest(`/categories/path/${encodedPath}`);
   const data = unwrapData(payload);
 
-  return normalizeCategory(data);
+  return normalizeCategoryTree(data);
 }
 
 function getNextProductCursor(payload, meta) {

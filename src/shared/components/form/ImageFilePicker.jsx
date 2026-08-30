@@ -66,6 +66,7 @@ export const ImageFilePicker = memo(function ImageFilePicker({
       onChange?.(uploaded.url, uploaded);
     } catch (uploadError) {
       uploadedValueRef.current = "";
+      clearLocalPreview();
       setError(getMediaUploadError(uploadError));
     } finally {
       setUploading(false);

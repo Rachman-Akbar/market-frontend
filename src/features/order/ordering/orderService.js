@@ -1,9 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  apiClient,
-  getApiMessage,
-  unwrapApiData,
-} from "@/core/utils/apiClient";
+import { apiClient, getApiMessage, unwrapApiData } from "@/core/utils/apiClient";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
 export const orderKeys = {
@@ -66,7 +63,7 @@ function normalizeItem(item = {}) {
     quantity: Number(item.quantity || 0),
     price: Number(item.unit_price ?? item.price ?? 0),
     subtotal: Number(item.subtotal ?? 0),
-    imageUrl: item.thumbnail || item.image || item.image_url || "",
+    imageUrl: resolveMediaUrl(item.thumbnail || item.image || item.image_url || ""),
     storeId: Number(item.store_id ?? item.storeId ?? 0),
     storeName: item.store_name || item.storeName || "Toko",
   };

@@ -109,6 +109,10 @@ export function calculateCheckoutVoucherDiscount({
 export function getCheckoutVoucherValidity(voucher, items = [], now = new Date()) {
   if (!voucher?.isActive) return { valid: false, reason: "Voucher tidak aktif." };
 
+  if (voucher?.isLocked) {
+    return { valid: false, reason: "Voucher hanya tersedia setelah misi diselesaikan." };
+  }
+
   const status = String(voucher.status || "active").toLowerCase();
   if (["inactive", "expired", "banned", "rejected", "archived"].includes(status)) {
     return { valid: false, reason: "Voucher tidak tersedia." };
