@@ -26,7 +26,7 @@ const ORDER_TABS = [
 ];
 
 export default function AdminStoreContextPage() {
-  const [search, setSearch] = useState("");
+  const [search] = useState("");
   const [storeId, setStoreId] = useState("");
   const [period, setPeriod] = useState("monthly");
   const [tab, setTab] = useState("stats");

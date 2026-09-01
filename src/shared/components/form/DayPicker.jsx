@@ -25,7 +25,7 @@ export function parseDays(value) {
   }
 
   const found = new Set();
-  const tokens = text.toLowerCase().split(/[\s,\/\-–—.]+/).filter(Boolean);
+  const tokens = text.toLowerCase().split(/[\s,/\-–—.]+/).filter(Boolean);
 
   for (const token of tokens) {
     const key = normalizeKey(token);

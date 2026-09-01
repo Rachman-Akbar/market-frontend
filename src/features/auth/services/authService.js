@@ -6,13 +6,7 @@ import {
   WINDOW_TOKEN_KEY,
 } from "@/core/utils/apiClient";
 import { emailVerificationEngine } from "@/core/engine/engine";
-import {
-  browserSessionPersistence,
-  setPersistence,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
-import { firebaseAuth, googleProvider, hasFirebaseConfig } from "./firebaseClient";
+import { hasFirebaseConfig, getFirebase } from "./firebaseClient";
 
 const DEFAULT_DEVICE_NAME = "marketplace-web";
 const IDENTITY_API_PREFIX = "/api/v1/identity";
@@ -374,10 +368,12 @@ export function clearStoredSession(options = {}) {
 }
 
 async function ensureFirebaseReady() {
-  if (!hasFirebaseConfig() || !firebaseAuth) {
+  if (!hasFirebaseConfig()) {
     throw new Error("Konfigurasi Firebase Google Login belum lengkap.");
   }
 
+  const { firebaseAuth } = await getFirebase();
+  const { setPersistence, browserSessionPersistence } = await import("firebase/auth");
   await setPersistence(firebaseAuth, browserSessionPersistence);
 }
 
@@ -486,10 +482,8 @@ export async function registerWithPassword(payload) {
 export async function loginWithGoogle(options = {}) {
   await ensureFirebaseReady();
 
-  if (!googleProvider) {
-    throw new Error("Google provider Firebase belum aktif.");
-  }
-
+  const { firebaseAuth, googleProvider } = await getFirebase();
+  const { signInWithPopup } = await import("firebase/auth");
   const credential = await signInWithPopup(firebaseAuth, googleProvider);
   return loginBackendWithFirebaseUser(credential.user, options);
 }
@@ -661,8 +655,16 @@ export async function logoutFromApi() {
   } finally {
     clearStoredSession({ scope });
 
-    if (scope === "base" && firebaseAuth?.currentUser) {
-      await signOut(firebaseAuth);
+    if (scope === "base" && hasFirebaseConfig()) {
+      try {
+        const { firebaseAuth } = await getFirebase();
+
+        if (firebaseAuth?.currentUser) {
+          const { signOut } = await import("firebase/auth");
+          await signOut(firebaseAuth);
+        }
+      } catch {
+      }
     }
   }
 }

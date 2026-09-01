@@ -9,7 +9,7 @@ function matchMenu(items, pathname) {
   return matches.sort((left, right) => right.href.length - left.href.length)[0] || items[0] || null;
 }
 
-function createParentTab(item, index = 0) {
+function createParentTab(item) {
   return {
     id: item.href,
     href: item.href,

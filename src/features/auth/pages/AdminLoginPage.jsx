@@ -20,7 +20,10 @@ export default function AdminLoginPage() {
         storageScope: "window",
       });
       const activeRole = String(session?.activeRole || session?.active_role || session?.user?.role || "").toLowerCase();
-      const roles = Array.isArray(session?.roles || session?.user?.roles) ? (session?.roles || session?.user?.roles).map((role) => String(role?.name || role || "").toLowerCase()) : [];
+      const sessionRoles = session?.roles || session?.user?.roles || [];
+      const roles = Array.isArray(sessionRoles)
+        ? sessionRoles.map((role) => String(role?.name || role || "").toLowerCase())
+        : [];
       if (activeRole !== "admin" && !roles.includes("admin")) {
         await logout();
         throw new Error("Akun ini tidak memiliki akses Admin.");

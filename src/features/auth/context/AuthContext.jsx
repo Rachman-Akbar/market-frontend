@@ -25,7 +25,6 @@ import {
 import {
   BASE_SESSION_KEY,
   BASE_TOKEN_KEY,
-  WINDOW_SESSION_KEY,
   WINDOW_TOKEN_KEY,
 } from "@/core/utils/apiClient";
 

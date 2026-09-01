@@ -268,34 +268,35 @@ export function CartProvider({ children }) {
 
       try {
         await updateCartItem({ variantId: id, quantity: sentQuantity });
-      } catch {
-      } finally {
-        const latest = quantitySyncRef.current.get(id);
-
-        if (!latest) {
-                return;
-        }
-
-        const hasNewQuantity =
-          Math.max(1, Number(latest.quantity || 1)) !== sentQuantity;
-
-        if (hasNewQuantity || latest.needsFlush) {
-          const nextEntry = {
-            ...latest,
-            inFlight: false,
-            needsFlush: false,
-          };
-          nextEntry.timer = window.setTimeout(() => {
-            flushQuantity(id);
-          }, 0);
-          quantitySyncRef.current.set(id, nextEntry);
-          return;
-        }
-
-        quantitySyncRef.current.delete(id);
-        setSyncingVariantIds((current) => current.filter((value) => value !== id));
-        await queryClient.invalidateQueries({ queryKey: CART_KEY });
+      } catch (error) {
+        console.warn("[cart] failed to sync quantity", error);
       }
+
+      const latest = quantitySyncRef.current.get(id);
+
+      if (!latest) {
+        return;
+      }
+
+      const hasNewQuantity =
+        Math.max(1, Number(latest.quantity || 1)) !== sentQuantity;
+
+      if (hasNewQuantity || latest.needsFlush) {
+        const nextEntry = {
+          ...latest,
+          inFlight: false,
+          needsFlush: false,
+        };
+        nextEntry.timer = window.setTimeout(() => {
+          flushQuantity(id);
+        }, 0);
+        quantitySyncRef.current.set(id, nextEntry);
+        return;
+      }
+
+      quantitySyncRef.current.delete(id);
+      setSyncingVariantIds((current) => current.filter((value) => value !== id));
+      await queryClient.invalidateQueries({ queryKey: CART_KEY });
     },
     [queryClient],
   );

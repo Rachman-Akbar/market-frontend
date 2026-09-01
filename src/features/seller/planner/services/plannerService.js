@@ -44,7 +44,7 @@ function refresh(queryClient, keys) {
   );
 }
 
-function mutation(mutationFn, keys) {
+function useMutationHelper(mutationFn, keys) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
@@ -79,22 +79,22 @@ export function useScheduleDetail(id, enabled = true) {
 }
 
 export function useCreateSchedule() {
-  return mutation((values) => post(BASE, values), [plannerKeys.all]);
+  return useMutationHelper((values) => post(BASE, values), [plannerKeys.all]);
 }
 
 export function useUpdateSchedule() {
-  return mutation(
+  return useMutationHelper(
     ({ id, values }) => put(`${BASE}/${id}`, values),
     [plannerKeys.all]
   );
 }
 
 export function useDeleteSchedule() {
-  return mutation((id) => remove(`${BASE}/${id}`), [plannerKeys.all]);
+  return useMutationHelper((id) => remove(`${BASE}/${id}`), [plannerKeys.all]);
 }
 
 export function useCompleteSchedule() {
-  return mutation(
+  return useMutationHelper(
     (id) => patch(`${BASE}/${id}/complete`),
     [plannerKeys.all]
   );

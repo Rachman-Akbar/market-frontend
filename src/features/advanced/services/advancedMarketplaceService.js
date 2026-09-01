@@ -89,7 +89,7 @@ function refresh(queryClient, key) {
   return queryClient.invalidateQueries({ queryKey: key });
 }
 
-function mutation(mutationFn, key) {
+function useMutationHelper(mutationFn, key) {
   const queryClient = useQueryClient();
   return useMutation({ mutationFn, onSuccess: () => refresh(queryClient, key) });
 }
@@ -109,15 +109,15 @@ export function usePublicReviews(productId, params = {}) {
 }
 
 export function useCreateReview() {
-  return mutation((values) => post("/api/v1/order/reviews", values), advancedKeys.reviews);
+  return useMutationHelper((values) => post("/api/v1/order/reviews", values), advancedKeys.reviews);
 }
 
 export function useUpdateReview() {
-  return mutation(({ id, values }) => put(`/api/v1/order/reviews/${id}`, values), advancedKeys.reviews);
+  return useMutationHelper(({ id, values }) => put(`/api/v1/order/reviews/${id}`, values), advancedKeys.reviews);
 }
 
 export function useDeleteReview() {
-  return mutation((id) => remove(`/api/v1/order/reviews/${id}`), advancedKeys.reviews);
+  return useMutationHelper((id) => remove(`/api/v1/order/reviews/${id}`), advancedKeys.reviews);
 }
 
 export function usePublicShowcases(storeId) {
@@ -129,11 +129,11 @@ export function useFinance(params = {}) {
 }
 
 export function useSaveFinance() {
-  return mutation(({ id, values }) => id ? put(`/api/v1/seller/finance/${id}`, values) : post("/api/v1/seller/finance", values), advancedKeys.finance);
+  return useMutationHelper(({ id, values }) => id ? put(`/api/v1/seller/finance/${id}`, values) : post("/api/v1/seller/finance", values), advancedKeys.finance);
 }
 
 export function useRecordFinancePayment() {
-  return mutation(({ id, ...values }) => patch(`/api/v1/seller/finance/${id}/payments`, values), advancedKeys.finance);
+  return useMutationHelper(({ id, ...values }) => patch(`/api/v1/seller/finance/${id}/payments`, values), advancedKeys.finance);
 }
 
 export function useFinancePaymentHistory(id, enabled = true) {
@@ -141,7 +141,7 @@ export function useFinancePaymentHistory(id, enabled = true) {
 }
 
 export function useDeleteFinance() {
-  return mutation((id) => remove(`/api/v1/seller/finance/${id}`), advancedKeys.finance);
+  return useMutationHelper((id) => remove(`/api/v1/seller/finance/${id}`), advancedKeys.finance);
 }
 
 export function useStockMovements(params = {}) {
@@ -167,7 +167,7 @@ export function useRawMaterials(params = {}) {
 }
 
 export function useSaveRawMaterial() {
-  return mutation(({ id, values }) => id ? put(`/api/v1/seller/inventory/materials/${id}`, values) : post("/api/v1/seller/inventory/materials", values), advancedKeys.materials);
+  return useMutationHelper(({ id, values }) => id ? put(`/api/v1/seller/inventory/materials/${id}`, values) : post("/api/v1/seller/inventory/materials", values), advancedKeys.materials);
 }
 
 export function useAdjustRawMaterial() {
@@ -227,11 +227,11 @@ export function useShowcases(params = {}) {
 }
 
 export function useSaveShowcase() {
-  return mutation(({ id, values }) => id ? put(`/api/v1/seller/showcases/${id}`, values) : post("/api/v1/seller/showcases", values), advancedKeys.showcases);
+  return useMutationHelper(({ id, values }) => id ? put(`/api/v1/seller/showcases/${id}`, values) : post("/api/v1/seller/showcases", values), advancedKeys.showcases);
 }
 
 export function useDeleteShowcase() {
-  return mutation((id) => remove(`/api/v1/seller/showcases/${id}`), advancedKeys.showcases);
+  return useMutationHelper((id) => remove(`/api/v1/seller/showcases/${id}`), advancedKeys.showcases);
 }
 
 export function useTickets(params = {}) {
@@ -247,15 +247,15 @@ export function useTicketContext(enabled = true) {
 }
 
 export function useCreateTicket() {
-  return mutation((values) => post("/api/v1/support/tickets", values), advancedKeys.tickets);
+  return useMutationHelper((values) => post("/api/v1/support/tickets", values), advancedKeys.tickets);
 }
 
 export function useReplyTicket() {
-  return mutation(({ id, values }) => post(`/api/v1/support/tickets/${id}/replies`, values), advancedKeys.tickets);
+  return useMutationHelper(({ id, values }) => post(`/api/v1/support/tickets/${id}/replies`, values), advancedKeys.tickets);
 }
 
 export function useUpdateTicketStatus() {
-  return mutation(({ id, values }) => patch(`/api/v1/support/tickets/${id}/status`, values), advancedKeys.tickets);
+  return useMutationHelper(({ id, values }) => patch(`/api/v1/support/tickets/${id}/status`, values), advancedKeys.tickets);
 }
 
 export function useMissions(params = {}, admin = false) {
@@ -273,7 +273,7 @@ export function useMissions(params = {}, admin = false) {
 }
 
 export function useSaveMission() {
-  return mutation(({ id, values }) => id ? put(`/api/v1/engagement/missions/${id}`, values) : post("/api/v1/engagement/missions", values), advancedKeys.missions);
+  return useMutationHelper(({ id, values }) => id ? put(`/api/v1/engagement/missions/${id}`, values) : post("/api/v1/engagement/missions", values), advancedKeys.missions);
 }
 
 export function useMissionEventTypes() {
@@ -288,7 +288,7 @@ export function useMissionEventTypes() {
 }
 
 export function useDeleteMission() {
-  return mutation((id) => remove(`/api/v1/engagement/missions/${id}`), advancedKeys.missions);
+  return useMutationHelper((id) => remove(`/api/v1/engagement/missions/${id}`), advancedKeys.missions);
 }
 
 export function usePromotionPayments(params = {}) {
@@ -296,11 +296,11 @@ export function usePromotionPayments(params = {}) {
 }
 
 export function useCreatePromotionPayment() {
-  return mutation((values) => post("/api/v1/catalog/promotion-payments", values), advancedKeys.promotionPayments);
+  return useMutationHelper((values) => post("/api/v1/catalog/promotion-payments", values), advancedKeys.promotionPayments);
 }
 
 export function useReviewPromotionPayment() {
-  return mutation(({ id, status, reason }) => {
+  return useMutationHelper(({ id, status, reason }) => {
     if (status === "approve") return patch(`/api/v1/catalog/promotion-payments/${id}/approve`);
     if (status === "reject") return patch(`/api/v1/catalog/promotion-payments/${id}/reject`, { reason });
     throw new Error("Aksi review pembayaran promosi tidak valid.");
@@ -327,7 +327,7 @@ export function useConversation(id) {
 }
 
 export function useStartConversation() {
-  return mutation((values) => communicationPost("/conversations", values), advancedKeys.conversations);
+  return useMutationHelper((values) => communicationPost("/conversations", values), advancedKeys.conversations);
 }
 
 export function useSendMessage() {
@@ -339,7 +339,7 @@ export function useMarkConversationRead() {
 }
 
 export function useSendAnnouncement() {
-  return mutation((values) => communicationPost("/announcements", values), advancedKeys.conversations);
+  return useMutationHelper((values) => communicationPost("/announcements", values), advancedKeys.conversations);
 }
 
 export function subscribeConversation(id, onMessage) {

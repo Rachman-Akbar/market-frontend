@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/shared/components/ui/Card";
 import { Input } from "@/shared/components/ui/Input";
 import { Badge } from "@/shared/components/ui/Badge";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
-import { SkeletonProductGrid, Skeleton, SkeletonLine, SkeletonTable } from "@/shared/components/feedback/Skeleton";
+import { SkeletonProductGrid, Skeleton, SkeletonTable } from "@/shared/components/feedback/Skeleton";
 import { OverflowMenu } from "@/shared/components/ui/OverflowMenu";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import {
@@ -430,7 +430,6 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
   const res = usePpobTransactions({ status: statusFilter || undefined, per_page: 20 });
 
   const effectiveRows = res.data?.rows || [];
-  const effectiveMeta = res.data?.meta || {};
 
   return (
     <Card>

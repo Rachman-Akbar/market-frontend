@@ -4,7 +4,6 @@ import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getCatalogGroupError, useCreateAdminCatalogGroup, useUpdateAdminCatalogGroup } from "@/features/admin/catalogGroup/services/adminCatalogGroupService";
-import { toTitleCase } from "@/shared/utils/textFormatter";
 
 function initialValues(entity) {
   return { name: entity?.name || "", slug: entity?.slug || "", isActive: entity?.isActive ?? true };

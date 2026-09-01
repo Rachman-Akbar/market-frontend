@@ -5,7 +5,6 @@ import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { ImageFilePicker } from "@/shared/components/form/ImageFilePicker";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getSellerBannerError, useCreateSellerBanner, useUpdateSellerBanner } from "@/features/seller/banner/services/sellerBannerService";
-import { toTitleCase } from "@/shared/utils/textFormatter";
 
 function initialValues(entity) {
   return { name: entity?.name || "", imageUrl: entity?.imageUrl || "", sortOrder: entity?.sortOrder || 0, isActive: entity?.isActive ?? true };

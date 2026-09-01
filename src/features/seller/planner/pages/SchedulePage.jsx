@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useMemo } from "react";
-import html2canvas from "html2canvas";
 import {
   useSchedules,
   useGrid,
@@ -83,7 +82,7 @@ export default function SchedulePage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [viewMode, setViewMode] = useState("board");
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [, setSelectedDate] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -228,6 +227,7 @@ export default function SchedulePage() {
     if (!calendarRef.current) return;
     setExporting(true);
     try {
+      const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(calendarRef.current, {
         backgroundColor: "#ffffff",
         scale: 2,
@@ -238,7 +238,7 @@ export default function SchedulePage() {
       link.download = `jadwal-${year}-${String(month).padStart(2, "0")}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch (e) {
+    } catch {
       alert("Gagal export gambar.");
     } finally {
       setExporting(false);

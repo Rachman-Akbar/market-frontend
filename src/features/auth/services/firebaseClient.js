@@ -1,6 +1,3 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-
 const envFirebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -23,11 +20,28 @@ export function hasFirebaseConfig() {
   return requiredConfigKeys.every((key) => Boolean(firebaseConfig[key]));
 }
 
-function createFirebaseApp() {
-  if (!hasFirebaseConfig()) return null;
-  return getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
-}
+let firebasePromise = null;
 
-export const firebaseApp = createFirebaseApp();
-export const firebaseAuth = firebaseApp ? getAuth(firebaseApp) : null;
-export const googleProvider = firebaseAuth ? new GoogleAuthProvider() : null;
+export function getFirebase() {
+  if (!hasFirebaseConfig()) {
+    return Promise.reject(new Error("Konfigurasi Firebase Google Login belum lengkap."));
+  }
+
+  if (!firebasePromise) {
+    firebasePromise = (async () => {
+      const [{ initializeApp, getApps }, { getAuth, GoogleAuthProvider }] =
+        await Promise.all([import("firebase/app"), import("firebase/auth")]);
+      const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+      const firebaseAuth = getAuth(app);
+      return {
+        firebaseAuth,
+        googleProvider: new GoogleAuthProvider(),
+      };
+    })().catch((error) => {
+      firebasePromise = null;
+      throw error;
+    });
+  }
+
+  return firebasePromise;
+}

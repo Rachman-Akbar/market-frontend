@@ -11,12 +11,6 @@ const EVENT_LABEL = {
   product_purchased: "Beli Produk",
 };
 
-function formatDiscount(voucher = {}) {
-  const type = String(voucher.discount_type || "fixed").toLowerCase();
-  const value = Number(voucher.discount_value || 0);
-  return type === "percentage" ? `${value.toLocaleString("id-ID")}% diskon` : (voucher.name || "Voucher");
-}
-
 export default function MissionRequirementModal({ voucher, open, onClose }) {
   const missionsQuery = useMissions({}, false);
   const missions = missionsQuery.data?.rows || [];

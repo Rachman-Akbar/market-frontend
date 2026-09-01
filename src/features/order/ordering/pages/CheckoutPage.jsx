@@ -140,7 +140,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
-  const [submitStage, setSubmitStage] = useState("");
+  const [, setSubmitStage] = useState("");
   const isPreviewPage = location.pathname.endsWith("/preview");
   const addresses = addressesQuery.data || [];
   const directItems = useMemo(

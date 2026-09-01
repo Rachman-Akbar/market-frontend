@@ -4,7 +4,7 @@ import AppLayout from "@/shared/layout/AppLayout";
 import BuyerLayout from "@/shared/layout/BuyerLayout";
 import AuthLayout from "@/features/auth/AuthLayout";
 import SellerLayout from "@/features/seller/SellerLayout";
-import AdminLayout from "@/features/admin/AdminLayout";
+const AdminLayout = lazy(() => import("@/features/admin/AdminLayout"));
 import ProfileLayout from "@/features/profile/ProfileLayout";
 import ProtectedRoute from "@/features/auth/routes/ProtectedRoute";
 import SellerOnboardingGuard from "@/features/auth/routes/SellerOnboardingGuard";

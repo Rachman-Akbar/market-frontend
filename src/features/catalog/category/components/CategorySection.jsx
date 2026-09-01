@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
-import { SkeletonLine, Skeleton, SkeletonProductGrid } from "@/shared/components/feedback/Skeleton";
+import { SkeletonLine, Skeleton } from "@/shared/components/feedback/Skeleton";
 import { OverflowMenu } from "@/shared/components/ui/OverflowMenu";
 import {
   getCategoryHref,

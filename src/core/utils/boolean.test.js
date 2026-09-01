@@ -10,7 +10,7 @@ describe("toBoolean", () => {
 
   it("passes through booleans", () => {
     expect(toBoolean(true)).toBe(true);
-    expect(toBoolean(false)).toBe(true === false ? true : false);
+    expect(toBoolean(false)).toBe(false);
   });
 
   it("treats numbers as 1/0", () => {

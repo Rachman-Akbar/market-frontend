@@ -1,5 +1,4 @@
 import { LoaderCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { useCart } from "@/features/order/cart/context/CartContext";
 import { formatPrice } from "@/shared/utils/utils";
 
 function getItemKey(item) {

@@ -60,8 +60,9 @@ export default function LoginPage({ portal = "buyer" }) {
     const activeRole = String(
       session?.activeRole || session?.active_role || session?.user?.role || "",
     ).toLowerCase();
-    const roles = Array.isArray(session?.roles || session?.user?.roles)
-      ? (session?.roles || session?.user?.roles).map((role) =>
+    const sessionRoles = session?.roles || session?.user?.roles || [];
+    const roles = Array.isArray(sessionRoles)
+      ? sessionRoles.map((role) =>
           String(role?.name || role || "").toLowerCase(),
         )
       : [];

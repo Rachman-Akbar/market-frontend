@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, ShoppingCart, X } from "lucide-react";
 import { getApiMessage } from "@/core/utils/apiClient";
@@ -92,7 +92,7 @@ function getInitialVariant({ variants, defaultVariant, variantId }) {
   );
 }
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   id,
   productId,
   variantId,
@@ -832,4 +832,4 @@ export function ProductCard({
       ) : null}
     </>
   );
-}
+});

@@ -1,15 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import { Gift, Lock, Search, TicketPercent, Trophy, Truck } from "lucide-react";
+import { Gift, Search, TicketPercent, Trophy, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import VoucherDetailModal from "@/features/order/voucher/components/VoucherDetailModal";
-<<<<<<< HEAD
-import MissionRequirementModal from "@/features/order/voucher/components/MissionRequirementModal";
-import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
-import { useMissions } from "@/features/advanced/services/advancedMarketplaceService";
-=======
 import { useMyVouchers } from "@/features/order/voucher/services/voucherService";
->>>>>>> e06d1c7 (klj)
+import { useMissions } from "@/features/advanced/services/advancedMarketplaceService";
 import { formatPrice } from "@/shared/utils/utils";
 
 const FILTERS = [
@@ -154,12 +149,7 @@ export default function VouchersPage() {
   const [filter, setFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [selectedVoucher, setSelectedVoucher] = useState(null);
-<<<<<<< HEAD
-  const [lockedVoucher, setLockedVoucher] = useState(null);
-  const vouchersQuery = useActiveVouchers();
-=======
   const vouchersQuery = useMyVouchers();
->>>>>>> e06d1c7 (klj)
   const vouchers = vouchersQuery.data || [];
   const filteredVouchers = useMemo(() => {
     const search = keyword.trim().toLowerCase();
@@ -179,15 +169,10 @@ export default function VouchersPage() {
   const closeVoucher = useCallback(() => setSelectedVoucher(null), []);
 
   const openVoucher = useCallback((voucher) => {
-    if (voucher?.isLocked) {
-      setLockedVoucher(voucher);
-      return;
-    }
-
     setSelectedVoucher(voucher);
   }, []);
 
-  const useVoucher = useCallback(
+  const applyVoucher = useCallback(
     (voucher) => {
       closeVoucher();
       navigate("/cart?tab=cart", {
@@ -248,12 +233,8 @@ export default function VouchersPage() {
         ) : null}
         {filteredVouchers.map((voucher) => {
           const Icon = getVoucherIcon(voucher);
-<<<<<<< HEAD
-          const locked = Boolean(voucher.isLocked);
-=======
           const statusMeta = STATUS_META[voucher.userVoucherStatus] || STATUS_META.available;
           const consumable = voucher.userVoucherStatus !== "used";
->>>>>>> e06d1c7 (klj)
           return (
             <div
               key={voucher.id}
@@ -266,13 +247,7 @@ export default function VouchersPage() {
                   openVoucher(voucher);
                 }
               }}
-<<<<<<< HEAD
-              className={`grid min-h-[128px] w-full cursor-pointer gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center ${
-                locked ? "opacity-70" : ""
-              }`}
-=======
               className={`grid min-h-[128px] w-full gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center ${consumable ? "cursor-pointer" : "cursor-default"}`}
->>>>>>> e06d1c7 (klj)
             >
               <div className="relative h-24 w-full overflow-hidden rounded-xl text-[#10B981] ring-1 ring-[#e5e7eb] md:h-[104px]">
                 {voucher.imageUrl ? (
@@ -289,34 +264,15 @@ export default function VouchersPage() {
                     </b>
                   </div>
                 )}
-                {locked ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/45">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700">
-                      <Lock size={17} />
-                    </span>
-                  </div>
-                ) : null}
               </div>
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <h3 className="text-base font-semibold text-slate-950">
                     {voucher.name}
                   </h3>
-<<<<<<< HEAD
-                  {locked ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                      <Lock size={11} /> Terkunci
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-[#D1FAE5] px-2 py-0.5 text-[11px] font-semibold text-[#10B981]">
-                      Aktif
-                    </span>
-                  )}
-=======
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusMeta.classes}`}>
                     {statusMeta.label}
                   </span>
->>>>>>> e06d1c7 (klj)
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Kode: {voucher.code}
@@ -331,37 +287,19 @@ export default function VouchersPage() {
                     : `Berlaku sampai ${voucher.endsAt ? new Date(voucher.endsAt).toLocaleDateString("id-ID") : "tanpa batas"}`}
                 </p>
               </div>
-<<<<<<< HEAD
-              {locked ? (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    openVoucher(voucher);
-                  }}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-amber-100 px-5 text-sm font-semibold text-amber-700 transition hover:bg-amber-200"
-                >
-                  <Lock size={14} /> Buka Misi
-                </button>
-              ) : (
-=======
               {consumable ? (
->>>>>>> e06d1c7 (klj)
                 <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
-                    useVoucher(voucher);
+                    applyVoucher(voucher);
                   }}
                   className="inline-flex h-10 items-center justify-center rounded-full bg-[#10B981] px-5 text-sm font-semibold text-white transition hover:bg-[#059669]"
                 >
                   Pakai
                 </button>
-<<<<<<< HEAD
-=======
               ) : (
                 <span className="hidden text-sm font-semibold text-slate-400 md:block">Voucher terpakai</span>
->>>>>>> e06d1c7 (klj)
               )}
               <hr className="border-[#e5e7eb] md:col-span-3" />
             </div>
@@ -389,13 +327,7 @@ export default function VouchersPage() {
         voucher={selectedVoucher}
         open={Boolean(selectedVoucher)}
         onClose={closeVoucher}
-        onUse={useVoucher}
-      />
-
-      <MissionRequirementModal
-        voucher={lockedVoucher}
-        open={Boolean(lockedVoucher)}
-        onClose={() => setLockedVoucher(null)}
+        onUse={applyVoucher}
       />
     </section>
   );
