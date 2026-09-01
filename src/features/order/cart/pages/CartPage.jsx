@@ -958,6 +958,7 @@ export default function CartPage() {
     clearCart,
     addItem,
     syncingVariantIds,
+    syncError,
   } = useCart();
   const {
   items: wishlistSource,
@@ -1205,21 +1206,28 @@ export default function CartPage() {
   />
 ) : null}
           {activeTab === "cart" ? (
-            <CartTab
-              items={sortedCartItems}
-              selectedKeys={selectedKeys}
-              onToggleAll={handleToggleAll}
-              onToggleStore={handleToggleStore}
-              onToggleItem={handleToggleItem}
-              onDecrease={handleDecrease}
-              onIncrease={handleIncrease}
-              onRemove={(item) => removeItem(item.productId, item.variantId)}
-              syncingVariantIds={syncingVariantIds}
-              onClear={clearCart}
-              onCheckout={goCheckout}
-              voucherCode={voucherCode}
-              onVoucherCodeChange={setVoucherCode}
-            />
+            <>
+              {syncError ? (
+                <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                  {syncError}
+                </div>
+              ) : null}
+              <CartTab
+                items={sortedCartItems}
+                selectedKeys={selectedKeys}
+                onToggleAll={handleToggleAll}
+                onToggleStore={handleToggleStore}
+                onToggleItem={handleToggleItem}
+                onDecrease={handleDecrease}
+                onIncrease={handleIncrease}
+                onRemove={(item) => removeItem(item.productId, item.variantId)}
+                syncingVariantIds={syncingVariantIds}
+                onClear={clearCart}
+                onCheckout={goCheckout}
+                voucherCode={voucherCode}
+                onVoucherCodeChange={setVoucherCode}
+              />
+            </>
           ) : null}
           {activeTab === "order" ? (
             selectedOrderId ? (

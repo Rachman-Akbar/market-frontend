@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient, unwrapApiData } from "@/core/utils/apiClient";
+import { apiClient, getApiMessage, unwrapApiData } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
   getProductById,
@@ -196,6 +196,7 @@ export function CartProvider({ children }) {
   const { isAuthenticated, initializing } = useAuth();
   const quantitySyncRef = useRef(new Map());
   const [syncingVariantIds, setSyncingVariantIds] = useState([]);
+  const [syncError, setSyncError] = useState("");
 
   const cartQuery = useQuery({
     queryKey: CART_KEY,
@@ -268,7 +269,9 @@ export function CartProvider({ children }) {
 
       try {
         await updateCartItem({ variantId: id, quantity: sentQuantity });
+        setSyncError("");
       } catch (error) {
+        setSyncError(getApiMessage(error, "Gagal menyinkronkan jumlah item."));
         console.warn("[cart] failed to sync quantity", error);
       }
 
@@ -481,6 +484,7 @@ export function CartProvider({ children }) {
       clearCart: () => clearMutation.mutateAsync(),
       refreshCart: () => cartQuery.refetch(),
       syncingVariantIds,
+      syncError,
       mutating:
         addMutation.isPending ||
         removeMutation.isPending ||
@@ -498,6 +502,7 @@ export function CartProvider({ children }) {
       initializing,
       removeMutation,
       syncingVariantIds,
+      syncError,
       updateQty,
     ],
   );

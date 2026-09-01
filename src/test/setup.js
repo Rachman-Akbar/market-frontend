@@ -4,7 +4,53 @@ import { cleanup } from "@testing-library/react";
 
 afterEach(() => cleanup());
 
+function createMemoryStorage() {
+  const store = new Map();
+  return {
+    get length() {
+      return store.size;
+    },
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    getItem: (key) => (store.has(String(key)) ? store.get(String(key)) : null),
+    setItem: (key, value) => store.set(String(key), String(value)),
+    removeItem: (key) => store.delete(String(key)),
+    clear: () => store.clear(),
+  };
+}
+
+if (typeof globalThis !== "undefined") {
+  if (typeof globalThis.localStorage === "undefined") {
+    Object.defineProperty(globalThis, "localStorage", {
+      value: createMemoryStorage(),
+      configurable: true,
+    });
+  }
+  if (typeof globalThis.sessionStorage === "undefined") {
+    Object.defineProperty(globalThis, "sessionStorage", {
+      value: createMemoryStorage(),
+      configurable: true,
+    });
+  }
+}
+
 if (typeof window !== "undefined") {
+  if (typeof window.localStorage === "undefined") {
+    Object.defineProperty(window, "localStorage", {
+      value: typeof globalThis.localStorage !== "undefined"
+        ? globalThis.localStorage
+        : createMemoryStorage(),
+      configurable: true,
+    });
+  }
+  if (typeof window.sessionStorage === "undefined") {
+    Object.defineProperty(window, "sessionStorage", {
+      value: typeof globalThis.sessionStorage !== "undefined"
+        ? globalThis.sessionStorage
+        : createMemoryStorage(),
+      configurable: true,
+    });
+  }
+
   if (!window.matchMedia) {
     window.matchMedia = (query) => ({
       matches: false,

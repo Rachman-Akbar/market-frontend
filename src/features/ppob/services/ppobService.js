@@ -8,6 +8,8 @@ export const ppobKeys = {
   products: (category, operatorId) => ["ppob", "products", category, operatorId],
   transactions: (params = {}) => ["ppob", "transactions", params],
   transaction: (id) => ["ppob", "transactions", id],
+  invoices: (params = {}) => ["ppob", "invoices", params],
+  invoice: (ref) => ["ppob", "invoices", ref],
   adminDashboard: ["ppob", "admin", "dashboard"],
   adminFinance: (params = {}) => ["ppob", "admin", "finance", params],
   adminBalance: ["ppob", "admin", "balance"],
@@ -152,7 +154,7 @@ export async function createPpobTransaction(productId, customerId) {
 
 export async function checkPpobTransactionStatus(id) {
   const response = await apiClient.post(`/api/v1/ppob/transactions/${id}/check-status`);
-  return response.data?.data || response.data;
+  return normalizePpobTransaction(response.data?.data || response.data);
 }
 
 export async function getPpobTransactions(params = {}) {
@@ -177,6 +179,57 @@ export function useCreatePpobTransaction() {
 
 export function useCheckPpobTransactionStatus() {
   return useMutation({ mutationFn: (id) => checkPpobTransactionStatus(id) });
+}
+
+// ── Invoices (buyer) ─────────────────────────────────────────────────────
+
+export function normalizePpobInvoice(row = {}) {
+  return {
+    id: Number(row.id || 0),
+    invoiceNumber: row.invoice_number || "",
+    transactionReference: row.transaction_reference || "",
+    invoiceType: row.invoice_type || "digital",
+    productName: row.product_name || "",
+    category: row.category || "",
+    customerId: row.customer_id || "",
+    customerName: row.customer_name || null,
+    subtotal: Number(row.subtotal || 0),
+    adminFee: Number(row.admin_fee || 0),
+    discount: Number(row.discount || 0),
+    total: Number(row.total || 0),
+    paymentMethod: row.payment_method || null,
+    paymentStatus: row.payment_status || "pending",
+    transactionStatus: row.transaction_status || "pending",
+    paidAt: row.paid_at || null,
+    createdAt: row.created_at || null,
+    raw: row,
+  };
+}
+
+export async function getPpobInvoices(params = {}) {
+  const response = await apiClient.get("/api/v1/ppob/invoices", { params });
+  return normalizePage(response.data, normalizePpobInvoice);
+}
+
+export async function getPpobInvoice(ref) {
+  const response = await apiClient.get(`/api/v1/ppob/invoices/${encodeURIComponent(ref)}`);
+  return normalizePpobInvoice(response.data?.data || response.data);
+}
+
+export function usePpobInvoices(params = {}) {
+  return useQuery({
+    queryKey: ppobKeys.invoices(params),
+    queryFn: () => getPpobInvoices(params),
+  });
+}
+
+export function usePpobInvoice(ref, options = {}) {
+  return useQuery({
+    queryKey: ppobKeys.invoice(ref),
+    queryFn: () => getPpobInvoice(ref),
+    enabled: Boolean(ref),
+    ...options,
+  });
 }
 
 // ── Postpaid bills (verified email) ──────────────────────────────────────

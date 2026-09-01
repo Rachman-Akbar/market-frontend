@@ -1,21 +1,22 @@
 import { memo, useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/shared/components/ui/Button";
 import { Card, CardContent } from "@/shared/components/ui/Card";
-import { Input } from "@/shared/components/ui/Input";
 import { Badge } from "@/shared/components/ui/Badge";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { SkeletonProductGrid, Skeleton, SkeletonTable } from "@/shared/components/feedback/Skeleton";
 import { OverflowMenu } from "@/shared/components/ui/OverflowMenu";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
-import {
-  usePpobTransactions,
-  useCreatePpobTransaction,
-  getPpobAdminError,
-} from "@/features/ppob/services/ppobService";
+import { usePpobTransactions } from "@/features/ppob/services/ppobService";
 import { usePpobCatalog } from "@/features/ppob/hooks/usePpobCatalog";
+import {
+  PpobCheckoutModal,
+  formatRupiah,
+  PPOB_STATUS_STYLES,
+  PPOB_PAYMENT_STATUS_LABELS,
+  PPOB_PAYMENT_STATUS_STYLES,
+} from "@/features/ppob/components/PpobCheckoutModal";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { openMidtransPayment } from "@/features/order/ordering/midtransService";
 
 const CATEGORY_ICONS = {
   pulsa: "phone_android",
@@ -25,49 +26,6 @@ const CATEGORY_ICONS = {
   internet: "router",
   voucher: "confirmation_number",
 };
-
-const STATUS_STYLES = {
-  success: "bg-green-100 text-green-700",
-  pending: "bg-amber-100 text-amber-700",
-  processing: "bg-blue-100 text-blue-700",
-  failed: "bg-red-100 text-red-700",
-  expired: "bg-slate-100 text-slate-700",
-  refunded: "bg-purple-100 text-purple-700",
-};
-
-const PAYMENT_STATUS_LABELS = {
-  pending: "Menunggu Pembayaran",
-  paid: "Dibayar",
-  failed: "Pembayaran Gagal",
-  expired: "Kedaluwarsa",
-  refunded: "Dikembalikan",
-};
-
-const PAYMENT_STATUS_STYLES = {
-  pending: "bg-amber-100 text-amber-700",
-  paid: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-  expired: "bg-slate-100 text-slate-700",
-  refunded: "bg-purple-100 text-purple-700",
-};
-
-const PAYMENT_FLOW = ["customer", "confirm", "payment"];
-
-const WIZARD_STEPS = [
-  { key: "customer", title: "Nomor Customer" },
-  { key: "confirm", title: "Konfirmasi" },
-  { key: "payment", title: "Pembayaran" },
-];
-
-const SUCCESS_MESSAGES = {
-  success: "Pembayaran berhasil. Top-up Anda sedang diproses dan akan dikirimkan segera.",
-  pending: "Pembayaran Anda menunggu konfirmasi. Anda dapat melihat statusnya di Riwayat Transaksi.",
-  error: "Pembayaran gagal. Silakan coba lagi.",
-};
-
-function formatRupiah(value) {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
-}
 
 export default function PpobPage() {
   const { isAuthenticated } = useAuth();
@@ -119,14 +77,7 @@ export default function PpobPage() {
 }
 
 const BuyTab = memo(function BuyTab({ catalog, category, onSelectCategory, operatorId, setOperatorId, isAuthenticated, onRequireLogin }) {
-  const [isBuyOpen, setIsBuyOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [customerId, setCustomerId] = useState("");
-  const [step, setStep] = useState("customer");
-  const [created, setCreated] = useState(null);
-  const [paymentResult, setPaymentResult] = useState(null);
-  const [failure, setFailure] = useState("");
-  const createMut = useCreatePpobTransaction();
 
   const openBuy = useCallback(
     (product) => {
@@ -135,72 +86,11 @@ const BuyTab = memo(function BuyTab({ catalog, category, onSelectCategory, opera
         return;
       }
       setSelectedProduct(product);
-      setCustomerId("");
-      setStep("customer");
-      setCreated(null);
-      setPaymentResult(null);
-      setFailure("");
-      setIsBuyOpen(true);
     },
     [isAuthenticated, onRequireLogin]
   );
 
-  const closeBuy = useCallback(() => setIsBuyOpen(false), []);
-
-  const goStep = useCallback(
-    (target) => {
-      if (target === "confirm" && !customerId.trim()) {
-        setFailure("Masukkan nomor customer terlebih dahulu.");
-        return;
-      }
-      setFailure("");
-      setStep(target);
-    },
-    [customerId]
-  );
-
-  const doPay = useCallback(async () => {
-    if (!selectedProduct || !customerId.trim()) {
-      setFailure("Masukkan nomor customer terlebih dahulu.");
-      return;
-    }
-    setFailure("");
-    setPaymentResult(null);
-    setCreated(null);
-    try {
-      const result = await createMut.mutateAsync({ productId: selectedProduct.id, customerId: customerId.trim() });
-      if (!result?.snapToken) {
-        throw new Error("Backend tidak mengembalikan snap_token untuk pembayaran.");
-      }
-      setCreated(result);
-      setStep("payment");
-      try {
-        await openMidtransPayment(result, {
-          onSuccess: () => setPaymentResult("success"),
-          onPending: () => setPaymentResult("pending"),
-          onError: () => setPaymentResult("error"),
-          onClose: () => setPaymentResult((prev) => prev || null),
-        });
-      } catch (snapError) {
-        setPaymentResult("error");
-        setFailure(typeof snapError?.message === "string" ? snapError.message : "Popup pembayaran Midtrans gagal dimuat.");
-      }
-    } catch (e) {
-      setPaymentResult(null);
-      setFailure(getPpobAdminError(e, createMut.error?.message || "Transaksi gagal diproses."));
-    }
-  }, [selectedProduct, customerId, createMut, getPpobAdminError]);
-
-  const retryPay = useCallback(() => {
-    setCreated(null);
-    setPaymentResult(null);
-    setFailure("");
-    setStep("confirm");
-  }, []);
-
   const { categories, operators, products, isLoadingProducts, error } = catalog;
-
-  const stepIndex = PAYMENT_FLOW.indexOf(step);
 
   return (
     <div className="space-y-6">
@@ -281,146 +171,15 @@ const BuyTab = memo(function BuyTab({ catalog, category, onSelectCategory, opera
         </div>
       )}
 
-      {/* Buy wizard modal */}
-      {isBuyOpen && selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeBuy}>
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between">
-              <h3 className="text-lg font-bold text-slate-900">
-                {step === "payment" ? "Pembayaran" : `Beli ${selectedProduct.name}`}
-              </h3>
-              <button
-                type="button"
-                onClick={closeBuy}
-                className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Tutup"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-
-            {step !== "payment" && (
-              <ol className="mt-3 flex items-center gap-2 text-xs font-semibold">
-                {WIZARD_STEPS.map((s, i) => (
-                  <li key={s.key} className="flex items-center gap-2">
-                    <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-                        i < stepIndex ? "bg-green-600 text-white" : i === stepIndex ? "bg-orange-600 text-white" : "bg-slate-200 text-slate-500"
-                      }`}
-                    >
-                      {i < stepIndex ? "✓" : i + 1}
-                    </span>
-                    <span className={i === stepIndex ? "text-orange-600" : "text-slate-500"}>{s.title}</span>
-                    {i < WIZARD_STEPS.length - 1 && <span className="h-px w-5 bg-slate-300" />}
-                  </li>
-                ))}
-              </ol>
-            )}
-
-            {step === "customer" && (
-              <div className="mt-4 space-y-3">
-                <p className="text-sm text-slate-500">
-                  {selectedProduct.name} • <span className="font-semibold text-orange-600">{formatRupiah(selectedProduct.sellingPrice)}</span>
-                </p>
-                <label className="block text-sm font-medium text-slate-700">
-                  {selectedProduct.category === "tagihan" ? "Nomor Pelanggan" : "Nomor HP / ID Pelanggan"}
-                </label>
-                <Input value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="08xxxxxxxxxx" inputMode="numeric" />
-                <p className="text-xs text-slate-500">
-                  Pembayaran dilakukan melalui Midtrans sebelum top-up dikirim.
-                </p>
-                <div className="mt-5 flex justify-end gap-2">
-                  <Button variant="outline" onClick={closeBuy}>Batal</Button>
-                  <Button onClick={() => goStep("confirm")}>Lanjut</Button>
-                </div>
-              </div>
-            )}
-
-            {step === "confirm" && (
-              <div className="mt-4 space-y-3">
-                <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
-                  <div className="flex items-center justify-between py-2.5">
-                    <dt className="text-slate-500">Produk</dt>
-                    <dd className="font-semibold text-slate-900">{selectedProduct.name}</dd>
-                  </div>
-                  <div className="flex items-center justify-between py-2.5">
-                    <dt className="text-slate-500">Nomor</dt>
-                    <dd className="font-mono font-semibold text-slate-900">{customerId}</dd>
-                  </div>
-                  <div className="flex items-center justify-between py-2.5">
-                    <dt className="text-slate-500">Total Bayar</dt>
-                    <dd className="font-bold text-orange-600">{formatRupiah(selectedProduct.sellingPrice)}</dd>
-                  </div>
-                </dl>
-                {selectedProduct.sellingPrice !== selectedProduct.providerPrice && (
-                  <p className="text-xs text-slate-500">
-                    Harga modal {formatRupiah(selectedProduct.providerPrice)} + biaya admin {formatRupiah(selectedProduct.adminFee)}.
-                  </p>
-                )}
-                {failure && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">{failure}</p>}
-                <div className="mt-5 flex justify-between gap-2">
-                  <Button variant="outline" onClick={() => goStep("customer")}>Kembali</Button>
-                  <Button onClick={doPay} disabled={createMut.isPending}>
-                    {createMut.isPending ? "Menyiapkan pembayaran..." : "Bayar Sekarang"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {step === "payment" && created && (
-              <div className="mt-4 space-y-4">
-                <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                  <span className="material-symbols-outlined text-slate-400">receipt_long</span>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-900">{created.productName || selectedProduct.name}</p>
-                    <p className="text-xs text-slate-500">{created.customerId}</p>
-                    <p className="text-xs text-slate-400">Ref: {created.referenceId}</p>
-                  </div>
-                  <div className="ml-auto shrink-0 font-bold text-orange-600">{formatRupiah(created.totalAmount || selectedProduct.sellingPrice)}</div>
-                </div>
-
-                {!paymentResult && (
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-orange-600" />
-                    Menunggu penyelesaian pembayaran di jendela popup Midtrans...
-                  </div>
-                )}
-
-                {paymentResult && (
-                  <div
-                    className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                      paymentResult === "success" ? "bg-green-50 text-green-700" : paymentResult === "pending" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {SUCCESS_MESSAGES[paymentResult]}
-                    {paymentResult === "error" && failure && <p className="mt-1 text-xs font-normal text-red-500">{failure}</p>}
-                  </div>
-                )}
-
-                {!paymentResult && failure && (
-                  <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-                    {failure}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between gap-2">
-                  <Badge
-                    className={PAYMENT_STATUS_STYLES[created.paymentStatus] || "bg-slate-100 text-slate-700"}
-                  >
-                    {PAYMENT_STATUS_LABELS[created.paymentStatus] || created.paymentStatus || "Pending"}
-                  </Badge>
-                  <div className="flex gap-2">
-                    {((paymentResult && paymentResult !== "success") || failure) && (
-                      <Button variant="outline" size="sm" onClick={retryPay}>Coba Bayar Lagi</Button>
-                    )}
-                    <Button size="sm" onClick={closeBuy}>Selesai</Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Shared checkout modal — handles prepaid (Midtrans) & postpaid (inquiry) flows */}
+      <PpobCheckoutModal
+        product={selectedProduct}
+        customerLabel={selectedProduct?.category === "tagihan" ? "Nomor Pelanggan" : "Nomor HP / ID Pelanggan"}
+        onClose={() => setSelectedProduct(null)}
+        onSuccess={() => {
+          setSelectedProduct(null);
+        }}
+      />
     </div>
   );
 });
@@ -457,11 +216,16 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
                 emptyText="—"
               />
             </div>
-            <AsyncState loading={false} error={res.error ? getPpobAdminError(res.error, "Gagal memuat riwayat.") : ""} empty={!res.isLoading && !effectiveRows.length} emptyText="Belum ada transaksi." />
+            <AsyncState
+              loading={false}
+              error={res.error ? (res.error.message || "Gagal memuat riwayat.") : ""}
+              empty={!res.isLoading && !effectiveRows.length}
+              emptyText="Belum ada transaksi."
+            />
             {res.isLoading ? <SkeletonTable rows={5} cols={6} /> : null}
             {!res.isLoading && effectiveRows.length > 0 && (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-left text-sm">
+                <table className="w-full min-w-[700px] text-left text-sm">
                   <thead className="border-b border-slate-200 text-slate-500">
                     <tr>
                       <th className="py-2 pr-3 font-semibold">Produk</th>
@@ -469,7 +233,8 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
                       <th className="py-2 pr-3 font-semibold">Total</th>
                       <th className="py-2 pr-3 font-semibold">Status</th>
                       <th className="py-2 pr-3 font-semibold">Pembayaran</th>
-                      <th className="py-2 font-semibold">Tanggal</th>
+                      <th className="py-2 pr-3 font-semibold">Tanggal</th>
+                      <th className="py-2 font-semibold">Invoice</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -485,19 +250,31 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
                         </td>
                         <td className="py-2 pr-3 font-semibold text-slate-900">{formatRupiah(tx.totalAmount)}</td>
                         <td className="py-2 pr-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[tx.status] || "bg-slate-100 text-slate-700"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PPOB_STATUS_STYLES[tx.status] || "bg-slate-100 text-slate-700"}`}>
                             {tx.status}
                           </span>
                         </td>
                         <td className="py-2 pr-3">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${PAYMENT_STATUS_STYLES[tx.paymentStatus] || "bg-slate-100 text-slate-700"}`}>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${PPOB_PAYMENT_STATUS_STYLES[tx.paymentStatus] || "bg-slate-100 text-slate-700"}`}>
                             {tx.paymentStatus === "paid" && (
                               <span className="material-symbols-outlined text-[12px]">check_circle</span>
                             )}
-                            {PAYMENT_STATUS_LABELS[tx.paymentStatus] || tx.paymentStatus || "—"}
+                            {PPOB_PAYMENT_STATUS_LABELS[tx.paymentStatus] || tx.paymentStatus || "—"}
                           </span>
                         </td>
                         <td className="py-2 text-slate-500">{tx.createdAt ? new Date(tx.createdAt).toLocaleString("id-ID") : "-"}</td>
+                        <td className="py-2">
+                          {["success", "processing"].includes(tx.status) ? (
+                            <Link
+                              to={`/ppob/invoice/${encodeURIComponent(tx.referenceId)}`}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:underline"
+                            >
+                              <span className="material-symbols-outlined text-sm">receipt_long</span> Lihat
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-slate-300">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -8,11 +8,8 @@ import {
   getCategoryHref,
   useCategoriesMenu,
 } from "@/features/catalog/category/services/categoryService";
-import {
-  createPpobTransaction,
-  getPpobAdminError,
-} from "@/features/ppob/services/ppobService";
 import { usePpobCatalog } from "@/features/ppob/hooks/usePpobCatalog";
+import { PpobCheckoutModal, formatRupiah } from "@/features/ppob/components/PpobCheckoutModal";
 
 const DEFAULT_CATEGORY = "pulsa";
 
@@ -32,11 +29,7 @@ function flattenCategories(categories = []) {
   ]);
 }
 
-function formatRupiah(value) {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
-}
-
-// Functional "Top Up & Tagihan" widget reusing the PPOB catalog + buyer endpoint.
+// Functional "Top Up & Tagihan" widget reusing the PPOB catalog + shared checkout modal.
 function TopUpSection() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -44,8 +37,8 @@ function TopUpSection() {
 
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [productId, setProductId] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState(null);
+  const [pendingCustomerId, setPendingCustomerId] = useState("");
 
   const catalog = usePpobCatalog(category);
   const categories = catalog.categories;
@@ -62,7 +55,7 @@ function TopUpSection() {
     navigate("/auth/login");
   }, [notifications, navigate]);
 
-  const buy = useCallback(async () => {
+  const startCheckout = useCallback(() => {
     if (!isAuthenticated) {
       requireLogin();
       return;
@@ -71,26 +64,8 @@ function TopUpSection() {
       notifications.push({ type: "error", title: "Top Up", message: "Pilih produk terlebih dahulu." });
       return;
     }
-    if (!customerId.trim()) {
-      notifications.push({ type: "error", title: "Top Up", message: "Masukkan nomor HP / ID pelanggan." });
-      return;
-    }
-    setBusy(true);
-    try {
-      const res = await createPpobTransaction(selected.id, customerId.trim());
-      notifications.push({
-        type: "success",
-        title: "Top Up Berhasil",
-        message: `"${selected.name}" (${customerId.trim()}) • status ${res?.status || "pending"}.`,
-      });
-      setCustomerId("");
-      setProductId("");
-    } catch (e) {
-      notifications.push({ type: "error", title: "Top Up Gagal", message: getPpobAdminError(e, "Transaksi gagal diproses.") });
-    } finally {
-      setBusy(false);
-    }
-  }, [isAuthenticated, requireLogin, selected, customerId, notifications]);
+    setCheckoutProduct(selected);
+  }, [isAuthenticated, requireLogin, selected, notifications]);
 
   const selectCategory = useCallback((key) => {
     setCategory(key);
@@ -167,8 +142,8 @@ function TopUpSection() {
               <p className="text-xs text-gray-500 mb-1">No. HP / ID Pelanggan</p>
               <input
                 type="text"
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
+                value={pendingCustomerId}
+                onChange={(e) => setPendingCustomerId(e.target.value)}
                 placeholder="Masukan Nomor"
                 inputMode="numeric"
                 className="w-full px-2 py-2 border border-gray-200 text-xs focus:outline-none focus:border-[#10B981]"
@@ -183,12 +158,12 @@ function TopUpSection() {
                 </p>
               </div>
               <button
-                onClick={buy}
-                disabled={busy || !customerId.trim() || !productId}
+                onClick={startCheckout}
+                disabled={!selected || !pendingCustomerId.trim()}
                 className="px-4 py-2 bg-[#10B981] text-white text-xs font-semibold hover:bg-[#0EA371] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ borderRadius: 5 }}
               >
-                {busy ? "Memproses..." : selected ? "Beli" : "Bayar"}
+                {selected ? (selected.productType === "postpaid" ? "Bayar" : "Beli") : "Bayar"}
               </button>
             </div>
           </div>
@@ -201,6 +176,23 @@ function TopUpSection() {
       >
         Belum punya akun? Masuk untuk transaksi.
       </button>
+
+      <PpobCheckoutModal
+        product={checkoutProduct}
+        initialCustomerId={pendingCustomerId}
+        customerLabel={checkoutProduct?.category === "tagihan" ? "Nomor Pelanggan" : "Nomor HP / ID Pelanggan"}
+        onClose={() => setCheckoutProduct(null)}
+        onSuccess={() => {
+          notifications.push({
+            type: "success",
+            title: "Transaksi Berhasil",
+            message: `"${checkoutProduct?.name}" berhasil diproses.`,
+          });
+          setCheckoutProduct(null);
+          setPendingCustomerId("");
+          setProductId("");
+        }}
+      />
     </div>
   );
 }

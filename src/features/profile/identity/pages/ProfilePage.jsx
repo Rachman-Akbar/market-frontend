@@ -898,6 +898,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState("");
   const [avatarVerifyOpen, setAvatarVerifyOpen] = useState(false);
 
@@ -920,12 +921,13 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
     event.target.value = "";
     if (!file || photoBusy || !user.id) return;
     setPhotoBusy(true);
+    setPhotoError("");
     try {
       const uploaded = await uploadMarketplaceImage(file, "profiles");
       setPendingAvatarUrl(uploaded?.url || "");
       setAvatarVerifyOpen(true);
     } catch (error) {
-      console.error(getMediaUploadError(error));
+      setPhotoError(getMediaUploadError(error));
     } finally {
       setPhotoBusy(false);
     }
@@ -979,6 +981,12 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
             />
             {photoBusy ? "Mengunggah..." : "Ubah Foto"}
           </button>
+
+          {photoError ? (
+            <p className="mt-3 max-w-[260px] text-xs font-semibold text-red-600">
+              {photoError}
+            </p>
+          ) : null}
 
           {!hasPassword ? (
             <div className="mt-6 w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center">

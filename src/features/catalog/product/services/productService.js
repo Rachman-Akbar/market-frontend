@@ -183,7 +183,7 @@ export async function getProducts(params = {}, options = {}) {
   const { items, meta } = unwrapCollection(payload);
   const products = items
     .map(normalizeProduct)
-    .filter((product) => product.is_active !== false && (!product.status || product.status === "published"));
+    .filter((product) => product.is_active !== false && ["", "published", "active", "approved"].includes(product.status));
   const nextCursor = getNextCursor(payload, meta);
 
   return {

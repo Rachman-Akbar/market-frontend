@@ -66,6 +66,7 @@ const MissionsPage = lazy(() => import("@/features/advanced/pages/MissionsPage")
 const BuyerHelpPage = lazy(() => import("@/features/profile/help/pages/BuyerHelpPage"));
 const BuyerMissionsPage = lazy(() => import("@/features/profile/missions/pages/BuyerMissionsPage"));
 const PpobPage = lazy(() => import("@/features/ppob/pages/PpobPage"));
+const PpobInvoicePage = lazy(() => import("@/features/ppob/pages/PpobInvoicePage"));
 const PromotionPaymentsPage = lazy(() => import("@/features/advanced/pages/PromotionPaymentsPage"));
 const AnnouncementPage = lazy(() => import("@/features/advanced/pages/AnnouncementPage"));
 const OrderOperationsPage = lazy(() => import("@/features/advanced/pages/OrderOperationsPage"));
@@ -100,6 +101,7 @@ function renderBuyerRoutes() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout/*" element={<CheckoutPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/ppob/invoice/:ref" element={<PpobInvoicePage />} />
       </Route>
     </Route>
   );

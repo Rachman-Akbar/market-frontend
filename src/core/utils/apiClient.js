@@ -12,6 +12,8 @@ function migrateLegacySession() {
     return;
   }
 
+  const sessionStorage = window.sessionStorage;
+  const localStorage = window.localStorage;
   const legacyToken = sessionStorage.getItem(BASE_TOKEN_KEY);
   const legacySession = sessionStorage.getItem(BASE_SESSION_KEY);
   const baseToken = localStorage.getItem(BASE_TOKEN_KEY);
@@ -39,8 +41,8 @@ export function getStoredAccessToken() {
   }
 
   return (
-    sessionStorage.getItem(WINDOW_TOKEN_KEY) ||
-    localStorage.getItem(BASE_TOKEN_KEY) ||
+    window.sessionStorage.getItem(WINDOW_TOKEN_KEY) ||
+    window.localStorage.getItem(BASE_TOKEN_KEY) ||
     ""
   );
 }
@@ -50,7 +52,7 @@ export function getStoredSessionScope() {
     return "base";
   }
 
-  return sessionStorage.getItem(WINDOW_TOKEN_KEY) ? "window" : "base";
+  return window.sessionStorage.getItem(WINDOW_TOKEN_KEY) ? "window" : "base";
 }
 
 function hasAuthorizationHeader(headers) {
