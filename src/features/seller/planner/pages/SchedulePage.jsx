@@ -9,6 +9,8 @@ import {
   useCompleteSchedule,
   plannerError,
 } from "../services/plannerService";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useStoreContextStores } from "@/features/admin/storeContext/services/adminStoreContextService";
 import { cn } from "@/shared/utils/utils";
 
 const TYPE_OPTIONS = [
@@ -64,34 +66,48 @@ const EMPTY_FORM = {
   description: "",
   type: "task",
   priority: "normal",
+  color: "",
   date: "",
   start_time: "",
   end_time: "",
   is_all_day: true,
 };
 
+const SWIPE_THRESHOLD = 60;
+
 export default function SchedulePage() {
+  const { activeRole } = useAuth();
+  const isAdmin = activeRole === "admin";
+
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [viewMode, setViewMode] = useState("grid");
+  const [viewMode, setViewMode] = useState("board");
   const [selectedDate, setSelectedDate] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [filterType, setFilterType] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
+  const [filterStoreId, setFilterStoreId] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [slideDir, setSlideDir] = useState(null);
 
   const calendarRef = useRef(null);
+  const swipeStartX = useRef(null);
+
+  const storesQuery = useStoreContextStores({ search: undefined, per_page: 100 }, isAdmin);
+  const adminStores = storesQuery.data?.rows || [];
+
   const queryParams = useMemo(() => {
     const p = { per_page: 100 };
     if (filterType) p.type = filterType;
     if (filterPriority) p.priority = filterPriority;
+    if (isAdmin && filterStoreId) p.store_id = filterStoreId;
     return p;
-  }, [filterType, filterPriority]);
+  }, [filterType, filterPriority, filterStoreId, isAdmin]);
 
-  const { data: gridData, isLoading: gridLoading } = useGrid(year, month);
+  const { data: gridData, isLoading: gridLoading } = useGrid(year, month, isAdmin && filterStoreId ? { store_id: filterStoreId } : {});
   const { data: listData, isLoading: listLoading } = useSchedules(queryParams);
   const createMutation = useCreateSchedule();
   const updateMutation = useUpdateSchedule();
@@ -100,10 +116,13 @@ export default function SchedulePage() {
 
   const schedulesByDate = useMemo(() => {
     const map = {};
-    const items = gridData || [];
-    for (const s of items) {
-      if (!map[s.date]) map[s.date] = [];
-      map[s.date].push(s);
+    const days = gridData?.grid || [];
+    for (const day of days) {
+      map[day.date] = (day.schedules || []).map((s) => ({
+        ...s,
+        date: day.date,
+        day_name: day.day_name,
+      }));
     }
     return map;
   }, [gridData]);
@@ -116,14 +135,38 @@ export default function SchedulePage() {
   const startDay = firstDayOfMonth(year, month);
   const today = todayString();
 
-  const prevMonth = () => {
-    if (month === 1) { setMonth(12); setYear((y) => y - 1); }
-    else setMonth((m) => m - 1);
+  const goToMonth = useCallback((nextYear, nextMonth, dir) => {
+    setYear(nextYear);
+    setMonth(nextMonth);
+    setSlideDir(dir);
+  }, []);
+
+  const prevMonth = useCallback(() => {
+    if (month === 1) goToMonth(year - 1, 12, "right");
+    else goToMonth(year, month - 1, "right");
+  }, [month, year, goToMonth]);
+
+  const nextMonth = useCallback(() => {
+    if (month === 12) goToMonth(year + 1, 1, "left");
+    else goToMonth(year, month + 1, "left");
+  }, [month, year, goToMonth]);
+
+  const goToday = useCallback(() => {
+    const d = new Date();
+    const dir = d.getFullYear() * 12 + d.getMonth() < year * 12 + (month - 1) ? "right" : "left";
+    goToMonth(d.getFullYear(), d.getMonth() + 1, dir);
+  }, [month, year, goToMonth]);
+
+  const handleSwipeStart = (e) => {
+    swipeStartX.current = e.clientX;
   };
 
-  const nextMonth = () => {
-    if (month === 12) { setMonth(1); setYear((y) => y + 1); }
-    else setMonth((m) => m + 1);
+  const handleSwipeEnd = (e) => {
+    if (swipeStartX.current === null) return;
+    const delta = e.clientX - swipeStartX.current;
+    swipeStartX.current = null;
+    if (delta > SWIPE_THRESHOLD) prevMonth();
+    else if (delta < -SWIPE_THRESHOLD) nextMonth();
   };
 
   const openNew = (date) => {
@@ -139,6 +182,7 @@ export default function SchedulePage() {
       description: schedule.description || "",
       type: schedule.type || "task",
       priority: schedule.priority || "normal",
+      color: schedule.color || "",
       date: schedule.date || "",
       start_time: schedule.start_time || "",
       end_time: schedule.end_time || "",
@@ -165,13 +209,19 @@ export default function SchedulePage() {
 
   const handleDelete = async (id) => {
     if (!confirm("Hapus jadwal ini?")) return;
-    try { await deleteMutation.mutateAsync(id); }
-    catch (e) { alert(plannerError(e)); }
+    try {
+      await deleteMutation.mutateAsync(id);
+    } catch (e) {
+      alert(plannerError(e));
+    }
   };
 
   const handleComplete = async (id) => {
-    try { await completeMutation.mutateAsync(id); }
-    catch (e) { alert(plannerError(e)); }
+    try {
+      await completeMutation.mutateAsync(id);
+    } catch (e) {
+      alert(plannerError(e));
+    }
   };
 
   const handleExport = useCallback(async () => {
@@ -202,23 +252,36 @@ export default function SchedulePage() {
 
   return (
     <div className="w-full min-w-0 max-w-full">
+      <style>{`
+        @keyframes slide-in-right { from { transform: translateX(48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slide-in-left { from { transform: translateX(-48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .schedule-slide { animation-duration: 260ms; animation-timing-function: ease-out; }
+        .schedule-slide-right { animation-name: slide-in-left; }
+        .schedule-slide-left { animation-name: slide-in-right; }
+      `}</style>
+
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]">Aplikasi</p>
         <h1 className="mt-1 text-2xl font-light text-slate-900">Planner / Jadwal</h1>
-        <p className="mt-1 text-sm text-slate-500">Kelola jadwal harian dan mingguan toko Anda.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          {isAdmin
+            ? "Pantau jadwal tiap toko dalam satu papan yang dapat digeser, atau lihat tabel ringkas."
+            : "Kelola jadwal harian dan mingguan toko Anda. Geser papan untuk berpindah bulan."}
+        </p>
       </div>
 
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <button onClick={prevMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100">&lsaquo;</button>
+          <button onClick={prevMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" title="Bulan sebelumnya">&lsaquo;</button>
           <span className="min-w-[140px] text-center text-sm font-medium text-slate-800">{monthLabel}</span>
-          <button onClick={nextMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100">&rsaquo;</button>
+          <button onClick={nextMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" title="Bulan berikutnya">&rsaquo;</button>
+          <button onClick={goToday} className="ml-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">Hari ini</button>
         </div>
 
         <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <button onClick={() => setViewMode("grid")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "grid" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Grid</button>
-          <button onClick={() => setViewMode("list")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "list" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>List</button>
+          <button onClick={() => setViewMode("board")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "board" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Papan</button>
+          <button onClick={() => setViewMode("table")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "table" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Tabel</button>
         </div>
 
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700">
@@ -230,6 +293,13 @@ export default function SchedulePage() {
           <option value="">Semua Prioritas</option>
           {PRIORITY_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
+
+        {isAdmin && (
+          <select value={filterStoreId} onChange={(e) => setFilterStoreId(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700">
+            <option value="">Jadwal Saya (Admin)</option>
+            {adminStores.map((s) => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
+          </select>
+        )}
 
         <div className="ml-auto flex gap-2">
           <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
@@ -243,69 +313,83 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Calendar / List Content (this gets exported as image) */}
-      <div ref={calendarRef} className="rounded-xl border border-slate-200 bg-white">
-        {viewMode === "grid" ? (
-          <div className="overflow-x-auto">
-            {/* Grid header */}
-            <div className="grid grid-cols-7 border-b border-slate-100">
-              {WEEKDAYS.map((w) => (
-                <div key={w} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{w}</div>
-              ))}
-            </div>
-            {/* Grid body */}
-            <div className="grid grid-cols-7">
-              {Array.from({ length: startDay }).map((_, i) => (
-                <div key={`empty-${i}`} className="min-h-[90px] border-b border-r border-slate-100 bg-slate-50/50" />
-              ))}
-              {Array.from({ length: days }).map((_, i) => {
-                const day = i + 1;
-                const dateStr = toDateString(year, month, day);
-                const isToday = dateStr === today;
-                const daySchedules = schedulesByDate[dateStr] || [];
-                return (
-                  <div
-                    key={day}
-                    className={cn(
-                      "min-h-[90px] border-b border-r border-slate-100 p-1.5 cursor-pointer transition hover:bg-emerald-50/30",
-                      isToday && "bg-emerald-50/60"
-                    )}
-                    onClick={() => setSelectedDate(dateStr)}
-                    onDoubleClick={() => openNew(dateStr)}
-                  >
-                    <div className={cn(
-                      "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
-                      isToday ? "bg-emerald-500 text-white" : "text-slate-700"
-                    )}>
-                      {day}
-                    </div>
-                    <div className="space-y-0.5">
-                      {daySchedules.slice(0, 3).map((s) => (
-                        <div
-                          key={s.id}
-                          onClick={(e) => { e.stopPropagation(); openEdit(s); }}
-                          className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight text-white cursor-pointer hover:opacity-80"
-                          style={{ backgroundColor: typeColor(s.type) }}
-                          title={s.title}
-                        >
-                          {s.start_time && <span className="shrink-0">{s.start_time}</span>}
-                          <span className="truncate">{s.title}</span>
+      {/* Calendar / Table content (this gets exported as image) */}
+      <div ref={calendarRef} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        {viewMode === "board" ? (
+          <div
+            key={`${year}-${month}`}
+            className={cn("schedule-slide", slideDir === "left" ? "schedule-slide-left" : slideDir === "right" ? "schedule-slide-right" : "")}
+            style={{ touchAction: "pan-y", cursor: "grab" }}
+            onPointerDown={handleSwipeStart}
+            onPointerUp={handleSwipeEnd}
+            onPointerCancel={() => { swipeStartX.current = null; }}
+            onPointerMove={(e) => { if (swipeStartX.current !== null && Math.abs(e.clientX - swipeStartX.current) > 8) e.currentTarget.style.cursor = "grabbing"; }}
+          >
+            {gridLoading ? (
+              <div className="flex items-center justify-center py-12 text-sm text-slate-400">Memuat...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <div className="grid grid-cols-7 border-b border-slate-100">
+                  {WEEKDAYS.map((w) => (
+                    <div key={w} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{w}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7">
+                  {Array.from({ length: startDay }).map((_, i) => (
+                    <div key={`empty-${i}`} className="min-h-[90px] border-b border-r border-slate-100 bg-slate-50/50" />
+                  ))}
+                  {Array.from({ length: days }).map((_, i) => {
+                    const day = i + 1;
+                    const dateStr = toDateString(year, month, day);
+                    const isToday = dateStr === today;
+                    const daySchedules = schedulesByDate[dateStr] || [];
+                    return (
+                      <div
+                        key={day}
+                        className={cn(
+                          "min-h-[90px] border-b border-r border-slate-100 p-1.5 cursor-pointer transition hover:bg-emerald-50/30",
+                          isToday && "bg-emerald-50/60"
+                        )}
+                        onClick={() => setSelectedDate(dateStr)}
+                        onDoubleClick={() => openNew(dateStr)}
+                      >
+                        <div className={cn(
+                          "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
+                          isToday ? "bg-emerald-500 text-white" : "text-slate-700"
+                        )}>
+                          {day}
                         </div>
-                      ))}
-                      {daySchedules.length > 3 && (
-                        <div className="px-1 text-[10px] text-slate-400">+{daySchedules.length - 3} lagi</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {Array.from({ length: (7 - ((startDay + days) % 7)) % 7 }).map((_, i) => (
-                <div key={`end-${i}`} className="min-h-[90px] border-b border-r border-slate-100 bg-slate-50/50" />
-              ))}
+                        <div className="space-y-0.5">
+                          {daySchedules.slice(0, 3).map((s) => (
+                            <div
+                              key={s.id}
+                              onClick={(e) => { e.stopPropagation(); openEdit(s); }}
+                              className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight text-white cursor-pointer hover:opacity-80"
+                              style={{ backgroundColor: typeColor(s.type) }}
+                              title={s.title}
+                            >
+                              {s.start_time && <span className="shrink-0">{s.start_time}</span>}
+                              <span className="truncate">{s.title}</span>
+                            </div>
+                          ))}
+                          {daySchedules.length > 3 && (
+                            <div className="px-1 text-[10px] text-slate-400">+{daySchedules.length - 3} lagi</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {Array.from({ length: (7 - ((startDay + days) % 7)) % 7 }).map((_, i) => (
+                    <div key={`end-${i}`} className="min-h-[90px] border-b border-r border-slate-100 bg-slate-50/50" />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-center text-[10px] text-slate-400">
+              Geser papan ke kiri/kanan untuk berganti bulan
             </div>
           </div>
         ) : (
-          /* List View */
           <div className="divide-y divide-slate-100">
             {listLoading ? (
               <div className="flex items-center justify-center py-12 text-sm text-slate-400">Memuat...</div>
@@ -316,19 +400,27 @@ export default function SchedulePage() {
               </div>
             ) : (
               listItems.map((s) => (
-                <div key={s.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition">
+                <div key={s.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50">
                   <div className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: typeColor(s.type) }} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={cn("text-sm font-medium", s.is_completed ? "text-slate-400 line-through" : "text-slate-800")}>{s.title}</span>
                       <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium", s.is_completed ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500")}>
                         {s.is_completed ? "Selesai" : TYPE_OPTIONS.find((t) => t.value === s.type)?.label || s.type}
                       </span>
+                      {isAdmin && s.store_id ? (
+                        <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                          Toko #{s.store_id}
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
                       <span>{formatDate(s.date)}</span>
                       {s.start_time && <span>{s.start_time}{s.end_time ? ` - ${s.end_time}` : ""}</span>}
                       <span className={cn("inline-block h-1.5 w-1.5 rounded-full", priorityDot(s.priority))} />
+                      {s.color ? (
+                        <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                      ) : null}
                     </div>
                     {s.description && <p className="mt-1 text-xs text-slate-500 line-clamp-1">{s.description}</p>}
                   </div>
@@ -338,8 +430,8 @@ export default function SchedulePage() {
                         <span className="material-symbols-outlined text-sm">check_circle</span>
                       </button>
                     )}
-                    <button onClick={() => openEdit(s)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Edit">
-                      <span className="material-symbols-outlined text-sm">edit</span>
+                    <button onClick={() => openEdit(s)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Edit / Jadwal Ulang">
+                      <span className="material-symbols-outlined text-sm">edit_calendar</span>
                     </button>
                     <button onClick={() => handleDelete(s.id)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
                       <span className="material-symbols-outlined text-sm">delete</span>
@@ -352,8 +444,8 @@ export default function SchedulePage() {
         )}
       </div>
 
-      {/* Summary bar */}
-      {viewMode === "grid" && (
+      {/* Legend */}
+      {viewMode === "board" && (
         <div className="mt-3 flex flex-wrap gap-2">
           {TYPE_OPTIONS.map((t) => (
             <div key={t.value} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600">
@@ -366,9 +458,9 @@ export default function SchedulePage() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-4" onClick={() => setShowForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">{editingId ? "Edit Jadwal" : "Jadwal Baru"}</h3>
+            <h3 className="mb-4 text-lg font-semibold text-slate-900">{editingId ? "Edit Jadwal (Reschedule)" : "Jadwal Baru"}</h3>
 
             <div className="space-y-3">
               <div>
@@ -415,6 +507,25 @@ export default function SchedulePage() {
                   </div>
                 </div>
               )}
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Warna</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {["", ...TYPE_OPTIONS.map((t) => t.color)].map((color) => (
+                    <button
+                      key={color || "default"}
+                      type="button"
+                      onClick={() => setForm({ ...form, color })}
+                      className={cn(
+                        "h-6 w-6 rounded-full border",
+                        color ? "" : "bg-slate-100",
+                        (form.color || "") === color ? "ring-2 ring-slate-900 ring-offset-1" : "border-slate-200"
+                      )}
+                      title={color || "Warna bawaan"}
+                    />
+                  ))}
+                </div>
+              </div>
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Deskripsi</label>

@@ -202,6 +202,7 @@ function renderAdminRoutes() {
         <Route path="/admin/reviews" element={<ReviewsPage />} />
         <Route path="/admin/help" element={<HelpPage />} />
         <Route path="/admin/missions" element={<MissionsPage />} />
+        <Route path="/admin/planner" element={<SchedulePage />} />
         <Route path="/admin/announcements" element={<AnnouncementPage />} />
         <Route path="/admin/chat" element={<RealtimeChatPage />} />
         <Route path="/admin/store-information" element={<ModulePlaceholderPage title="Informasi" group="Toko" icon="store" actionHref="/admin/stores" actionLabel="Kelola Data Toko" />} />

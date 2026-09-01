@@ -21,7 +21,7 @@ export const PRODUCT_TABLE_COLUMNS = [
   { key: "active", label: "Status Seller" },
 ];
 
-const widths = { product: 330, store: 220, mode: 160, price: 170, stock: 130, status: 180, active: 180 };
+const widths = { product: 330, store: 220, mode: 160, price: 170, stock: 150, status: 180, active: 180 };
 
 export const SellerProductTable = memo(function SellerProductTable({
   rows,
@@ -77,7 +77,7 @@ export const SellerProductTable = memo(function SellerProductTable({
     if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(product.storeName) || "-"}</td>;
     if (column.key === "mode") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{product.mode === "variant" ? `${product.variants.length} variant` : "Tanpa variant"}</td>;
     if (column.key === "price") return <td key={column.key} className="px-4 py-3 font-bold text-slate-800">{formatPrice(product.price)}</td>;
-    if (column.key === "stock") return <td key={column.key} className="px-4 py-3 text-slate-600">{product.stock.toLocaleString("id-ID")}</td>;
+    if (column.key === "stock") return <td key={column.key} className="px-4 py-3"><p className="text-sm font-extrabold text-slate-800">{product.stock.toLocaleString("id-ID")}</p>{product.poStock > 0 ? <p className="text-[11px] font-bold text-amber-600">PO {product.poStock.toLocaleString("id-ID")}</p> : null}<p className="text-[11px] text-slate-400">Total {product.totalStock.toLocaleString("id-ID")}</p></td>;
     if (column.key === "status") return <td key={column.key} className="px-4 py-3"><div onClick={(event) => event.stopPropagation()} className="w-full"><SearchableSelect value={product.status} disabled={pendingId === product.id} onChange={(nextValue) => onStatusChange?.(product, nextValue)} options={[{ value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "archived", label: "Archived" }]} clearable={false} buttonClassName="h-8 px-2 text-xs" /></div></td>;
     return <td key={column.key} className="px-4 py-3" onClick={(event) => event.stopPropagation()}><InlineActiveSwitch checked={product.isActive} pending={pendingId === product.id} onChange={(checked) => onToggleActive?.(product, checked)} compact />{!admin ? <div className="mt-1"><StatusBadge status={product.status} /></div> : null}</td>;
   };

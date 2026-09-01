@@ -17,11 +17,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.js"],
     include: ["src/**/*.test.{js,jsx}"],
     pool: "threads",
-    poolOptions: {
-      threads: {
-        minThreads: 1,
-        maxThreads: 3,
-      },
-    },
+    minWorkers: 1,
+    maxWorkers: 3,
   },
 });

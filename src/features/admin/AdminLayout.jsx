@@ -31,6 +31,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/users", label: "User", icon: "group", group: "Manajemen" },
   { href: "/admin/stores", label: "Toko", icon: "storefront", group: "Manajemen" },
   { href: "/admin/missions", label: "Mission", icon: "military_tech", group: "Aplikasi" },
+  { href: "/admin/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Aplikasi" },
   { href: "/admin/announcements", label: "Announcement", icon: "campaign", group: "Aplikasi" },
   { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan" },
   { href: "/admin/help", label: "Help", icon: "support_agent", group: "Bantuan" },

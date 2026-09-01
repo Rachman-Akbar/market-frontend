@@ -31,6 +31,7 @@ function normalizeVariant(variant = {}) {
     name: variant.name || "",
     price: Number(variant.price || 0),
     stock: Number(variant.stock || 0),
+    poStock: Number(variant.po_stock ?? variant.poStock ?? 0),
     isDefault: Boolean(variant.is_default ?? variant.isDefault),
     values: (variant.values || []).map((value) => ({
       attributeId: Number(value.attribute_id || value.attribute?.id || 0),
@@ -47,6 +48,8 @@ export function normalizeSellerProduct(row = {}) {
   const categoryIds = (row.category_ids || row.categories || [])
     .map((category) => Number(category?.id ?? category))
     .filter(Boolean);
+  const stock = Number(row.stock ?? defaultVariant.stock ?? 0);
+  const poStock = Number(row.po_stock ?? defaultVariant.poStock ?? 0);
 
   return {
     id: Number(row.id || 0),
@@ -59,7 +62,9 @@ export function normalizeSellerProduct(row = {}) {
     categoryIds,
     sku: row.sku || defaultVariant.sku || "",
     price: Number(row.price ?? defaultVariant.price ?? 0),
-    stock: Number(row.stock ?? defaultVariant.stock ?? 0),
+    stock,
+    poStock,
+    totalStock: stock + poStock,
     status: row.status || "draft",
     isActive: toBoolean(row.is_active, true),
     thumbnail: resolveMediaUrl(row.thumbnail || images.find((image) => image.isPrimary)?.url || images[0]?.url || ""),
@@ -101,6 +106,7 @@ function serializeVariant(variant, index) {
     name: String(variant.name || "").trim(),
     price: Number(variant.price || 0),
     stock: Number(variant.stock || 0),
+    po_stock: Number(variant.poStock || 0),
     is_default: index === 0,
     values: (variant.values || [])
       .filter((value) => Number(value.attributeId) && String(value.value || "").trim())
@@ -134,6 +140,7 @@ export function serializeSellerProduct(values = {}, options = {}) {
     payload.sku = String(values.sku || "").trim() || null;
     payload.price = Number(values.price || 0);
     payload.stock = Number(values.stock || 0);
+    payload.po_stock = Number(values.poStock || 0);
     payload.variants = [
       serializeVariant(
         {
@@ -142,6 +149,7 @@ export function serializeSellerProduct(values = {}, options = {}) {
           name: values.name,
           price: values.price,
           stock: values.stock,
+          poStock: values.poStock,
           isDefault: true,
           values: [],
         },

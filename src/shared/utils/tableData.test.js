@@ -103,9 +103,9 @@ describe("tableData", () => {
       expect(merged.map((column) => column.rawKey)).toEqual(["name", "sku"]);
     });
 
-    it("returns base columns unchanged when there are no raw columns", () => {
+    it("returns base columns normalized with rawKey when there are no raw columns", () => {
       const base = [{ key: "name", label: "Nama" }];
-      expect(mergeColumns(base, [])).toEqual(base);
+      expect(mergeColumns(base, [])).toEqual([{ key: "name", label: "Nama", rawKey: "name" }]);
     });
   });
 });

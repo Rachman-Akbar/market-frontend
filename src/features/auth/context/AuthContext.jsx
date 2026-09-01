@@ -16,8 +16,9 @@ import {
   logoutFromApi,
   readStoredSession,
   registerWithPassword as registerWithPasswordRequest,
-  requestPasswordReset,
+  requestPasswordResetCode,
   resetPassword as resetPasswordRequest,
+  resetPasswordWithCode as resetPasswordWithCodeRequest,
   changePassword as changePasswordRequest,
   switchActiveRole,
 } from "@/features/auth/services/authService";
@@ -163,7 +164,23 @@ export function AuthProvider({ children }) {
     setError("");
 
     try {
-      await requestPasswordReset(email);
+      await requestPasswordResetCode(email);
+      return true;
+    } catch (authError) {
+      const message = getApiErrorMessage(authError);
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const resetPasswordWithCode = useCallback(async (payload) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await resetPasswordWithCodeRequest(payload);
       return true;
     } catch (authError) {
       const message = getApiErrorMessage(authError);
@@ -285,6 +302,7 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       forgotPassword,
       resetPassword,
+      resetPasswordWithCode,
       changePassword,
       logout,
       switchRole,
@@ -305,6 +323,7 @@ export function AuthProvider({ children }) {
       logout,
       registerWithPassword,
       resetPassword,
+      resetPasswordWithCode,
       roles,
       session?.store,
       session?.token,

@@ -6,6 +6,7 @@ import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 export const voucherKeys = {
   active: (params = {}) => ["order", "vouchers", "active", params],
   checkout: (storeIds = []) => ["order", "vouchers", "checkout", [...storeIds].map(String).sort()],
+  mine: () => ["order", "vouchers", "mine"],
 };
 
 function toNumber(value, fallback = 0) {
@@ -84,5 +85,31 @@ export function useCheckoutVouchers(storeIds = [], options = {}) {
     enabled: Boolean(enabled && normalizedStoreIds.length > 0),
     ...publicQueryOptions,
     ...queryOptions,
+  });
+}
+
+export function normalizeMyVoucher(item = {}) {
+  const voucher = normalizeVoucher(item.voucher || {});
+  return {
+    ...voucher,
+    id: Number(item.id),
+    userVoucherStatus: item.status || "available",
+    claimedAt: item.claimedAt || item.claimed_at || null,
+    usedAt: item.usedAt || item.used_at || null,
+    sourceType: item.sourceType || item.source_type || null,
+    sourceId: item.sourceId || item.source_id || null,
+  };
+}
+
+export async function getMyVouchers() {
+  const response = await apiClient.get("/api/v1/order/vouchers/mine");
+  return unwrapCollection(response.data).map(normalizeMyVoucher);
+}
+
+export function useMyVouchers(options = {}) {
+  return useQuery({
+    queryKey: voucherKeys.mine(),
+    queryFn: () => getMyVouchers(),
+    ...options,
   });
 }

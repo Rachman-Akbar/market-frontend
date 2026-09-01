@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   ChevronRight,
   Fingerprint,
   Info,
@@ -17,6 +18,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
+import EmailVerifyDialog from "@/core/engine/EmailVerifyDialog";
 import {
   getAddressError,
   useAddresses,
@@ -75,11 +77,15 @@ function BiodataTab({ user, refreshMe }) {
     email: user.email || "",
   });
   const [message, setMessage] = useState("");
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ verification_code } = {}) => {
       const response = await apiClient.put(
         `/api/v1/identity/users/${user.id}`,
-        form,
+        {
+          ...form,
+          verification_code,
+        },
       );
       return response.data;
     },
@@ -90,6 +96,22 @@ function BiodataTab({ user, refreshMe }) {
     onError: (error) =>
       setMessage(getApiMessage(error, "Biodata gagal diperbarui.")),
   });
+
+  const handleSave = () => {
+    setMessage("");
+
+    if (!form.name.trim()) {
+      setMessage("Nama lengkap wajib diisi.");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      setMessage("Email wajib diisi.");
+      return;
+    }
+
+    setVerifyOpen(true);
+  };
 
   return (
     <div className="max-w-[640px] space-y-6">
@@ -116,11 +138,22 @@ function BiodataTab({ user, refreshMe }) {
       <button
         type="button"
         disabled={mutation.isPending}
-        onClick={() => mutation.mutate()}
+        onClick={handleSave}
         className={profileLayout.primaryButton}
       >
         "Simpan Perubahan"
       </button>
+
+      <EmailVerifyDialog
+        open={verifyOpen}
+        onClose={() => setVerifyOpen(false)}
+        title="Verifikasi perubahan biodata"
+        description="Masukkan kode verifikasi yang dikirim ke email kamu untuk menyimpan perubahan biodata."
+        onVerify={async (code) => {
+          await mutation.mutateAsync({ verification_code: code });
+        }}
+        onVerified={() => setVerifyOpen(false)}
+      />
     </div>
   );
 }
@@ -533,6 +566,8 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
     confirmation: "",
   });
   const [message, setMessage] = useState("");
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -544,132 +579,151 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
       confirmation: "",
     });
     setMessage("");
+    setVerifyOpen(false);
   }, [open]);
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (form.password.length < 8) {
-        throw new Error("Kata sandi minimal 8 karakter.");
-      }
+  const handleSubmit = () => {
+    setMessage("");
 
-      if (form.password !== form.confirmation) {
-        throw new Error("Konfirmasi kata sandi tidak cocok.");
-      }
+    if (form.password.length < 8) {
+      setMessage("Kata sandi minimal 8 karakter.");
+      return;
+    }
 
-      const response = await apiClient.put(`/api/v1/identity/users/${userId}`, {
-        password: form.password,
-      });
+    if (form.password !== form.confirmation) {
+      setMessage("Konfirmasi kata sandi tidak cocok.");
+      return;
+    }
 
-      return response.data;
-    },
-    onSuccess: () => {
-      onSuccess?.();
-      onClose?.();
-    },
-    onError: (error) => {
-      setMessage(getApiMessage(error, "Kata sandi gagal ditambahkan."));
-    },
-  });
+    setVerifyOpen(true);
+  };
 
   if (!open) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#10B981]">
-              Keamanan akun
-            </p>
-            <h2 className="mt-1 text-xl font-black text-slate-950">
-              Tambahkan kata sandi
-            </h2>
+    <>
+      <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+        <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#10B981]">
+                Keamanan akun
+              </p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">
+                Tambahkan kata sandi
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Tutup"
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Tutup"
-          >
-            <X size={20} />
-          </button>
-        </div>
 
-        <div className="space-y-4 px-6 py-5">
-          <p className="text-sm leading-6 text-slate-500">
-            Kata sandi memungkinkan akun Google ini masuk menggunakan email dan
-            kata sandi tanpa menghapus koneksi Google.
-          </p>
-
-          <label className="block space-y-2">
-            <span className="text-xs font-bold text-slate-600">
-              Kata sandi baru
-            </span>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  password: event.target.value,
-                }))
-              }
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
-              autoComplete="new-password"
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-xs font-bold text-slate-600">
-              Konfirmasi kata sandi
-            </span>
-            <input
-              type="password"
-              value={form.confirmation}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  confirmation: event.target.value,
-                }))
-              }
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
-              autoComplete="new-password"
-            />
-          </label>
-
-          {message ? (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-              {message}
+          <div className="space-y-4 px-6 py-5">
+            <p className="text-sm leading-6 text-slate-500">
+              Kata sandi memungkinkan akun Google ini masuk menggunakan email dan
+              kata sandi tanpa menghapus koneksi Google.
             </p>
-          ) : null}
-        </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className={profileLayout.secondaryButton}
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            className={profileLayout.primaryButton}
-          >
-            "Simpan Kata Sandi"
-          </button>
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">
+                Kata sandi baru
+              </span>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
+                autoComplete="new-password"
+              />
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">
+                Konfirmasi kata sandi
+              </span>
+              <input
+                type="password"
+                value={form.confirmation}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    confirmation: event.target.value,
+                  }))
+                }
+                className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10"
+                autoComplete="new-password"
+              />
+            </label>
+
+            {message ? (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                {message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className={profileLayout.secondaryButton}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={saving}
+              className={profileLayout.primaryButton}
+            >
+              "Simpan Kata Sandi"
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <EmailVerifyDialog
+        open={verifyOpen}
+        onClose={() => setVerifyOpen(false)}
+        title="Verifikasi tambah kata sandi"
+        description="Masukkan kode verifikasi yang dikirim ke email kamu untuk menambahkan kata sandi akun."
+        onVerify={async (code) => {
+          setSaving(true);
+          try {
+            await apiClient.put(`/api/v1/identity/users/${userId}`, {
+              password: form.password,
+              verification_code: code,
+            });
+          } finally {
+            setSaving(false);
+          }
+        }}
+        onVerified={() => {
+          setVerifyOpen(false);
+          onSuccess?.();
+          onClose?.();
+        }}
+      />
+    </>
   );
 }
 
-function KeamananTab({ onLogout }) {
+function KeamananTab({ onLogout, onAddPassword }) {
   const { changePassword } = useAuth();
+  const authUser = useAuth()?.user;
+  const hasPassword = Boolean(authUser?.has_password);
   const [form, setForm] = useState({
     current_password: "",
     new_password: "",
@@ -677,13 +731,11 @@ function KeamananTab({ onLogout }) {
   });
   const [message, setMessage] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [saving, setSaving] = useState(false);
-  const authUser = useAuth()?.user;
-  const isGoogleAccount = Boolean(authUser?.firebase_uid || authUser?.firebaseUid);
+  const [verifyOpen, setVerifyOpen] = useState(false);
 
   const currentDevice = `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`;
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = () => {
     setMessage("");
     setSuccessMsg("");
 
@@ -700,20 +752,7 @@ function KeamananTab({ onLogout }) {
       return;
     }
 
-    setSaving(true);
-    try {
-      await changePassword({
-        current_password: form.current_password,
-        new_password: form.new_password,
-        new_password_confirmation: form.new_password_confirmation,
-      });
-      setSuccessMsg("Password berhasil diubah! Semua sesi lain telah logout.");
-      setForm({ current_password: "", new_password: "", new_password_confirmation: "" });
-    } catch (err) {
-      setMessage(err.message || "Gagal mengubah password.");
-    } finally {
-      setSaving(false);
-    }
+    setVerifyOpen(true);
   };
 
   return (
@@ -726,7 +765,30 @@ function KeamananTab({ onLogout }) {
         </p>
       </div>
 
-      {!isGoogleAccount && (
+      {!hasPassword && (
+        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+          <AlertTriangle className="mt-0.5 shrink-0 text-red-500" size={18} />
+          <div className="flex-1">
+            <p className="text-sm font-black text-red-700">
+              Anda saat ini belum punya sandi
+            </p>
+            <p className="mt-1 text-xs leading-5 text-red-500">
+              Tambahkan kata sandi agar akun tetap bisa diakses dengan email dan
+              kata sandi.
+            </p>
+            <button
+              type="button"
+              onClick={onAddPassword}
+              className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-xl bg-red-600 px-4 text-xs font-bold text-white transition hover:bg-red-700"
+            >
+              <KeyRound size={14} />
+              Tambahkan Sandi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hasPassword && (
         <div className="mb-8">
           <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
             Ubah Kata Sandi
@@ -773,10 +835,9 @@ function KeamananTab({ onLogout }) {
             <button
               type="button"
               onClick={handleChangePassword}
-              disabled={saving}
               className="h-11 rounded-xl bg-[#10B981] px-6 text-sm font-black text-white shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {saving ? "Menyimpan..." : "Ubah Password"}
+              Ubah Password
             </button>
           </div>
         </div>
@@ -806,6 +867,26 @@ function KeamananTab({ onLogout }) {
         <LogOut size={16} />
         Logout Device Ini
       </button>
+
+      <EmailVerifyDialog
+        open={verifyOpen}
+        onClose={() => setVerifyOpen(false)}
+        title="Verifikasi ubah password"
+        description="Masukkan kode verifikasi yang dikirim ke email kamu untuk mengubah password."
+        onVerify={async (code) => {
+          await changePassword({
+            current_password: form.current_password,
+            new_password: form.new_password,
+            new_password_confirmation: form.new_password_confirmation,
+            verification_code: code,
+          });
+        }}
+        onVerified={() => {
+          setVerifyOpen(false);
+          setSuccessMsg("Password berhasil diubah! Semua sesi lain telah logout.");
+          setForm({ current_password: "", new_password: "", new_password_confirmation: "" });
+        }}
+      />
     </div>
   );
 }
@@ -817,6 +898,8 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [pendingAvatarUrl, setPendingAvatarUrl] = useState("");
+  const [avatarVerifyOpen, setAvatarVerifyOpen] = useState(false);
 
   useEffect(() => setActiveTab(defaultTab), [defaultTab]);
 
@@ -830,35 +913,19 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   };
   const initial = user.name.slice(0, 1).toUpperCase();
   const avatarUrl = resolveMediaUrl(user.avatar);
-  const isGoogleAccount = Boolean(
-    authUser?.firebase_uid || authUser?.firebaseUid,
-  );
-
-  const avatarMutation = useMutation({
-    mutationFn: async (file) => {
-      const uploaded = await uploadMarketplaceImage(file, "profiles");
-      const response = await apiClient.put(
-        `/api/v1/identity/users/${user.id}`,
-        { avatar: uploaded.url },
-      );
-      return response.data;
-    },
-    onSuccess: async () => {
-      await refreshMe?.();
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
-    },
-    onError: (error) => {
-      console.error(getMediaUploadError(error));
-    },
-  });
+  const hasPassword = Boolean(authUser?.has_password);
 
   const handlePhotoChange = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || photoBusy) return;
+    if (!file || photoBusy || !user.id) return;
     setPhotoBusy(true);
     try {
-      await avatarMutation.mutateAsync(file);
+      const uploaded = await uploadMarketplaceImage(file, "profiles");
+      setPendingAvatarUrl(uploaded?.url || "");
+      setAvatarVerifyOpen(true);
+    } catch (error) {
+      console.error(getMediaUploadError(error));
     } finally {
       setPhotoBusy(false);
     }
@@ -912,9 +979,29 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
             />
             {photoBusy ? "Mengunggah..." : "Ubah Foto"}
           </button>
+
+          {!hasPassword ? (
+            <div className="mt-6 w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center">
+              <AlertTriangle className="mx-auto mb-1 text-red-500" size={18} />
+              <p className="text-sm font-black text-red-700">
+                Anda saat ini belum punya sandi
+              </p>
+              <p className="mt-1 text-xs leading-5 text-red-500">
+                Tambahkan kata sandi agar akun tetap bisa diakses tanpa Google.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(true)}
+                className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-xl bg-red-600 px-4 text-xs font-bold text-white transition hover:bg-red-700"
+              >
+                <KeyRound size={14} />
+                Tambahkan Sandi
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className="py-2">
-          {isGoogleAccount ? (
+          {!hasPassword ? (
             <div>
               <button
                 type="button"
@@ -923,7 +1010,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
               >
                 <span className="flex items-center gap-3">
                   <KeyRound size={16} className="text-slate-400" />
-                  Tambah / Ubah Kata Sandi
+                  Tambah Kata Sandi
                 </span>
                 <ChevronRight size={16} className="text-slate-400" />
               </button>
@@ -1012,7 +1099,10 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
           ) : null}
           {activeTab === "alamat" ? <AlamatTab /> : null}
           {activeTab === "keamanan" ? (
-            <KeamananTab onLogout={handleLogout} />
+            <KeamananTab
+              onLogout={handleLogout}
+              onAddPassword={() => setShowPasswordModal(true)}
+            />
           ) : null}
         </div>
       </div>
@@ -1021,6 +1111,32 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
         open={showPasswordModal}
         userId={user.id}
         onClose={() => setShowPasswordModal(false)}
+        onSuccess={refreshMe}
+      />
+
+      <EmailVerifyDialog
+        open={avatarVerifyOpen}
+        onClose={() => {
+          setAvatarVerifyOpen(false);
+          setPendingAvatarUrl("");
+        }}
+        title="Verifikasi perubahan foto"
+        description="Masukkan kode verifikasi yang dikirim ke email kamu untuk menyimpan foto profil baru."
+        onVerify={async (code) => {
+          if (!pendingAvatarUrl) {
+            throw new Error("Foto baru tidak ditemukan. Silakan unggah ulang.");
+          }
+
+          await apiClient.put(`/api/v1/identity/users/${user.id}`, {
+            avatar: pendingAvatarUrl,
+            verification_code: code,
+          });
+        }}
+        onVerified={async () => {
+          setPendingAvatarUrl("");
+          await refreshMe?.();
+          queryClient.invalidateQueries({ queryKey: ["auth"] });
+        }}
       />
     </section>
   );

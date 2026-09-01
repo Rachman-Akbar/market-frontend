@@ -58,7 +58,7 @@ export default function BuyerMissionsPage() {
             <span className={profileLayout.contentEyebrow}>Rewards center</span>
             <h2 className={profileLayout.contentTitle}>Misi & Hadiah</h2>
             <p className={`mt-2 ${profileLayout.contentDesc}`}>
-              Selesaikan aktivitas belanja untuk membuka voucher dan hadiah yang tersedia untuk akun Anda.
+              Selesaikan aktivitas belanja, lalu klaim voucher hadiah lewat aplikasi Android.
             </p>
           </div>
           <button
@@ -90,12 +90,12 @@ export default function BuyerMissionsPage() {
             <p className="mt-1 text-xs text-slate-500">Misi yang sudah Anda capai</p>
           </div>
           <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hadiah</span>
-              <Gift size={18} className="text-amber-500" />
-            </div>
-            <strong className="mt-4 block text-3xl font-light text-slate-950">{stats.rewards}</strong>
-            <p className="mt-1 text-xs text-slate-500">Voucher yang berhasil dibuka</p>
+<div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hadiah</span>
+                <Gift size={18} className="text-amber-500" />
+              </div>
+              <strong className="mt-4 block text-3xl font-light text-slate-950">{stats.rewards}</strong>
+              <p className="mt-1 text-xs text-slate-500">Voucher yang didapat dari misi, klaim lewat aplikasi Android</p>
           </div>
         </div>
 
@@ -125,7 +125,6 @@ export default function BuyerMissionsPage() {
               const Icon = event.icon;
               const completed = isCompleted(row);
               const progress = Math.max(0, Math.min(100, Number(row.progress_percent || 0)));
-              const unlockedVoucher = row.voucher && !row.voucher_locked && completed;
 
               return (
                 <article key={row.id} className="flex min-w-0 flex-col rounded-2xl bg-white p-5 ring-1 ring-slate-200 transition hover:ring-emerald-200">
@@ -166,17 +165,6 @@ export default function BuyerMissionsPage() {
                       <p className="mt-1 text-xs font-semibold text-slate-700">{rewardLabel(row.voucher)}</p>
                     </div>
                   </div>
-
-                  {row.voucher ? (
-                    <div className={`mt-4 rounded-xl p-3 ${unlockedVoucher ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-slate-500"}`}>
-                      <div className="flex items-center gap-2">
-                        <Gift size={16} />
-                        <span className="text-xs font-semibold">
-                          {unlockedVoucher ? `Voucher terbuka: ${row.voucher.code || row.voucher.name}` : "Voucher akan terbuka setelah misi selesai"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
                 </article>
               );
             })}

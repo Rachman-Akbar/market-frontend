@@ -36,7 +36,8 @@ describe("textFormatter", () => {
     it("keeps identifiers untouched as strings", () => {
       expect(preserveIdentifier("ORD-2024-001")).toBe("ORD-2024-001");
       expect(preserveIdentifier(1234)).toBe("1234");
-      expect(preserveIdentifier(undefined)).toBe("undefined");
+      expect(preserveIdentifier(undefined)).toBe("");
+      expect(preserveIdentifier(null)).toBe("");
     });
   });
 });

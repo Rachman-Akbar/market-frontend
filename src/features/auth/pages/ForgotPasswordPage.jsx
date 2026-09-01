@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
 
     try {
       await forgotPassword(email);
-      setSuccess("Link reset password sudah dikirim ke email kamu.");
+      setSuccess("Kode verifikasi sudah dikirim ke email kamu.");
     } catch (submitError) {
       setLocalError(submitError.message);
     }
@@ -48,53 +48,61 @@ export default function ForgotPasswordPage() {
             Lupa password?
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Masukkan email akun kamu, lalu sistem akan mengirim link reset
-            password dari database utama melalui email.
+            Masukkan email akun kamu, lalu sistem akan mengirim kode verifikasi
+            6 digit melalui email.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {success ? (
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            Email
-          </label>
-          <Input
-            type="email"
-            placeholder="email@contoh.com"
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              setLocalError("");
-              setSuccess("");
-              clearError();
-            }}
-            autoComplete="email"
-            className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
-          />
-        </div>
-
-        {message && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            {message}
-          </div>
-        )}
-
-        {success && (
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
             {success}
           </div>
-        )}
+          <Link
+            to={`/auth/reset-password?email=${encodeURIComponent(email.trim())}`}
+            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#10B981] px-6 text-sm font-black text-white shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669]"
+          >
+            Masukkan Kode &amp; Buat Password Baru
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-bold text-slate-700">
+              Email
+            </label>
+            <Input
+              type="email"
+              placeholder="email@contoh.com"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setLocalError("");
+                setSuccess("");
+                clearError();
+              }}
+              autoComplete="email"
+              className="h-12 rounded-xl border-slate-200 bg-slate-50 px-4 focus:bg-white focus:ring-[#10B981]"
+            />
+          </div>
 
-        <Button
-          type="submit"
-          size="lg"
-          disabled={loading}
-          className="h-12 w-full rounded-xl bg-[#10B981] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          Kirim Link Reset
-        </Button>
-      </form>
+          {message && (
+            <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+              {message}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={loading}
+            className="h-12 w-full rounded-xl bg-[#10B981] font-black shadow-[0_14px_30px_rgba(3,172,14,0.24)] hover:bg-[#059669] focus-visible:ring-[#10B981] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Kirim Kode Verifikasi
+          </Button>
+        </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Ingat password?{" "}

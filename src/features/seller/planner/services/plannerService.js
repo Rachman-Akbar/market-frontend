@@ -34,7 +34,7 @@ export const plannerKeys = {
   all: ["planner"],
   lists: () => [...plannerKeys.all, "list"],
   list: (params) => [...plannerKeys.lists(), params],
-  grid: (year, month) => [...plannerKeys.all, "grid", year, month],
+  grid: (year, month, params) => [...plannerKeys.all, "grid", year, month, params],
   detail: (id) => [...plannerKeys.all, "detail", id],
 };
 
@@ -62,10 +62,10 @@ export function useSchedules(params = {}) {
   });
 }
 
-export function useGrid(year, month) {
+export function useGrid(year, month, params = {}) {
   return useQuery({
-    queryKey: plannerKeys.grid(year, month),
-    queryFn: () => get(`${BASE}/grid`, { year, month }),
+    queryKey: plannerKeys.grid(year, month, params),
+    queryFn: () => get(`${BASE}/grid`, { year, month, ...params }),
     staleTime: 30_000,
   });
 }

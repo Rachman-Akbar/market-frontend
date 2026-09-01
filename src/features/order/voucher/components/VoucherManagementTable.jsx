@@ -12,6 +12,8 @@ export const VOUCHER_TABLE_COLUMNS = [
   { key: "image", label: "Gambar", defaultVisible: false },
   { key: "discount", label: "Diskon" },
   { key: "minSpend", label: "Min. Belanja", defaultVisible: false },
+  { key: "minItems", label: "Min. Item", defaultVisible: false },
+  { key: "terms", label: "Syarat & Ketentuan", defaultVisible: false },
   { key: "maxDiscount", label: "Maks. Diskon", defaultVisible: false },
   { key: "period", label: "Periode" },
   { key: "usage", label: "Penggunaan" },
@@ -51,6 +53,8 @@ export const VoucherManagementTable = memo(function VoucherManagementTable({
               {visible("image") ? <th className="px-4 py-3">Gambar</th> : null}
               {visible("discount") ? <th className="px-4 py-3">Diskon</th> : null}
               {visible("minSpend") ? <th className="px-4 py-3">Min. Belanja</th> : null}
+              {visible("minItems") ? <th className="px-4 py-3">Min. Item</th> : null}
+              {visible("terms") ? <th className="px-4 py-3">Syarat &amp; Ketentuan</th> : null}
               {visible("maxDiscount") ? <th className="px-4 py-3">Maks. Diskon</th> : null}
               {visible("period") ? <th className="px-4 py-3">Periode</th> : null}
               {visible("usage") ? <th className="px-4 py-3">Penggunaan</th> : null}
@@ -67,6 +71,8 @@ export const VoucherManagementTable = memo(function VoucherManagementTable({
                 {visible("image") ? <td className="px-4 py-3">{row.imageUrl || row.image ? <img src={row.imageUrl || row.image} alt={row.name} className="h-12 w-20 object-cover" loading="lazy" /> : "-"}</td> : null}
                 {visible("discount") ? <td className="px-4 py-3 font-bold text-slate-700">{discountLabel(row)}</td> : null}
                 {visible("minSpend") ? <td className="px-4 py-3 text-slate-600">{formatPrice(row.minSpend)}</td> : null}
+                {visible("minItems") ? <td className="px-4 py-3 text-slate-600">{row.minItems ? `${Number(row.minItems).toLocaleString("id-ID")} item` : "-"}</td> : null}
+                {visible("terms") ? <td className="max-w-64 truncate px-4 py-3 text-slate-600" title={row.terms || ""}>{row.terms || "-"}</td> : null}
                 {visible("maxDiscount") ? <td className="px-4 py-3 text-slate-600">{row.maxDiscount === "" || row.maxDiscount === null ? "-" : formatPrice(Number(row.maxDiscount))}</td> : null}
                 {visible("period") ? <td className="px-4 py-3 text-xs text-slate-500"><p>{formatDateTime(row.startsAt)}</p><p>{formatDateTime(row.endsAt)}</p></td> : null}
                 {visible("usage") ? <td className="px-4 py-3 text-slate-600">{row.usedCount.toLocaleString("id-ID")} / {row.usageLimit ? row.usageLimit.toLocaleString("id-ID") : "∞"}</td> : null}

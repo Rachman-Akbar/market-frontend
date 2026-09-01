@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { advancedError, useDeleteMission, useMissions, useSaveMission } from "@/features/advanced/services/advancedMarketplaceService";
+import { advancedError, useDeleteMission, useMissions, useMissionEventTypes, useSaveMission } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
@@ -28,6 +28,8 @@ export default function MissionsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const editor = useEntityEditor({ createLabel: "Data Baru Misi", getEditLabel: (row) => row.name });
   const listQuery = useMissions({ page, per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) }, admin);
+  const eventTypesQuery = useMissionEventTypes();
+  const eventTypes = eventTypesQuery.data || {};
   const saveMutation = useSaveMission();
   const deleteMutation = useDeleteMission();
   const rows = listQuery.data?.rows || [];
@@ -44,7 +46,7 @@ export default function MissionsPage() {
   const columns = useMemo(() => admin ? [
     { key: "name", label: "Nama" }, { key: "code", label: "Kode" }, { key: "event_type", label: "Event" }, { key: "target_value", label: "Target" }, { key: "voucher", label: "Hadiah", render: (row) => row.voucher?.code || "-" }, { key: "starts_at", label: "Mulai", render: (row) => formatDate(row.starts_at) }, { key: "ends_at", label: "Selesai", render: (row) => formatDate(row.ends_at) }, { key: "is_active", label: "Status", render: (row) => row.is_active ? "Aktif" : "Nonaktif" },
   ] : [
-    { key: "name", label: "Misi" }, { key: "description", label: "Deskripsi" }, { key: "progress_value", label: "Progress", render: (row) => `${row.progress_value || 0} / ${row.target_value || 0}` }, { key: "status", label: "Status" }, { key: "voucher", label: "Hadiah", render: (row) => row.voucher ? (row.voucher.code || "Terkunci") : "-" }, { key: "ends_at", label: "Berakhir", render: (row) => formatDate(row.ends_at) },
+    { key: "name", label: "Misi" }, { key: "description", label: "Deskripsi" }, { key: "progress_value", label: "Progress", render: (row) => `${row.progress_value || 0} / ${row.target_value || 0}` }, { key: "status", label: "Status" }, { key: "voucher", label: "Hadiah", render: (row) => row.voucher?.code || "-" }, { key: "ends_at", label: "Berakhir", render: (row) => formatDate(row.ends_at) },
   ], [admin]);
 
   async function submit(event) {
@@ -80,7 +82,7 @@ export default function MissionsPage() {
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nama" required><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required /></Field><Field label="Kode"><Input value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} /></Field></div>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-24 border border-slate-300 p-3 text-sm" /></Field>
-        <div className="grid gap-4 md:grid-cols-3"><Field label="Event"><select value={form.event_type} onChange={(event) => setForm((current) => ({ ...current, event_type: event.target.value }))} className="h-10 border border-slate-300 px-3">{["order_completed", "review_submitted", "login", "purchase_amount", "product_purchased"].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Target" required><Input type="number" min="1" value={form.target_value} onChange={(event) => setForm((current) => ({ ...current, target_value: event.target.value }))} required /></Field><Field label="ID Voucher"><Input type="number" min="1" value={form.voucher_id} onChange={(event) => setForm((current) => ({ ...current, voucher_id: event.target.value }))} /></Field></div>
+        <div className="grid gap-4 md:grid-cols-3"><Field label="Event"><select value={form.event_type} onChange={(event) => setForm((current) => ({ ...current, event_type: event.target.value }))} className="h-10 border border-slate-300 px-3">{Object.keys(eventTypes).length ? Object.entries(eventTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>) : ["order_completed", "review_submitted", "login", "purchase_amount", "product_purchased"].map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Target" required><Input type="number" min="1" value={form.target_value} onChange={(event) => setForm((current) => ({ ...current, target_value: event.target.value }))} required /></Field><Field label="ID Voucher"><Input type="number" min="1" value={form.voucher_id} onChange={(event) => setForm((current) => ({ ...current, voucher_id: event.target.value }))} /></Field></div>
         <div className="grid gap-4 md:grid-cols-2"><Field label="Mulai" required><Input type="datetime-local" value={form.starts_at} onChange={(event) => setForm((current) => ({ ...current, starts_at: event.target.value }))} required /></Field><Field label="Berakhir" required><Input type="datetime-local" value={form.ends_at} onChange={(event) => setForm((current) => ({ ...current, ends_at: event.target.value }))} required /></Field></div>
         <label className="flex items-center gap-2 text-sm font-bold text-slate-700"><input type="checkbox" checked={form.is_active} onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))} /> Aktif</label>
       </FormModal>

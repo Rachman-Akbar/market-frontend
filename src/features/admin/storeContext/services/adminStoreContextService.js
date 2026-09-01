@@ -69,10 +69,11 @@ export async function getStoreContextSettlements(storeId, params = {}) {
   return normalizePage(response.data);
 }
 
-export function useStoreContextStores(params = {}) {
+export function useStoreContextStores(params = {}, enabled = true) {
   return useQuery({
     queryKey: storeContextKeys.stores(params),
     queryFn: () => getStoreContextStores(params),
+    enabled,
   });
 }
 

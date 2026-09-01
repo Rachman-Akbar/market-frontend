@@ -124,17 +124,17 @@ export const SearchableSelect = memo(function SearchableSelect({
             className="flex h-7 w-7 shrink-0 items-center justify-center text-slate-400 hover:text-slate-700"
             aria-label="Hapus pilihan"
           >
-            <span className="material-symbols-outlined text-[17px]">close</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[17px]">close</span>
           </span>
         ) : null}
-        <span className="material-symbols-outlined shrink-0 text-[18px] text-slate-400">search</span>
+        <span aria-hidden="true" className="material-symbols-outlined shrink-0 text-[18px] text-slate-400">search</span>
       </button>
 
       {open ? (
         <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden border border-slate-200 bg-white">
           <div className="border-b border-slate-100 p-2">
             <div className="flex items-center gap-2 bg-slate-50 px-2">
-              <span className="material-symbols-outlined text-[17px] text-slate-400">search</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[17px] text-slate-400">search</span>
               <input
                 ref={inputRef}
                 value={query}
@@ -146,8 +146,8 @@ export const SearchableSelect = memo(function SearchableSelect({
           </div>
           <div className="max-h-64 overflow-y-auto py-1" role="listbox">
             {canCreate ? (
-              <button type="button" disabled={creating || creatingLocal} onClick={createOption} className="mb-1 flex w-full items-start gap-2 border-b border-emerald-100 bg-emerald-50 px-3 py-3 text-left text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-60">
-                <span className={`material-symbols-outlined mt-0.5 text-[18px] ${(creating || creatingLocal) ? "" : ""}`}>{(creating || creatingLocal) ? "add_circle" : "add_circle"}</span>
+              <button type="button" disabled={creating || creatingLocal} onClick={createOption} aria-label={createLabel ? createLabel(query.trim()) : undefined} className="mb-1 flex w-full items-start gap-2 border-b border-emerald-100 bg-emerald-50 px-3 py-3 text-left text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-60">
+                <span aria-hidden="true" className={`material-symbols-outlined mt-0.5 text-[18px] ${(creating || creatingLocal) ? "" : ""}`}>{(creating || creatingLocal) ? "add_circle" : "add_circle"}</span>
                 <span className="min-w-0 flex-1"><strong className="block">{createLabel ? createLabel(query.trim()) : `Data tidak ditemukan, tambahkan “${query.trim()}” sebagai data baru`}</strong><span className="mt-0.5 block text-xs font-medium text-emerald-700">Nama akan dibersihkan dan dicek ulang agar tidak membuat data ganda.</span></span>
               </button>
             ) : null}
@@ -168,7 +168,7 @@ export const SearchableSelect = memo(function SearchableSelect({
                   aria-selected={active}
                 >
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {active ? <span className="material-symbols-outlined text-[17px]">check</span> : null}
+                  {active ? <span aria-hidden="true" className="material-symbols-outlined text-[17px]">check</span> : null}
                 </button>
               );
             }) : <p className="px-3 py-5 text-center text-xs font-semibold text-slate-400">{emptyText}</p>}

@@ -276,6 +276,17 @@ export function useSaveMission() {
   return mutation(({ id, values }) => id ? put(`/api/v1/engagement/missions/${id}`, values) : post("/api/v1/engagement/missions", values), advancedKeys.missions);
 }
 
+export function useMissionEventTypes() {
+  return useQuery({
+    queryKey: ["advanced", "missions", "event-types"],
+    queryFn: async () => {
+      const response = await apiClient.get("/api/v1/engagement/missions/event-types");
+      return response.data?.data || {};
+    },
+    staleTime: 60_000,
+  });
+}
+
 export function useDeleteMission() {
   return mutation((id) => remove(`/api/v1/engagement/missions/${id}`), advancedKeys.missions);
 }

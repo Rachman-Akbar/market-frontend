@@ -36,9 +36,10 @@ function createInitialValues(product) {
       sku: "",
       price: "",
       stock: 0,
+      poStock: 0,
       thumbnail: "",
       images: [],
-      variants: [{ clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, values: [] }],
+      variants: [{ clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, poStock: 0, values: [] }],
     };
   }
 
@@ -54,6 +55,7 @@ function createInitialValues(product) {
     sku: product.sku,
     price: product.price,
     stock: product.stock,
+    poStock: product.poStock ?? 0,
     thumbnail: product.thumbnail,
     images: product.images.length
       ? product.images.map((image) => ({ ...image, clientId: image.clientId || createClientId("image") }))
@@ -67,7 +69,7 @@ function createInitialValues(product) {
             clientId: value.clientId || createClientId("attribute-value"),
           })),
         }))
-      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, values: [] }],
+      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, poStock: product.poStock ?? 0, values: [] }],
   };
 }
 
@@ -97,7 +99,7 @@ function getErrorTabs(errors) {
   if (errors.storeId || errors.name || errors.categoryId) tabs.push("general");
   if (errors.variants) tabs.push("variant");
   if (errors.images || errors.thumbnail) tabs.push("images");
-  if (errors.price || errors.stock || errors.variantStock) tabs.push("stock");
+  if (errors.price || errors.stock || errors.poStock || errors.variantStock) tabs.push("stock");
   return tabs;
 }
 
@@ -130,7 +132,6 @@ export function SellerProductEditor({
   const createMutation = useCreateMutation();
   const updateMutation = useUpdateMutation();
   const isAdmin = portal === "admin";
-  const mutation = product ? updateMutation : createMutation;
 
   useEffect(() => {
     if (open) {
@@ -176,6 +177,7 @@ export function SellerProductEditor({
     categoryId: required("Kategori"),
     price: values.mode === "simple" ? [required("Harga"), minimumNumber("Harga", 1)] : () => "",
     stock: values.mode === "simple" ? [required("Stok"), minimumNumber("Stok", 0)] : () => "",
+    poStock: values.mode === "simple" ? minimumNumber("Stok PO", 0) : () => "",
   }), [isAdmin, values.mode]);
 
   const setField = (field, value) => {
@@ -194,6 +196,7 @@ export function SellerProductEditor({
           sku: firstVariant.sku || current.sku,
           price: firstVariant.price ?? current.price,
           stock: firstVariant.stock ?? current.stock,
+          poStock: firstVariant.poStock ?? current.poStock,
         };
       }
 
@@ -206,6 +209,7 @@ export function SellerProductEditor({
                 sku: variant.sku || current.sku,
                 price: variant.price || current.price,
                 stock: variant.stock || current.stock,
+                poStock: variant.poStock ?? current.poStock,
               }
             : variant)
           : [{
@@ -215,6 +219,7 @@ export function SellerProductEditor({
               sku: current.sku,
               price: current.price,
               stock: current.stock,
+              poStock: current.poStock,
               values: [],
             }];
 
@@ -253,7 +258,7 @@ export function SellerProductEditor({
 
       if (values.variants.some((variant) => String(variant.price ?? "").trim() === "" || String(variant.stock ?? "").trim() === "")) {
         nextErrors.variantStock = "Harga dan stok setiap variant wajib diisi.";
-      } else if (values.variants.some((variant) => Number(variant.price) <= 0 || Number(variant.stock) < 0)) {
+      } else if (values.variants.some((variant) => Number(variant.price) <= 0 || Number(variant.stock) < 0 || Number(variant.poStock) < 0)) {
         nextErrors.variantStock = "Harga setiap variant harus lebih dari 0 dan stok tidak boleh kurang dari 0.";
       }
     }
@@ -460,7 +465,7 @@ export function SellerProductEditor({
           ) : null}
 
           {activeSection === "stock" ? (
-            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
+            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} poStock={values.poStock} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
           ) : null}
 
           {activeSection === "costing" ? <ProductCostingFields productId={product?.id} /> : null}

@@ -200,6 +200,22 @@ export default function VoucherDetailModal({ voucher, open, onClose, onUse }) {
                   ? formatPrice(voucher.minSpend)
                   : "Tanpa minimum belanja"}
               </p>
+              {voucher.minItems || voucher.minDistinctProducts ? (
+                <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                  {voucher.minItems ? (
+                    <li className="flex items-center gap-1.5">
+                      <span className="h-1 w-1 rounded-full bg-[#10B981]" />
+                      Minimal {Number(voucher.minItems).toLocaleString("id-ID")} item dibeli
+                    </li>
+                  ) : null}
+                  {voucher.minDistinctProducts ? (
+                    <li className="flex items-center gap-1.5">
+                      <span className="h-1 w-1 rounded-full bg-[#10B981]" />
+                      Minimal {Number(voucher.minDistinctProducts).toLocaleString("id-ID")} produk berbeda
+                    </li>
+                  ) : null}
+                </ul>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-slate-200 p-4">

@@ -3,9 +3,13 @@ import { Gift, Lock, Search, TicketPercent, Trophy, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import VoucherDetailModal from "@/features/order/voucher/components/VoucherDetailModal";
+<<<<<<< HEAD
 import MissionRequirementModal from "@/features/order/voucher/components/MissionRequirementModal";
 import { useActiveVouchers } from "@/features/order/voucher/services/voucherService";
 import { useMissions } from "@/features/advanced/services/advancedMarketplaceService";
+=======
+import { useMyVouchers } from "@/features/order/voucher/services/voucherService";
+>>>>>>> e06d1c7 (klj)
 import { formatPrice } from "@/shared/utils/utils";
 
 const FILTERS = [
@@ -14,6 +18,12 @@ const FILTERS = [
   { key: "percentage", label: "Persentase" },
   { key: "fixed", label: "Potongan Tetap" },
 ];
+
+const STATUS_META = {
+  available: { label: "Belum diklaim", classes: "bg-amber-50 text-amber-700" },
+  claimed: { label: "Diklaim", classes: "bg-[#D1FAE5] text-[#10B981]" },
+  used: { label: "Terpakai", classes: "bg-slate-100 text-slate-500" },
+};
 
 function getVoucherIcon(voucher) {
   if (voucher.discountTarget === "shipping") return Truck;
@@ -144,8 +154,12 @@ export default function VouchersPage() {
   const [filter, setFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [selectedVoucher, setSelectedVoucher] = useState(null);
+<<<<<<< HEAD
   const [lockedVoucher, setLockedVoucher] = useState(null);
   const vouchersQuery = useActiveVouchers();
+=======
+  const vouchersQuery = useMyVouchers();
+>>>>>>> e06d1c7 (klj)
   const vouchers = vouchersQuery.data || [];
   const filteredVouchers = useMemo(() => {
     const search = keyword.trim().toLowerCase();
@@ -191,7 +205,7 @@ export default function VouchersPage() {
             <span className={profileLayout.contentEyebrow}>Voucher wallet</span>
             <h2 className={profileLayout.contentTitle}>Voucher Saya</h2>
             <p className={`mt-2 ${profileLayout.contentDesc}`}>
-              Voucher aktif yang tersedia untuk checkout.
+              Voucher milik Anda. Klaim dilakukan lewat aplikasi Android dan otomatis tampil di sini.
             </p>
           </div>
         </div>
@@ -227,7 +241,6 @@ export default function VouchersPage() {
         </div>
         <hr className={profileLayout.divider} />
 
-        
         {vouchersQuery.error ? (
           <p className="py-12 text-center text-sm text-red-600">
             {vouchersQuery.error.message}
@@ -235,7 +248,12 @@ export default function VouchersPage() {
         ) : null}
         {filteredVouchers.map((voucher) => {
           const Icon = getVoucherIcon(voucher);
+<<<<<<< HEAD
           const locked = Boolean(voucher.isLocked);
+=======
+          const statusMeta = STATUS_META[voucher.userVoucherStatus] || STATUS_META.available;
+          const consumable = voucher.userVoucherStatus !== "used";
+>>>>>>> e06d1c7 (klj)
           return (
             <div
               key={voucher.id}
@@ -248,9 +266,13 @@ export default function VouchersPage() {
                   openVoucher(voucher);
                 }
               }}
+<<<<<<< HEAD
               className={`grid min-h-[128px] w-full cursor-pointer gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center ${
                 locked ? "opacity-70" : ""
               }`}
+=======
+              className={`grid min-h-[128px] w-full gap-4 py-6 text-left md:grid-cols-[120px_minmax(0,1fr)_auto] md:items-center ${consumable ? "cursor-pointer" : "cursor-default"}`}
+>>>>>>> e06d1c7 (klj)
             >
               <div className="relative h-24 w-full overflow-hidden rounded-xl text-[#10B981] ring-1 ring-[#e5e7eb] md:h-[104px]">
                 {voucher.imageUrl ? (
@@ -280,6 +302,7 @@ export default function VouchersPage() {
                   <h3 className="text-base font-semibold text-slate-950">
                     {voucher.name}
                   </h3>
+<<<<<<< HEAD
                   {locked ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
                       <Lock size={11} /> Terkunci
@@ -289,6 +312,11 @@ export default function VouchersPage() {
                       Aktif
                     </span>
                   )}
+=======
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusMeta.classes}`}>
+                    {statusMeta.label}
+                  </span>
+>>>>>>> e06d1c7 (klj)
                 </div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Kode: {voucher.code}
@@ -298,12 +326,12 @@ export default function VouchersPage() {
                   {formatPrice(voucher.minSpend)}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
-                  Berlaku sampai{" "}
-                  {voucher.endsAt
-                    ? new Date(voucher.endsAt).toLocaleDateString("id-ID")
-                    : "tanpa batas"}
+                  {voucher.userVoucherStatus === "used"
+                    ? "Terpakai pada " + (voucher.usedAt ? new Date(voucher.usedAt).toLocaleDateString("id-ID") : "-")
+                    : `Berlaku sampai ${voucher.endsAt ? new Date(voucher.endsAt).toLocaleDateString("id-ID") : "tanpa batas"}`}
                 </p>
               </div>
+<<<<<<< HEAD
               {locked ? (
                 <button
                   type="button"
@@ -316,6 +344,9 @@ export default function VouchersPage() {
                   <Lock size={14} /> Buka Misi
                 </button>
               ) : (
+=======
+              {consumable ? (
+>>>>>>> e06d1c7 (klj)
                 <button
                   type="button"
                   onClick={(event) => {
@@ -326,6 +357,11 @@ export default function VouchersPage() {
                 >
                   Pakai
                 </button>
+<<<<<<< HEAD
+=======
+              ) : (
+                <span className="hidden text-sm font-semibold text-slate-400 md:block">Voucher terpakai</span>
+>>>>>>> e06d1c7 (klj)
               )}
               <hr className="border-[#e5e7eb] md:col-span-3" />
             </div>
@@ -341,7 +377,7 @@ export default function VouchersPage() {
               Voucher tidak ditemukan
             </h3>
             <p className="mt-2 text-sm text-slate-500">
-              Belum ada voucher aktif yang sesuai filter.
+              Anda belum memiliki voucher. Klaim voucher lewat aplikasi Android setelah menyelesaikan misi.
             </p>
           </div>
         ) : null}

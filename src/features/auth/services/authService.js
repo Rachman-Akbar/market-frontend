@@ -5,6 +5,7 @@ import {
   WINDOW_SESSION_KEY,
   WINDOW_TOKEN_KEY,
 } from "@/core/utils/apiClient";
+import { emailVerificationEngine } from "@/core/engine/engine";
 import {
   browserSessionPersistence,
   setPersistence,
@@ -222,6 +223,18 @@ export function normalizeAuthPayload(payload = {}, fallbackSession = null) {
     fallbackUser?.firebase_uid,
     fallbackUser?.firebaseUid
   );
+  const hasPassword =
+    userSource?.has_password !== undefined
+      ? Boolean(userSource.has_password)
+      : source?.has_password !== undefined
+        ? Boolean(source.has_password)
+        : Boolean(fallbackUser?.has_password);
+  const isEmailVerified =
+    userSource?.is_email_verified !== undefined
+      ? Boolean(userSource.is_email_verified)
+      : source?.is_email_verified !== undefined
+        ? Boolean(source.is_email_verified)
+        : Boolean(fallbackUser?.is_email_verified);
 
   return {
     ...(fallbackSession || {}),
@@ -237,6 +250,8 @@ export function normalizeAuthPayload(payload = {}, fallbackSession = null) {
       avatar: avatar || getInitial(name),
       role: activeRole,
       roles,
+      has_password: hasPassword,
+      is_email_verified: isEmailVerified,
     },
     roles,
     activeRole,
@@ -493,6 +508,35 @@ export async function requestPasswordReset(email) {
   return true;
 }
 
+export async function requestPasswordResetCode(email) {
+  await emailVerificationEngine.sendPasswordResetCode(email);
+  return true;
+}
+
+export async function resetPasswordWithCode({
+  email,
+  code,
+  password,
+  password_confirmation,
+}) {
+  if (!email || !code || !password) {
+    throw new Error("Data tidak lengkap.");
+  }
+
+  if (password !== password_confirmation) {
+    throw new Error("Konfirmasi password tidak cocok.");
+  }
+
+  await emailVerificationEngine.resetPasswordWithCode({
+    email,
+    code,
+    password,
+    password_confirmation,
+  });
+
+  return true;
+}
+
 export async function resetPassword({ email, token, password, password_confirmation }) {
   if (!email || !token || !password) {
     throw new Error("Data tidak lengkap.");
@@ -512,7 +556,12 @@ export async function resetPassword({ email, token, password, password_confirmat
   return response.data;
 }
 
-export async function changePassword({ current_password, new_password, new_password_confirmation }) {
+export async function changePassword({
+  current_password,
+  new_password,
+  new_password_confirmation,
+  verification_code,
+}) {
   if (!current_password || !new_password) {
     throw new Error("Semua field wajib diisi.");
   }
@@ -525,6 +574,7 @@ export async function changePassword({ current_password, new_password, new_passw
     current_password,
     new_password,
     new_password_confirmation,
+    verification_code,
   });
 
   return response.data;

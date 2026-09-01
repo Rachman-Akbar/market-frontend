@@ -1,16 +1,51 @@
-# React + Vite
+# market-frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 18 SPA untuk buyer, seller, dan admin panel. Vite 7, Tailwind CSS 4, TanStack React Query.
 
-Currently, two official plugins are available:
+## Portal
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Aplikasi punya 3 portal dengan layout terpisah:
 
-## React Compiler
+- **Buyer** — `/` sampai `/checkout`
+- **Seller** — `/seller/*`
+- **Admin** — `/admin/*`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Setup
 
-## Expanding the ESLint configuration
+```bash
+npm install
+cp .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Set `VITE_API_BASE_URL` ke backend API (default `http://localhost:8000`).
+
+## Menjalankan
+
+```bash
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+Output ke `dist/`. Deploy hasil build ke web server statis atau Nginx.
+
+## Test
+
+```bash
+npm run test
+```
+
+Jalankan Vitest di jsdom. Test ada di `src/` berdekatan dengan file yang diuji (`*.test.js` / `*.test.jsx`).
+
+## Lint
+
+```bash
+npm run lint       # cek
+npm run lint:fix   # auto-fix
+```
+
+Konfigurasi ada di `eslint.config.js`. Parser: Babel (JSX via `@babel/plugin-syntax-jsx`).

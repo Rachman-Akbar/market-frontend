@@ -20,6 +20,9 @@ function initialValues(entity) {
     discountType: entity?.discountType || "fixed",
     discountValue: entity?.discountValue || 0,
     minSpend: entity?.minSpend || 0,
+    minItems: entity?.minItems ?? "",
+    minDistinctProducts: entity?.minDistinctProducts ?? "",
+    terms: entity?.terms || "",
     maxDiscount: entity?.maxDiscount ?? "",
     startsAt: toDateTimeLocal(entity?.startsAt) || toDateTimeLocal(new Date()),
     endsAt: toDateTimeLocal(entity?.endsAt) || toDateTimeLocal(new Date(Date.now() + 7 * 86400000)),
@@ -127,6 +130,15 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
           </FormField>
           <FormField label="Minimum belanja">
             <input type="number" min="0" value={values.minSpend} onChange={(event) => setField("minSpend", event.target.value)} className={inputClassName} />
+          </FormField>
+          <FormField label="Jumlah item minimal" hint="Total kuantitas item yang harus dibeli (kosongkan jika tanpa syarat).">
+            <input type="number" min="0" value={values.minItems} onChange={(event) => setField("minItems", event.target.value)} className={inputClassName} />
+          </FormField>
+          <FormField label="Item produk berbeda" hint="Minimal jumlah produk berbeda dalam transaksi (mis. 2 = wajib 2 barang berbeda).">
+            <input type="number" min="0" value={values.minDistinctProducts} onChange={(event) => setField("minDistinctProducts", event.target.value)} className={inputClassName} />
+          </FormField>
+          <FormField label="Syarat & ketentuan" hint="Ketentuan tambahan yang ditampilkan ke pembeli.">
+            <textarea value={values.terms} onChange={(event) => setField("terms", event.target.value)} rows={2} className={inputClassName} />
           </FormField>
           <FormField label="Maksimum diskon" hint="Kosongkan jika tidak dibatasi.">
             <input type="number" min="0" value={values.maxDiscount} onChange={(event) => setField("maxDiscount", event.target.value)} className={inputClassName} />

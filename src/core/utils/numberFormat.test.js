@@ -60,7 +60,7 @@ describe("numberFormat", () => {
     });
 
     it("returns a dash for invalid date strings", () => {
-      expect(formatDate("not-a-date")).toBe("Invalid Date");
+      expect(formatDate("not-a-date")).toBe("-");
     });
   });
 

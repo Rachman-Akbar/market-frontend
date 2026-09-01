@@ -9,7 +9,7 @@ const excludedKeys = new Set([
 ]);
 
 export function humanizeColumnKey(value = "") {
-  return String(value)
+  return String(value ?? "")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
     .trim()
@@ -42,6 +42,10 @@ export function buildRawColumns(rows = [], omittedKeys = []) {
 }
 
 export function mergeColumns(baseColumns = [], rawColumns = []) {
-  const baseRawKeys = new Set(baseColumns.flatMap((column) => [column.key, column.rawKey]).filter(Boolean));
-  return [...baseColumns, ...rawColumns.filter((column) => !baseRawKeys.has(column.rawKey))];
+  const normalizedBase = baseColumns.map((column) => ({
+    ...column,
+    rawKey: column.rawKey ?? String(column.key ?? "").replace(/^raw:/, ""),
+  }));
+  const baseRawKeys = new Set(normalizedBase.flatMap((column) => [column.rawKey]).filter(Boolean));
+  return [...normalizedBase, ...rawColumns.filter((column) => !baseRawKeys.has(column.rawKey))];
 }

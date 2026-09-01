@@ -24,7 +24,7 @@ describe("SearchableSelect", () => {
 
     expect(screen.getByRole("option", { name: "Apple" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Banana" })).not.toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Avocado" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Avocado" })).not.toBeInTheDocument();
   });
 
   it("selects an option and calls onChange with its value", async () => {
