@@ -54,12 +54,12 @@ export function formatRupiah(value) {
   }).format(Number(value || 0));
 }
 
-function DefaultInvoice({ tx = {}, productName = "", customerId = "", total = 0, providerPrice = 0, adminFee = 0 }) {
+function DefaultReceipt({ tx = {}, productName = "", customerId = "", total = 0, providerPrice = 0, adminFee = 0 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200">
-      <div className="flex items-center justify-between gap-2 bg-orange-600 px-5 py-4 text-white">
+      <div className="flex items-center justify-between gap-2 bg-emerald-600 px-5 py-4 text-white">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-orange-100">Invoice</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-100">Berhasil — Bukti Pembayaran</p>
           <p className="text-sm font-bold">#{tx.referenceId || "-"}</p>
         </div>
         <span className="material-symbols-outlined text-3xl">receipt_long</span>
@@ -217,7 +217,7 @@ export const PpobCheckoutModal = memo(function PpobCheckoutModal({
   const stepIndex = PAYMENT_FLOW.indexOf(step);
   const totalAmount = inquiryData?.total_amount ?? product.sellingPrice;
 
-  const renderInvoice = step === "payment" && paymentResult === "success";
+  const renderReceipt = step === "payment" && paymentResult === "success";
   const showSpinner = step === "payment" && !paymentResult && !failure && !isTerminal;
 
   const label = customerLabel || (product.category === "tagihan" ? "Nomor Pelanggan" : "Nomor HP / ID Pelanggan");
@@ -324,9 +324,9 @@ export const PpobCheckoutModal = memo(function PpobCheckoutModal({
 
         {step === "payment" && created && (
           <div className="mt-4 space-y-4">
-            {renderInvoice ? (
+            {renderReceipt ? (
               <>
-                <DefaultInvoice
+                <DefaultReceipt
                   tx={ledger}
                   productName={product.name}
                   customerId={customerId}
@@ -338,9 +338,9 @@ export const PpobCheckoutModal = memo(function PpobCheckoutModal({
                   {SUCCESS_MESSAGES.success}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <Link to={`/ppob/invoice/${encodeURIComponent(created.referenceId || "")}`}>
+                  <Link to={`/ppob/receipt/${encodeURIComponent(created.referenceId || "")}`}>
                     <Button variant="outline" size="sm">
-                      <span className="material-symbols-outlined text-base">receipt_long</span> Lihat Invoice
+                      <span className="material-symbols-outlined text-base">receipt_long</span> Lihat Bukti Pembayaran
                     </Button>
                   </Link>
                   <Button onClick={onClose}>Selesai</Button>
@@ -365,7 +365,7 @@ export const PpobCheckoutModal = memo(function PpobCheckoutModal({
                   </div>
                 )}
 
-                {paymentResult && !renderInvoice && (
+                {paymentResult && !renderReceipt && (
                   <div
                     className={`rounded-xl px-4 py-3 text-sm font-semibold ${
                       paymentResult === "success"

@@ -8,8 +8,8 @@ export const ppobKeys = {
   products: (category, operatorId) => ["ppob", "products", category, operatorId],
   transactions: (params = {}) => ["ppob", "transactions", params],
   transaction: (id) => ["ppob", "transactions", id],
-  invoices: (params = {}) => ["ppob", "invoices", params],
-  invoice: (ref) => ["ppob", "invoices", ref],
+  invoices: (params = {}) => ["ppob", "receipts", params],
+  invoice: (ref) => ["ppob", "receipts", ref],
   adminDashboard: ["ppob", "admin", "dashboard"],
   adminFinance: (params = {}) => ["ppob", "admin", "finance", params],
   adminBalance: ["ppob", "admin", "balance"],
@@ -181,14 +181,14 @@ export function useCheckPpobTransactionStatus() {
   return useMutation({ mutationFn: (id) => checkPpobTransactionStatus(id) });
 }
 
-// ── Invoices (buyer) ─────────────────────────────────────────────────────
+// ── Receipts (bukti pembayaran, buyer) ──────────────────────────────────
 
-export function normalizePpobInvoice(row = {}) {
+export function normalizePpobReceipt(row = {}) {
   return {
     id: Number(row.id || 0),
-    invoiceNumber: row.invoice_number || "",
+    receiptNumber: row.receipt_number || "",
     transactionReference: row.transaction_reference || "",
-    invoiceType: row.invoice_type || "digital",
+    receiptType: row.receipt_type || "digital",
     productName: row.product_name || "",
     category: row.category || "",
     customerId: row.customer_id || "",
@@ -206,27 +206,27 @@ export function normalizePpobInvoice(row = {}) {
   };
 }
 
-export async function getPpobInvoices(params = {}) {
-  const response = await apiClient.get("/api/v1/ppob/invoices", { params });
-  return normalizePage(response.data, normalizePpobInvoice);
+export async function getPpobReceipts(params = {}) {
+  const response = await apiClient.get("/api/v1/ppob/receipts", { params });
+  return normalizePage(response.data, normalizePpobReceipt);
 }
 
-export async function getPpobInvoice(ref) {
-  const response = await apiClient.get(`/api/v1/ppob/invoices/${encodeURIComponent(ref)}`);
-  return normalizePpobInvoice(response.data?.data || response.data);
+export async function getPpobReceipt(ref) {
+  const response = await apiClient.get(`/api/v1/ppob/receipts/${encodeURIComponent(ref)}`);
+  return normalizePpobReceipt(response.data?.data || response.data);
 }
 
-export function usePpobInvoices(params = {}) {
+export function usePpobReceipts(params = {}) {
   return useQuery({
     queryKey: ppobKeys.invoices(params),
-    queryFn: () => getPpobInvoices(params),
+    queryFn: () => getPpobReceipts(params),
   });
 }
 
-export function usePpobInvoice(ref, options = {}) {
+export function usePpobReceipt(ref, options = {}) {
   return useQuery({
     queryKey: ppobKeys.invoice(ref),
-    queryFn: () => getPpobInvoice(ref),
+    queryFn: () => getPpobReceipt(ref),
     enabled: Boolean(ref),
     ...options,
   });
@@ -436,4 +436,18 @@ export function useDeletePpobAdminPricingRule() {
 
 export function getPpobAdminError(error, fallback = "Data PPOB gagal diproses.") {
   return getApiMessage(error, fallback);
+}
+
+// ── Unified transaction history (PPOB + Marketplace) ───────────────────
+
+export async function getTransactionHistory(params = {}) {
+  const response = await apiClient.get("/api/v1/ppob/receipts/history", { params });
+  return normalizePage(response.data);
+}
+
+export function useTransactionHistory(params = {}) {
+  return useQuery({
+    queryKey: ["ppob", "history", params],
+    queryFn: () => getTransactionHistory(params),
+  });
 }

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Heart,
   MessageSquareText,
   PackageCheck,
+  Phone,
   ShieldCheck,
   ShoppingCart,
   Star,
@@ -26,26 +26,47 @@ import {
   useOrders,
 } from "@/features/order/ordering/orderService";
 import { advancedError, useReviews } from "@/features/advanced/services/advancedMarketplaceService";
+import { useTransactionHistory, usePpobReceipt } from "@/features/ppob/services/ppobService";
 import OrderReviewModal from "@/features/order/review/components/OrderReviewModal";
 import { CartItemRow } from "@/features/order/cart/components/CartItemRow";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
 import { Skeleton, SkeletonLine } from "@/shared/components/feedback/Skeleton";
+import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
 import { formatPrice } from "@/shared/utils/utils";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import {
+  PPOB_STATUS_STYLES,
+  PPOB_PAYMENT_STATUS_LABELS,
+  PPOB_PAYMENT_STATUS_STYLES,
+} from "@/features/ppob/components/PpobCheckoutModal";
 
 const tabs = [
-  { key: "wishlist", label: "Wishlist" },
-  { key: "cart", label: "Cart" },
-  { key: "order", label: "Order" },
-  { key: "review", label: "Review" },
+  { key: "wishlist", label: "Wishlist", icon: Heart },
+  { key: "cart", label: "Cart", icon: ShoppingCart },
+  { key: "order", label: "Riwayat", icon: PackageCheck },
+  { key: "review", label: "Review", icon: Star },
 ];
 
-const sortOptions = [
-  { value: "latest", label: "Terbaru" },
-  { value: "priceHigh", label: "Harga Tertinggi" },
-  { value: "priceLow", label: "Harga Terendah" },
-  { value: "popular", label: "Terpopuler" },
+const ORDER_STATUS_OPTIONS = [
+  { value: "pending", label: "Menunggu" },
+  { value: "processing", label: "Diproses" },
+  { value: "shipped", label: "Dikirim" },
+  { value: "completed", label: "Selesai" },
+  { value: "cancelled", label: "Dibatalkan" },
+];
+
+const REVIEW_RATING_OPTIONS = [
+  { value: "5", label: "5 Bintang" },
+  { value: "4", label: "4 Bintang" },
+  { value: "3", label: "3 Bintang" },
+  { value: "2", label: "2 Bintang" },
+  { value: "1", label: "1 Bintang" },
+];
+
+const ORDER_TYPE_OPTIONS = [
+  { value: "order", label: "Pesanan" },
+  { value: "digital", label: "Digital (PPOB)" },
 ];
 
 function getItemKey(item) {
@@ -58,85 +79,42 @@ function getItemAmount(item) {
 
 function sortByOption(list, sortBy) {
   const rows = [...list];
-
-  if (sortBy === "priceHigh") {
-    return rows.sort(
-      (a, b) => (b.price || b.total || 0) - (a.price || a.total || 0),
-    );
-  }
-
-  if (sortBy === "priceLow") {
-    return rows.sort(
-      (a, b) => (a.price || a.total || 0) - (b.price || b.total || 0),
-    );
-  }
-
+  if (sortBy === "priceHigh") return rows.sort((a, b) => (b.price || b.total || 0) - (a.price || a.total || 0));
+  if (sortBy === "priceLow") return rows.sort((a, b) => (a.price || a.total || 0) - (b.price || b.total || 0));
   return rows;
-}
-
-function SectionHeader({ title, description }) {
-  return (
-    <div className="mb-4">
-      <h2 className="text-2xl font-semibold leading-8 text-[#181c1f]">
-        {title}
-      </h2>
-      <p className="mt-1 text-sm leading-5 text-[#5f5e5e]">{description}</p>
-    </div>
-  );
 }
 
 function EmptyState({ icon: Icon, title, description }) {
   return (
-    <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-[#e0e3e7] bg-white px-6 text-center shadow-sm">
-      <Icon size={56} className="mb-4 text-[#bccabc]" />
-      <h3 className="text-lg font-bold text-[#181c1f]">{title}</h3>
-      <p className="mt-2 max-w-md text-sm leading-6 text-[#5f5e5e]">
-        {description}
-      </p>
-    </div>
-  );
-}
-
-function SortDropdown({ value, onChange }) {
-  return (
-    <div className="relative w-full sm:w-auto">
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full appearance-none rounded-lg border border-[#bccabc] bg-white px-4 pr-10 text-sm text-[#181c1f] shadow-sm outline-none transition focus:border-[#047857] focus:ring-1 focus:ring-[#10B981] sm:w-[190px]"
-      >
-        {sortOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            Sort By: {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={18}
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#5f5e5e]"
-      />
+    <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+        <Icon size={28} className="text-slate-300" />
+      </div>
+      <h3 className="text-base font-bold text-slate-800">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-sm text-slate-400">{description}</p>
     </div>
   );
 }
 
 function TabNavigation({ activeTab, onChange }) {
   return (
-    <nav className="mb-6 flex items-center gap-10 overflow-x-auto border-b border-transparent pb-1">
+    <nav className="mb-6 flex gap-1 rounded-2xl bg-slate-100/80 p-1">
       {tabs.map((tab) => {
         const active = activeTab === tab.key;
-
+        const Icon = tab.icon;
         return (
           <button
             key={tab.key}
             type="button"
             onClick={() => onChange(tab.key)}
-            className={`whitespace-nowrap py-2 text-base transition-all duration-300 ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${
               active
-                ? "border-b-2 border-[#10B981] font-bold text-[#047857]"
-                : "border-b-2 border-transparent text-[#5f5e5e] hover:text-[#047857]"
+                ? "bg-white text-[#047857] shadow-sm"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
-            {tab.label}
+            <Icon size={16} />
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         );
       })}
@@ -155,29 +133,24 @@ function StoreGroup({
   onRemove,
   syncingVariantIds,
 }) {
-  const allChecked = items.every((item) =>
-    selectedKeys.includes(getItemKey(item)),
-  );
+  const allChecked = items.every((item) => selectedKeys.includes(getItemKey(item)));
 
   return (
-    <div className="rounded-xl border border-[#e0e3e7] bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2 border-b border-[#ebeef2] pb-3">
+    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
         <input
           type="checkbox"
           checked={allChecked}
           onChange={() => onToggleStore(items)}
-          className="h-5 w-5 rounded border-[#6d7b6e] text-[#047857] focus:ring-[#10B981]"
+          className="h-4 w-4 rounded border-slate-300 text-[#047857] focus:ring-[#10B981]"
         />
-        <Store size={20} className="text-[#10B981]" />
-        <span className="text-base font-bold text-[#181c1f]">{storeName}</span>
+        <Store size={16} className="text-[#10B981]" />
+        <span className="text-sm font-bold text-slate-800">{storeName}</span>
         {storeName.toLowerCase().includes("official") ? (
-          <span className="rounded bg-[#A7F3D0] px-2 py-0.5 text-[10px] font-bold text-[#065F46]">
-            PRO
-          </span>
+          <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-[#047857]">PRO</span>
         ) : null}
       </div>
-
-      <div className="divide-y divide-[#ebeef2]">
+      <div className="divide-y divide-slate-50">
         {items.map((item) => (
           <CartItemRow
             key={getItemKey(item)}
@@ -195,81 +168,44 @@ function StoreGroup({
   );
 }
 
-function CartSummary({
-  selectedItems,
-  onCheckout,
-  voucherCode,
-  onVoucherCodeChange,
-}) {
-  const itemCount = selectedItems.reduce(
-    (sum, item) => sum + (item.quantity || 1),
-    0,
-  );
-  const subtotal = selectedItems.reduce(
-    (sum, item) => sum + getItemAmount(item),
-    0,
-  );
-  const shipping = 0;
-  const discount = 0;
-  const total = subtotal + shipping - discount;
+function CartSummary({ selectedItems, onCheckout, voucherCode, onVoucherCodeChange }) {
+  const itemCount = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const subtotal = selectedItems.reduce((sum, item) => sum + getItemAmount(item), 0);
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
-      <div className="rounded-xl border border-[#e0e3e7] bg-white p-4 shadow-sm">
-        <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-[#181c1f]">
-          <Ticket size={20} className="text-[#10B981]" />
-          Pakai Promo/Voucher
+      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+        <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+          <Ticket size={16} className="text-[#10B981]" />
+          Promo / Voucher
         </h4>
-        <VoucherSearchSelect
-          value={voucherCode}
-          onChange={onVoucherCodeChange}
-          label="Cari voucher"
-        />
+        <VoucherSearchSelect value={voucherCode} onChange={onVoucherCodeChange} label="Cari voucher" />
       </div>
-
-      <div className="rounded-xl border border-[#e0e3e7] bg-white p-4 shadow-sm">
-        <h4 className="mb-5 text-base font-bold text-[#181c1f]">
-          Ringkasan Belanja
-        </h4>
-        <div className="space-y-3 text-sm text-[#5f5e5e]">
-          <div className="flex justify-between gap-4">
-            <span>Subtotal ({itemCount} barang)</span>
-            <span>{formatPrice(subtotal)}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span>Ongkos Kirim</span>
-            <span>{formatPrice(shipping)}</span>
-          </div>
-          <div className="flex justify-between gap-4 text-[#047857]">
-            <span>Diskon Voucher</span>
-            <span>-{formatPrice(discount)}</span>
-          </div>
+      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+        <h4 className="mb-4 text-sm font-bold text-slate-800">Ringkasan</h4>
+        <div className="space-y-2 text-sm text-slate-500">
+          <div className="flex justify-between"><span>{itemCount} barang</span><span>{formatPrice(subtotal)}</span></div>
+          <div className="flex justify-between"><span>Ongkir</span><span>{formatPrice(0)}</span></div>
+          <div className="flex justify-between text-[#047857]"><span>Diskon</span><span>-{formatPrice(0)}</span></div>
         </div>
-        <hr className="my-5 border-[#e0e3e7]" />
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <span className="text-lg font-bold text-[#181c1f]">
-            Total Pembayaran
-          </span>
-          <span className="text-2xl font-semibold text-[#047857]">
-            {formatPrice(total)}
-          </span>
+        <hr className="my-4 border-slate-100" />
+        <div className="mb-5 flex items-center justify-between">
+          <span className="text-sm font-bold text-slate-800">Total</span>
+          <span className="text-lg font-bold text-[#047857]">{formatPrice(subtotal)}</span>
         </div>
         <button
           type="button"
           disabled={!selectedItems.length}
           onClick={onCheckout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 text-lg font-bold text-white shadow-lg transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] py-3 text-sm font-bold text-white transition hover:bg-[#059669] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Lanjut ke Pembayaran
-          <ArrowRight size={20} />
+          Lanjut ke Pembayaran <ArrowRight size={16} />
         </button>
       </div>
-
-      <div className="px-2 text-center text-[10px] leading-5 text-[#474746]">
-        <ShieldCheck size={13} className="mr-1 inline align-[-2px]" />
-        Transaksi Anda aman dan terlindungi. Ziip menjamin keamanan data dan
-        pembayaran Anda.
-      </div>
+      <p className="px-1 text-center text-[10px] text-slate-400">
+        <ShieldCheck size={11} className="mr-0.5 inline align-[-1px]" />
+        Transaksi aman dan terlindungi.
+      </p>
     </aside>
   );
 }
@@ -289,9 +225,7 @@ function CartTab({
   voucherCode,
   onVoucherCodeChange,
 }) {
-  const selectedItems = items.filter((item) =>
-    selectedKeys.includes(getItemKey(item)),
-  );
+  const selectedItems = items.filter((item) => selectedKeys.includes(getItemKey(item)));
   const storeGroups = useMemo(() => {
     return items.reduce((acc, item) => {
       const key = item.storeName || "Ziip Store";
@@ -305,36 +239,28 @@ function CartTab({
       <EmptyState
         icon={ShoppingCart}
         title="Cart kosong"
-        description="Tambahkan produk pilihanmu agar bisa diproses ke pembayaran dari halaman ini."
+        description="Tambahkan produk agar bisa diproses ke pembayaran."
       />
     );
   }
 
   return (
     <div className="grid grid-cols-12 items-start gap-6">
-      <div className="col-span-12 space-y-4 lg:col-span-8">
-        <div className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-4">
+      <div className="col-span-12 space-y-3 lg:col-span-8">
+        <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+          <div className="flex items-center gap-3">
             <input
               type="checkbox"
               checked={selectedKeys.length === items.length}
               onChange={onToggleAll}
-              className="h-5 w-5 rounded border-[#6d7b6e] text-[#047857] focus:ring-[#10B981]"
+              className="h-4 w-4 rounded border-slate-300 text-[#047857] focus:ring-[#10B981]"
             />
-            <span className="text-base font-semibold text-[#181c1f]">
-              Pilih Semua ({items.length} Barang)
-            </span>
+            <span className="text-sm font-semibold text-slate-700">Pilih Semua ({items.length})</span>
           </div>
-          <button
-            type="button"
-            onClick={onClear}
-            className="flex items-center gap-2 text-sm font-semibold text-[#ba1a1a] transition hover:underline"
-          >
-            <Trash2 size={16} />
-            Hapus
+          <button type="button" onClick={onClear} className="flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-600">
+            <Trash2 size={14} /> Hapus
           </button>
         </div>
-
         {Object.entries(storeGroups).map(([storeName, storeItems]) => (
           <StoreGroup
             key={storeName}
@@ -350,7 +276,6 @@ function CartTab({
           />
         ))}
       </div>
-
       <div className="col-span-12 lg:col-span-4">
         <CartSummary
           selectedItems={selectedItems}
@@ -363,94 +288,38 @@ function CartTab({
   );
 }
 
-function WishlistTab({
-  items,
-  onAddToCart,
-  onRemoveFromWishlist,
-}) {
+function WishlistTab({ items, onAddToCart, onRemoveFromWishlist }) {
   if (!items.length) {
     return (
       <EmptyState
         icon={Heart}
         title="Wishlist kosong"
-        description="Simpan produk favoritmu agar lebih mudah ditemukan saat ingin checkout."
+        description="Simpan produk favoritmu agar lebih mudah ditemukan."
       />
     );
   }
 
   return (
-    <div className="grid grid-cols-12 gap-6">
-      <div className="col-span-12 lg:col-span-9">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {items.map((item) => (
-            <ProductCard
-              key={`${item.productId}-${item.variantId || "default"}`}
-              id={item.productId}
-              productId={item.productId}
-              variantId={item.variantId}
-              slug={
-                item.slug ||
-                String(item.productId)
-              }
-              image={item.imageUrl}
-              title={item.productName}
-              price={item.price}
-              stock={item.stock}
-              location={
-                item.location ||
-                item.storeName
-              }
-              wishlistBtn
-              showAddToCart
-              addToCartLabel="Masukkan Cart"
-              onAddToCart={() =>
-                onAddToCart(item)
-              }
-              onWishlistToggle={() =>
-                onRemoveFromWishlist(item)
-              }
-            />
-          ))}
-        </div>
-      </div>
-
-      <aside className="col-span-12 lg:col-span-3">
-        <div className="rounded-xl border border-[#e0e3e7] bg-white p-4 shadow-sm lg:sticky lg:top-24">
-          <h4 className="text-base font-bold text-[#181c1f]">
-            Ringkasan Wishlist
-          </h4>
-
-          <hr className="my-4 border-[#e0e3e7]" />
-
-          <div className="space-y-3 text-sm text-[#5f5e5e]">
-            <div className="flex justify-between gap-4">
-              <span>Total produk</span>
-              <span>{items.length} item</span>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span>Estimasi nilai</span>
-              <span className="text-right font-semibold text-[#047857]">
-                {formatPrice(
-                  items.reduce(
-                    (sum, item) =>
-                      sum +
-                      Number(item.price || 0),
-                    0,
-                  ),
-                )}
-              </span>
-            </div>
-          </div>
-
-          <hr className="my-4 border-[#e0e3e7]" />
-
-          <p className="text-xs leading-5 text-[#5f5e5e]">
-            Produk dapat dimasukkan langsung ke
-            cart tanpa membuka halaman detail.
-          </p>
-        </div>
-      </aside>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {items.map((item) => (
+        <ProductCard
+          key={`${item.productId}-${item.variantId || "default"}`}
+          id={item.productId}
+          productId={item.productId}
+          variantId={item.variantId}
+          slug={item.slug || String(item.productId)}
+          image={item.imageUrl}
+          title={item.productName}
+          price={item.price}
+          stock={item.stock}
+          location={item.location || item.storeName}
+          wishlistBtn
+          showAddToCart
+          addToCartLabel="Masukkan Cart"
+          onAddToCart={() => onAddToCart(item)}
+          onWishlistToggle={() => onRemoveFromWishlist(item)}
+        />
+      ))}
     </div>
   );
 }
@@ -465,83 +334,41 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
 
   if (orderQuery.isLoading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6" aria-busy="true">
-        <div className="flex items-center gap-3 mb-5">
-          <Skeleton className="h-9 w-9 rounded-lg" />
-          <Skeleton className="h-5 w-48" />
-        </div>
-        <div className="space-y-3">
-          <SkeletonLine className="h-5 w-full" />
-          <SkeletonLine className="h-5 w-3/4" />
-          <SkeletonLine className="h-5 w-1/2" />
-        </div>
-        <div className="mt-6 space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
+      <div className="rounded-2xl border border-slate-100 bg-white p-6" aria-busy="true">
+        <div className="flex items-center gap-3 mb-5"><Skeleton className="h-9 w-9 rounded-xl" /><Skeleton className="h-5 w-48" /></div>
+        <div className="space-y-3"><SkeletonLine className="h-4 w-full" /><SkeletonLine className="h-4 w-3/4" /></div>
       </div>
     );
   }
 
   if (orderQuery.error || !order) {
     return (
-      <div className="rounded-xl border border-red-200 bg-white px-6 py-16 text-center">
-        <p className="text-sm font-semibold text-red-600">
-          Detail pesanan tidak ditemukan.
-        </p>
-        <button
-          type="button"
-          onClick={onBack}
-          className="mt-4 text-sm font-bold text-[#047857]"
-        >
-          Kembali ke daftar order
-        </button>
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
+        <p className="text-sm font-semibold text-slate-500">Detail pesanan tidak ditemukan.</p>
+        <button type="button" onClick={onBack} className="mt-3 text-sm font-bold text-[#047857]">Kembali</button>
       </div>
     );
   }
 
-  const success =
-    ["paid", "settlement", "success"].includes(
-      String(order.paymentStatus).toLowerCase(),
-    ) ||
-    ["processing", "shipped", "completed", "delivered"].includes(
-      String(order.status).toLowerCase(),
-    );
-  const failed =
-    ["cancelled", "failed", "expired"].includes(
-      String(order.status).toLowerCase(),
-    ) || String(order.paymentStatus).toLowerCase() === "failed";
+  const success = ["paid", "settlement", "success"].includes(String(order.paymentStatus).toLowerCase()) || ["processing", "shipped", "completed", "delivered"].includes(String(order.status).toLowerCase());
+  const failed = ["cancelled", "failed", "expired"].includes(String(order.status).toLowerCase()) || String(order.paymentStatus).toLowerCase() === "failed";
   const StatusIcon = failed ? XCircle : success ? CheckCircle2 : Clock3;
-  const statusClass = failed
-    ? "border-red-200 text-red-600"
-    : success
-      ? "border-emerald-200 text-[#047857]"
-      : "border-amber-200 text-amber-700";
-  const title = failed
-    ? "Pesanan Dibatalkan"
-    : success
-      ? "Pesanan Berhasil"
-      : "Pesanan Dibuat";
-  const orderItems = order.items.length
-    ? order.items
-    : order.subOrders.flatMap((subOrder) => subOrder.items || []);
+  const statusColor = failed ? "text-red-500 bg-red-50" : success ? "text-[#047857] bg-emerald-50" : "text-amber-600 bg-amber-50";
+  const title = failed ? "Dibatalkan" : success ? "Berhasil" : "Dibuat";
+  const orderItems = order.items.length ? order.items : order.subOrders.flatMap((sub) => sub.items || []);
   const paymentStatus = String(order.paymentStatus || "").toLowerCase();
-  const canPay =
-    !["paid", "settlement", "success"].includes(paymentStatus) &&
-    Boolean(order.snapToken || order.paymentUrl || order.redirectUrl);
-  const checkoutSteps = <div className="mb-5 grid grid-cols-3 gap-2 text-center text-xs font-bold"><div className="bg-slate-100 px-3 py-2 text-slate-500">1 Informasi</div><div className="bg-slate-100 px-3 py-2 text-slate-500">2 Review & Konfirmasi</div><div className="bg-emerald-600 px-3 py-2 text-white">3 Detail Order</div></div>;
+  const canPay = !["paid", "settlement", "success"].includes(paymentStatus) && Boolean(order.snapToken || order.paymentUrl || order.redirectUrl);
 
   const handleReceived = async () => {
     try {
       setActionMessage("");
       await confirmMutation.mutateAsync(order.id);
-      setActionMessage("Pesanan ditandai sudah diterima. Anda sekarang dapat memberikan review.");
+      setActionMessage("Pesanan diterima. Anda dapat memberikan review.");
       orderQuery.refetch();
     } catch (error) {
       setActionMessage(advancedError(error));
     }
   };
-
 
   const handlePayNow = async () => {
     try {
@@ -550,10 +377,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
       await openMidtransPayment(order, {
         onSuccess: () => orderQuery.refetch(),
         onPending: () => orderQuery.refetch(),
-        onError: () => {
-          setPaymentMessage("Pembayaran Midtrans gagal. Silakan coba kembali.");
-          orderQuery.refetch();
-        },
+        onError: () => { setPaymentMessage("Pembayaran gagal. Silakan coba kembali."); orderQuery.refetch(); },
         onClose: () => orderQuery.refetch(),
       });
     } catch (error) {
@@ -564,136 +388,65 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-      {checkoutSteps}
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-[#047857] hover:text-[#10B981]"
-      >
-        <ArrowLeft size={17} />
-        Kembali ke daftar order
+    <div className="rounded-2xl border border-slate-100 bg-white p-5">
+      <button type="button" onClick={onBack} className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#047857] hover:text-[#10B981]">
+        <ArrowLeft size={15} /> Kembali
       </button>
 
-      {paymentNotice || paymentMessage || actionMessage ? (
-        <div
-          className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${paymentMessage || paymentNotice.includes("belum") || paymentNotice.includes("gagal") ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-[#047857]"}`}
-        >
+      {(paymentNotice || paymentMessage || actionMessage) ? (
+        <div className={`mb-4 rounded-xl border px-4 py-2.5 text-sm font-semibold ${paymentMessage || paymentNotice.includes("belum") || paymentNotice.includes("gagal") ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-[#047857]"}`}>
           {paymentMessage || actionMessage || paymentNotice}
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-5 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div
-            className={`flex h-14 w-14 items-center justify-center rounded-full border ${statusClass}`}
-          >
-            <StatusIcon size={28} />
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-              {order.orderNumber}
-            </p>
-            <h3 className="mt-1 text-xl font-bold text-slate-900">{title}</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              {order.createdAt
-                ? new Date(order.createdAt).toLocaleString("id-ID")
-                : "-"}
-            </p>
-          </div>
+      <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${statusColor}`}>
+          <StatusIcon size={22} />
         </div>
-        <span
-          className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${statusClass}`}
-        >
-          {order.status}
-        </span>
+        <div className="flex-1">
+          <p className="text-xs font-bold text-slate-400">{order.orderNumber}</p>
+          <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+          <p className="text-xs text-slate-400">{order.createdAt ? new Date(order.createdAt).toLocaleString("id-ID") : "-"}</p>
+        </div>
       </div>
 
-      <div className="grid gap-6 py-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-5 py-4 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div>
-          <h4 className="text-sm font-bold text-slate-900">Produk</h4>
-          <div className="mt-3 divide-y divide-slate-100">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Produk</h4>
+          <div className="mt-2 divide-y divide-slate-50">
             {orderItems.map((item) => (
-              <div
-                key={`${item.id}-${item.productId}-${item.variantId}`}
-                className="flex items-center gap-3 py-3"
-              >
-                {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.productName}
-                    className="h-14 w-14 rounded-xl border border-slate-100 object-cover"
-                  />
-                ) : null}
+              <div key={`${item.id}-${item.productId}-${item.variantId}`} className="flex items-center gap-3 py-3">
+                {item.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-12 w-12 rounded-xl object-cover" /> : null}
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-semibold text-slate-900">
-                    {item.productName}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {item.variantLabel || item.sku || "-"} ×{item.quantity}
-                  </p>
+                  <p className="line-clamp-1 text-sm font-semibold text-slate-800">{item.productName}</p>
+                  <p className="text-xs text-slate-400">{item.variantLabel || item.sku || "-"} x{item.quantity}</p>
                 </div>
-                <div className="shrink-0 text-right">
-                  <strong className="text-sm text-slate-900">{formatPrice(item.subtotal || item.price * item.quantity)}</strong>
-                </div>
+                <strong className="shrink-0 text-sm text-slate-800">{formatPrice(item.subtotal || item.price * item.quantity)}</strong>
               </div>
             ))}
           </div>
         </div>
-
-        <aside className="border-t border-slate-200 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-          <h4 className="text-sm font-bold text-slate-900">
-            Ringkasan Pembayaran
-          </h4>
-          <div className="mt-4 space-y-3 text-sm text-slate-500">
-            <div className="flex justify-between gap-3">
-              <span>Subtotal</span>
-              <span>
-                {formatPrice(
-                  order.subtotal ||
-                    Math.max(0, order.grandTotal - order.shippingCost),
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span>Ongkir</span>
-              <span>{formatPrice(order.shippingCost)}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span>Diskon</span>
-              <span>
-                -
-                {formatPrice(
-                  order.discountAmount + order.shippingDiscountAmount,
-                )}
-              </span>
-            </div>
-            <hr className="border-slate-200" />
-            <div className="flex justify-between gap-3 text-base font-bold text-slate-900">
-              <span>Total</span>
-              <span className="text-[#047857]">
-                {formatPrice(order.grandTotal)}
-              </span>
-            </div>
+        <aside className="border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Ringkasan</h4>
+          <div className="mt-3 space-y-2 text-sm text-slate-500">
+            <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(order.subtotal || Math.max(0, order.grandTotal - order.shippingCost))}</span></div>
+            <div className="flex justify-between"><span>Ongkir</span><span>{formatPrice(order.shippingCost)}</span></div>
+            <div className="flex justify-between"><span>Diskon</span><span>-{formatPrice(order.discountAmount + order.shippingDiscountAmount)}</span></div>
+            <hr className="border-slate-100" />
+            <div className="flex justify-between font-bold text-slate-800"><span>Total</span><span className="text-[#047857]">{formatPrice(order.grandTotal)}</span></div>
           </div>
-          <hr className="my-5 border-slate-200" />
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-            Alamat Pengiriman
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {order.shippingAddress || "-"}
-          </p>
-          <p className="mt-4 text-xs text-slate-500">
-            Metode bayar: {order.paymentMethod || "-"}
-          </p>
-          {String(order.status).toLowerCase() === "shipped" ? <button type="button" disabled={confirmMutation.isPending} onClick={handleReceived} className="mt-4 w-full rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:opacity-60">Pesanan Sudah Diterima</button> : null}
+          <div className="mt-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Alamat</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{order.shippingAddress || "-"}</p>
+          </div>
+          <p className="mt-3 text-[11px] text-slate-400">Bayar: {order.paymentMethod || "-"}</p>
+          {String(order.status).toLowerCase() === "shipped" ? (
+            <button type="button" disabled={confirmMutation.isPending} onClick={handleReceived} className="mt-3 w-full rounded-xl bg-[#10B981] px-4 py-2 text-xs font-bold text-white hover:bg-[#059669] disabled:opacity-60">
+              Sudah Diterima
+            </button>
+          ) : null}
           {canPay ? (
-            <button
-              type="button"
-              disabled={paying}
-              onClick={handlePayNow}
-              className="mt-4 w-full rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            <button type="button" disabled={paying} onClick={handlePayNow} className="mt-3 w-full rounded-xl bg-[#10B981] px-4 py-2 text-xs font-bold text-white hover:bg-[#059669] disabled:opacity-60">
               {paying ? "Membuka Midtrans..." : "Bayar Sekarang"}
             </button>
           ) : null}
@@ -703,79 +456,210 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
   );
 }
 
-function OrderTab({ items, onOpen }) {
-  if (!items.length) {
+function PpobDetailPanel({ referenceId, onBack }) {
+  const { data: receipt, isLoading, error } = usePpobReceipt(referenceId);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-white p-6" aria-busy="true">
+        <div className="flex items-center gap-3 mb-5"><Skeleton className="h-9 w-9 rounded-xl" /><Skeleton className="h-5 w-48" /></div>
+        <div className="space-y-3"><SkeletonLine className="h-4 w-full" /><SkeletonLine className="h-4 w-3/4" /></div>
+      </div>
+    );
+  }
+
+  if (error || !receipt) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
+        <p className="text-sm font-semibold text-slate-500">Bukti pembayaran tidak ditemukan.</p>
+        <button type="button" onClick={onBack} className="mt-3 text-sm font-bold text-[#047857]">Kembali</button>
+      </div>
+    );
+  }
+
+  const dateStr = receipt.paidAt || receipt.createdAt
+    ? new Date(receipt.paidAt || receipt.createdAt).toLocaleString("id-ID", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "-";
+
+  const txSuccess = ["success", "paid"].includes(String(receipt.transactionStatus || "").toLowerCase()) || ["paid", "settlement"].includes(String(receipt.paymentStatus || "").toLowerCase());
+  const txFailed = ["failed", "cancelled", "expired"].includes(String(receipt.transactionStatus || "").toLowerCase());
+  const StatusIcon = txFailed ? XCircle : txSuccess ? CheckCircle2 : Clock3;
+  const statusColor = txFailed ? "text-red-500 bg-red-50" : txSuccess ? "text-[#047857] bg-emerald-50" : "text-amber-600 bg-amber-50";
+  const title = txFailed ? "Transaksi Gagal" : txSuccess ? "Transaksi Berhasil" : "Diproses";
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-5">
+      <button type="button" onClick={onBack} className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#047857] hover:text-[#10B981]">
+        <ArrowLeft size={15} /> Kembali
+      </button>
+
+      <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${statusColor}`}>
+          <StatusIcon size={22} />
+        </div>
+        <div className="flex-1">
+          <p className="text-xs font-bold text-slate-400">{receipt.receiptNumber || referenceId}</p>
+          <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+          <p className="text-xs text-slate-400">{dateStr}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-5 py-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Detail Transaksi</h4>
+          <dl className="mt-2 divide-y divide-slate-50 rounded-xl border border-slate-100">
+            <div className="flex items-center justify-between px-4 py-2.5"><dt className="text-sm text-slate-500">Produk</dt><dd className="text-sm font-semibold text-slate-800">{receipt.productName || "-"}</dd></div>
+            <div className="flex items-center justify-between px-4 py-2.5"><dt className="text-sm text-slate-500">Kategori</dt><dd className="text-sm font-semibold text-slate-800">{receipt.category || "-"}</dd></div>
+            <div className="flex items-center justify-between px-4 py-2.5"><dt className="text-sm text-slate-500">Pelanggan</dt><dd className="text-sm font-semibold text-slate-800">{receipt.customerId || "-"}</dd></div>
+            {receipt.customerName ? <div className="flex items-center justify-between px-4 py-2.5"><dt className="text-sm text-slate-500">Nama</dt><dd className="text-sm font-semibold text-slate-800">{receipt.customerName}</dd></div> : null}
+            <div className="flex items-center justify-between px-4 py-2.5"><dt className="text-sm text-slate-500">Referensi</dt><dd className="text-sm font-semibold text-slate-800">{receipt.transactionReference || "-"}</dd></div>
+          </dl>
+        </div>
+
+        <aside className="border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Ringkasan Bayar</h4>
+          <div className="mt-3 space-y-2 text-sm text-slate-500">
+            <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(receipt.subtotal)}</span></div>
+            {Number(receipt.adminFee) > 0 ? <div className="flex justify-between"><span>Admin</span><span>{formatPrice(receipt.adminFee)}</span></div> : null}
+            {Number(receipt.discount) > 0 ? <div className="flex justify-between text-[#047857]"><span>Diskon</span><span>-{formatPrice(receipt.discount)}</span></div> : null}
+            <hr className="border-slate-100" />
+            <div className="flex justify-between font-bold text-slate-800"><span>Total</span><span className="text-[#047857]">{formatPrice(receipt.total)}</span></div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-400">Pembayaran:</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${PPOB_PAYMENT_STATUS_STYLES[receipt.paymentStatus] || "bg-slate-100 text-slate-700"}`}>
+                {PPOB_PAYMENT_STATUS_LABELS[receipt.paymentStatus] || receipt.paymentStatus || "-"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-400">Status:</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${PPOB_STATUS_STYLES[receipt.transactionStatus] || "bg-slate-100 text-slate-700"}`}>
+                {receipt.transactionStatus || "-"}
+              </span>
+            </div>
+            {receipt.paymentMethod ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400">Metode:</span>
+                <span className="text-[11px] font-bold uppercase text-slate-700">{receipt.paymentMethod}</span>
+              </div>
+            ) : null}
+          </div>
+
+          <Link to={`/ppob/receipt/${encodeURIComponent(referenceId)}`} className="mt-4 block w-full rounded-xl border border-slate-200 py-2 text-center text-xs font-bold text-[#047857] hover:border-[#047857]">
+            Lihat Bukti Pembayaran Lengkap
+          </Link>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function OrderTab({ items, ppobItems, onOpen, onOpenPpob, typeFilter, statusFilter }) {
+  const filteredItems = useMemo(() => {
+    let rows = items;
+    if (typeFilter === "digital") rows = [];
+    else if (typeFilter === "order") rows = items;
+    else rows = items;
+
+    if (statusFilter) rows = rows.filter((r) => {
+      const s = String(r.rawStatus || r.status || "").toLowerCase();
+      return s === statusFilter;
+    });
+    return rows;
+  }, [items, typeFilter, statusFilter]);
+
+  const filteredPpob = useMemo(() => {
+    if (typeFilter === "order") return [];
+    let rows = ppobItems;
+    if (statusFilter) rows = rows.filter((r) => {
+      const s = String(r.rawStatus || r.status || "").toLowerCase();
+      return s === statusFilter || r.payment_status === statusFilter;
+    });
+    return rows;
+  }, [ppobItems, typeFilter, statusFilter]);
+
+  const combined = useMemo(() => {
+    const all = [
+      ...filteredItems.map((r) => ({ ...r, _type: "order" })),
+      ...filteredPpob.map((r) => ({ ...r, _type: "digital" })),
+    ];
+    return all.sort((a, b) => {
+      const da = a._rawDate ? new Date(a._rawDate).getTime() : 0;
+      const db = b._rawDate ? new Date(b._rawDate).getTime() : 0;
+      return db - da;
+    });
+  }, [filteredItems, filteredPpob]);
+
+  if (!combined.length) {
     return (
       <EmptyState
         icon={PackageCheck}
-        title="Order belum tersedia"
-        description="Pesanan yang sedang berjalan dan riwayat pembelian akan muncul di tab ini."
+        title="Belum ada riwayat"
+        description="Pesanan dan transaksi digital akan muncul di sini."
       />
     );
   }
 
   return (
-    <div className="space-y-4">
-      {items.map((order) => (
-        <div
-          key={order.id}
-          className="rounded-xl border border-[#e0e3e7] bg-white p-4 shadow-sm"
-        >
-          <div className="flex flex-col gap-3 border-b border-[#ebeef2] pb-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-bold text-[#181c1f]">{order.id}</p>
-              <p className="mt-1 text-xs text-[#5f5e5e]">{order.date}</p>
-            </div>
-            <span className="w-fit rounded-full bg-[#e5e8ec] px-3 py-1 text-xs font-bold text-[#3d4a3f]">
-              {order.status}
-            </span>
-          </div>
-          <div className="flex gap-4 py-4">
-            {order.imageUrl ? (
-              <img
-                src={order.imageUrl}
-                alt={order.productName}
-                className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300">
-                <PackageCheck size={28} />
+    <div className="space-y-3">
+      {combined.map((item) => {
+        const isDigital = item._type === "digital";
+        const handleClick = () => {
+          if (isDigital) onOpenPpob?.(item.reference_id);
+          else onOpen?.(item.orderId || item.id);
+        };
+        return (
+          <button
+            key={`${item._type}-${item.id || item.orderId}`}
+            type="button"
+            onClick={handleClick}
+            className="w-full rounded-2xl border border-slate-100 bg-white p-4 text-left transition hover:border-slate-200 hover:shadow-sm active:scale-[0.995]"
+          >
+            <div className="flex items-start gap-3">
+              {isDigital ? (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                  <Phone size={18} className="text-blue-500" />
+                </div>
+              ) : item.imageUrl ? (
+                <img src={item.imageUrl} alt={item.productName} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50">
+                  <PackageCheck size={18} className="text-slate-300" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400">{isDigital ? item.reference_id : item.id}</p>
+                    <h4 className="mt-0.5 line-clamp-1 text-sm font-bold text-slate-800">{item.productName}</h4>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {isDigital ? item.customer_id : `${item.storeName} - ${item.variantLabel}`}
+                      {item.quantity ? ` x${item.quantity}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-slate-800">{formatPrice(item.total)}</p>
+                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      ["completed", "success", "paid", "settlement"].includes(item.rawStatus || item.status)
+                        ? "bg-emerald-50 text-[#047857]"
+                        : ["cancelled", "failed", "expired"].includes(item.rawStatus || item.status)
+                          ? "bg-red-50 text-red-500"
+                          : "bg-amber-50 text-amber-600"
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="mb-1 flex items-center gap-2 text-sm font-bold text-[#181c1f]">
-                <Store size={16} className="text-[#10B981]" />
-                {order.storeName}
-              </p>
-              <h3 className="line-clamp-2 text-base font-semibold text-[#181c1f]">
-                {order.productName}
-              </h3>
-              <p className="mt-1 text-sm text-[#5f5e5e]">
-                Variant: {order.variantLabel} x{order.quantity}
-              </p>
             </div>
-            <div className="hidden text-right sm:block">
-              <p className="text-sm text-[#5f5e5e]">Total</p>
-              <p className="text-lg font-bold text-[#047857]">
-                {formatPrice(order.total)}
-              </p>
+            <div className="mt-3 border-t border-slate-50 pt-3">
+              <p className="text-[11px] text-slate-400">{item.date}</p>
             </div>
-          </div>
-          <hr className="border-[#ebeef2]" />
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[#5f5e5e]">
-              Pesanan dari {order.storeName} tersusun sesuai urutan terbaru.
-            </p>
-            <button
-              type="button"
-              onClick={() => onOpen(order.orderId || order.id)}
-              className="rounded-lg border border-[#bccabc] bg-white px-4 py-2 text-sm font-bold text-[#047857] transition hover:border-[#047857]"
-            >
-              Lihat Detail
-            </button>
-          </div>
-        </div>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -784,158 +668,87 @@ function Stars({ rating }) {
   return (
     <div className="flex items-center gap-0.5">
       {Array.from({ length: 5 }).map((_, index) => (
-        <Star
-          key={index}
-          size={15}
-          className={
-            index < rating ? "fill-[#f59e0b] text-[#f59e0b]" : "text-[#bccabc]"
-          }
-        />
+        <Star key={index} size={13} className={index < rating ? "fill-amber-400 text-amber-400" : "text-slate-200"} />
       ))}
     </div>
   );
 }
 
-function ReviewTab({ items, reviews = [], onReviewItem, onOpenProduct }) {
+function ReviewTab({ items, reviews = [], onReviewItem, onOpenProduct, ratingFilter }) {
   const reviewableItems = items.filter((item) => !item.reviewed);
 
+  const filteredReviewable = useMemo(() => {
+    if (!ratingFilter) return reviewableItems;
+    return reviewableItems;
+  }, [reviewableItems, ratingFilter]);
+
+  const filteredReviews = useMemo(() => {
+    if (!ratingFilter) return reviews;
+    return reviews.filter((r) => String(r.rating) === ratingFilter);
+  }, [reviews, ratingFilter]);
+
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-[#e0e3e7] bg-white p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-slate-100 bg-white p-5">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-[#181c1f]">
-              Produk yang Perlu Direview
-            </h3>
-            <p className="mt-1 text-sm text-[#5f5e5e]">
-              Produk dari pesanan yang sudah selesai/diterima. Beri rating dan
-              ulasan di sini — satu tempat untuk semua toko.
-            </p>
+            <h3 className="text-base font-bold text-slate-800">Perlu Direview</h3>
+            <p className="mt-1 text-xs text-slate-400">Produk dari pesanan yang sudah selesai/diterima.</p>
           </div>
-          {reviewableItems.length ? (
-            <span className="round-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#047857]">
-              {reviewableItems.length} produk
-            </span>
+          {filteredReviewable.length ? (
+            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-[#047857]">{filteredReviewable.length} produk</span>
           ) : null}
         </div>
-
-        {reviewableItems.length ? (
-          <div className="mt-4 divide-y divide-[#ebeef2]">
-            {reviewableItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-4 py-4"
-              >
+        {filteredReviewable.length ? (
+          <div className="mt-3 divide-y divide-slate-50">
+            {filteredReviewable.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 py-3">
                 {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.productName}
-                    className="h-16 w-16 flex-shrink-0 rounded-lg border border-[#e0e3e7] object-cover"
-                  />
+                  <img src={item.imageUrl} alt={item.productName} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
                 ) : (
-                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300">
-                    <PackageCheck size={26} />
-                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50"><PackageCheck size={16} className="text-slate-300" /></div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <h4 className="line-clamp-1 text-sm font-bold text-[#181c1f]">
-                    {item.productName}
-                  </h4>
-                  <p className="mt-0.5 text-xs text-[#5f5e5e]">
-                    Varian: {item.variantLabel || "-"}
-                  </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-[#047857]">
-                    <Store size={13} />
-                    {item.storeName}
-                  </p>
-                  {item.orderNumber ? (
-                    <p className="mt-0.5 text-[11px] text-slate-400">
-                      {item.orderNumber}
-                    </p>
-                  ) : null}
+                  <h4 className="line-clamp-1 text-sm font-bold text-slate-800">{item.productName}</h4>
+                  <p className="text-[11px] text-slate-400">{item.variantLabel || "-"} - {item.storeName}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onReviewItem?.(item)}
-                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-bold text-white transition hover:bg-[#059669]"
-                >
-                  <Star size={15} className="fill-white text-white" />
-                  Beri Review
+                <button type="button" onClick={() => onReviewItem?.(item)} className="flex shrink-0 items-center gap-1 rounded-xl bg-[#10B981] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#059669]">
+                  <Star size={12} className="fill-white" /> Review
                 </button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mt-4 rounded-xl border border-dashed border-[#e0e3e7] bg-slate-50 p-8 text-center">
-            <MessageSquareText size={30} className="mx-auto text-slate-300" />
-            <p className="mt-3 text-sm font-semibold text-slate-600">
-              Belum ada produk yang perlu direview
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Setelah pesanan diterima/selesai, produk di sini siap diberi
-              rating dan ulasan.
-            </p>
+          <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+            <MessageSquareText size={24} className="mx-auto text-slate-300" />
+            <p className="mt-2 text-xs font-semibold text-slate-400">Belum ada produk untuk direview</p>
           </div>
         )}
       </section>
 
-      {reviews.length ? (
-        <section className="rounded-xl border border-[#e0e3e7] bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-bold text-[#181c1f]">
-            Review yang Sudah Dikirim
-          </h3>
-          <div className="mt-3 divide-y divide-[#ebeef2]">
-            {reviews.map((review) => (
-              <article
-                key={review.id}
-                className="group cursor-pointer py-4 first:pt-0 last:pb-0"
-                onClick={() => onOpenProduct?.(review)}
-                title="Lihat produk dan ulasan Anda"
-              >
-                <div className="flex gap-4">
+      {filteredReviews.length ? (
+        <section className="rounded-2xl border border-slate-100 bg-white p-5">
+          <h3 className="text-base font-bold text-slate-800">Review Terkirim</h3>
+          <div className="mt-2 divide-y divide-slate-50">
+            {filteredReviews.map((review) => (
+              <article key={review.id} className="group cursor-pointer py-3 first:pt-0" onClick={() => onOpenProduct?.(review)}>
+                <div className="flex gap-3">
                   {review.imageUrl ? (
-                    <img
-                      src={review.imageUrl}
-                      alt={review.productName}
-                      className="h-14 w-14 flex-shrink-0 rounded-lg object-cover"
-                    />
+                    <img src={review.imageUrl} alt={review.productName} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                   ) : (
-                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300">
-                      <PackageCheck size={24} />
-                    </div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50"><PackageCheck size={16} className="text-slate-300" /></div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <Stars rating={review.rating} />
-                      <span className="text-xs text-[#5f5e5e]">
-                        {review.date}
-                      </span>
-                    </div>
-                    <h4 className="line-clamp-1 text-sm font-bold text-[#181c1f] group-hover:text-[#047857]">
-                      {review.productName}
-                    </h4>
-                    {review.content ? (
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#5f5e5e]">
-                        {review.content}
-                      </p>
-                    ) : null}
-                    {review.media && review.media.length ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {review.media.map((url, index) => (
-                          <img
-                            key={`${review.id}-media-${index}`}
-                            src={resolveMediaUrl(url)}
-                            alt={`Lampiran ${index + 1}`}
-                            className="h-12 w-12 rounded-md border border-slate-200 object-cover"
-                            loading="lazy"
-                          />
+                    <div className="flex items-center gap-2"><Stars rating={review.rating} /><span className="text-[11px] text-slate-400">{review.date}</span></div>
+                    <h4 className="mt-0.5 line-clamp-1 text-sm font-bold text-slate-800 group-hover:text-[#047857]">{review.productName}</h4>
+                    {review.content ? <p className="mt-1 line-clamp-1 text-xs text-slate-400">{review.content}</p> : null}
+                    {review.media?.length ? (
+                      <div className="mt-1.5 flex gap-1">
+                        {review.media.map((url, i) => (
+                          <img key={`${review.id}-m-${i}`} src={resolveMediaUrl(url)} className="h-8 w-8 rounded-md object-cover" loading="lazy" />
                         ))}
                       </div>
                     ) : null}
-                    <p className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#047857]">
-                      Lihat produk & ulasan
-                      <ArrowRight size={13} />
-                    </p>
                   </div>
                 </div>
               </article>
@@ -960,74 +773,64 @@ export default function CartPage() {
     syncingVariantIds,
     syncError,
   } = useCart();
-  const {
-  items: wishlistSource,
-  removeItem: removeWishlistItem,
-} = useWishlist();
+  const { items: wishlistSource, removeItem: removeWishlistItem } = useWishlist();
 
-  const ordersQuery = useOrders({ per_page: 30 });
+  const ordersQuery = useOrders({ per_page: 50 });
   const reviewsQuery = useReviews({ per_page: 50 });
+  const ppobQuery = useTransactionHistory({ per_page: 50 });
+
   const requestedTab = searchParams.get("tab");
-  const activeTab = tabs.some((tab) => tab.key === requestedTab)
-    ? requestedTab
-    : "cart";
+  const activeTab = tabs.some((tab) => tab.key === requestedTab) ? requestedTab : "cart";
   const selectedOrderId = searchParams.get("orderId");
-  const [sortBy, setSortBy] = useState("latest");
-  const [voucherCode, setVoucherCode] = useState(
-    location.state?.voucherCode || "",
-  );
-  const sortedCartItems = useMemo(
-    () => sortByOption(cartItems, sortBy),
-    [cartItems, sortBy],
-  );
-  const wishlistItems = useMemo(
-    () => sortByOption(wishlistSource, sortBy),
-    [sortBy, wishlistSource],
-  );
+  const selectedPpobRef = searchParams.get("ppobRef");
+
+  const [sortBy] = useState("latest");
+  const [voucherCode, setVoucherCode] = useState(location.state?.voucherCode || "");
+  const [orderTypeFilter, setOrderTypeFilter] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("");
+  const [reviewRatingFilter, setReviewRatingFilter] = useState("");
+
+  const sortedCartItems = useMemo(() => sortByOption(cartItems, sortBy), [cartItems, sortBy]);
+  const wishlistItems = useMemo(() => sortByOption(wishlistSource, sortBy), [sortBy, wishlistSource]);
+
   const orderItems = useMemo(() => {
-    const labels = {
-      pending: "Menunggu Pembayaran",
-      processing: "Diproses",
-      shipped: "Dikirim",
-      completed: "Selesai",
-      cancelled: "Dibatalkan",
-    };
-    return sortByOption(
-      (ordersQuery.data?.data || []).map((order) => {
-        const firstItem =
-          order.items[0] || order.subOrders[0]?.items?.[0] || {};
-        return {
-          id: order.orderNumber,
-          orderId: order.id,
-          date: order.createdAt
-            ? new Date(order.createdAt).toLocaleDateString("id-ID")
-            : "-",
-          storeName:
-            firstItem.storeName || order.subOrders[0]?.storeName || "Toko",
-          status: labels[order.status] || order.status,
-          productName: firstItem.productName || "Pesanan",
-          variantLabel: firstItem.variantLabel || firstItem.sku || "-",
-          quantity:
-            firstItem.quantity ||
-            order.items.reduce((sum, item) => sum + item.quantity, 0),
-          total: order.grandTotal,
-          imageUrl: firstItem.imageUrl || "",
-        };
-      }),
-      sortBy,
-    );
-  }, [ordersQuery.data?.data, sortBy]);
-  const [selectedKeys, setSelectedKeys] = useState([]);
+    const labels = { pending: "Menunggu", processing: "Diproses", shipped: "Dikirim", completed: "Selesai", cancelled: "Dibatalkan" };
+    return (ordersQuery.data?.data || []).map((order) => {
+      const firstItem = order.items[0] || order.subOrders[0]?.items?.[0] || {};
+      return {
+        id: order.orderNumber,
+        orderId: order.id,
+        date: order.createdAt ? new Date(order.createdAt).toLocaleDateString("id-ID") : "-",
+        _rawDate: order.createdAt,
+        storeName: firstItem.storeName || order.subOrders[0]?.storeName || "Toko",
+        status: labels[order.status] || order.status,
+        rawStatus: order.status,
+        productName: firstItem.productName || "Pesanan",
+        variantLabel: firstItem.variantLabel || firstItem.sku || "-",
+        quantity: firstItem.quantity || order.items.reduce((sum, item) => sum + item.quantity, 0),
+        total: order.grandTotal,
+        imageUrl: firstItem.imageUrl || "",
+      };
+    });
+  }, [ordersQuery.data?.data]);
 
-  const reviewedReviewRows = useMemo(() => {
-    return (reviewsQuery.data?.rows || []).filter(
-      (review) => review.order_item_id,
-    );
-  }, [reviewsQuery.data?.rows]);
+  const ppobItems = useMemo(() => {
+    return (ppobQuery.data?.rows || []).map((h) => ({
+      id: h.id,
+      reference_id: h.reference_id,
+      product_name: h.product_name,
+      customer_id: h.customer_id,
+      total: h.total_amount,
+      status: h.status === "success" ? "Berhasil" : h.status === "failed" ? "Gagal" : "Diproses",
+      rawStatus: h.status,
+      payment_status: h.payment_status,
+      date: h.created_at ? new Date(h.created_at).toLocaleDateString("id-ID") : "-",
+      _rawDate: h.created_at,
+    }));
+  }, [ppobQuery.data?.rows]);
 
-  const reviewedItemIds = useMemo(() => {
-    return new Set(reviewedReviewRows.map((review) => String(review.order_item_id)));
-  }, [reviewedReviewRows]);
+  const reviewedReviewRows = useMemo(() => (reviewsQuery.data?.rows || []).filter((r) => r.order_item_id), [reviewsQuery.data?.rows]);
+  const reviewedItemIds = useMemo(() => new Set(reviewedReviewRows.map((r) => String(r.order_item_id))), [reviewedReviewRows]);
 
   const reviewableItems = useMemo(() => {
     const allOrders = ordersQuery.data?.data || [];
@@ -1035,11 +838,9 @@ export default function CartPage() {
     for (const order of allOrders) {
       const status = String(order.status || "").toLowerCase();
       if (!["received", "completed"].includes(status)) continue;
-      const items = order.items && order.items.length
-        ? order.items
-        : (order.subOrders || []).flatMap((sub) => sub.items || []);
+      const items = order.items?.length ? order.items : (order.subOrders || []).flatMap((sub) => sub.items || []);
       for (const item of items) {
-        if (!item || !item.id) continue;
+        if (!item?.id) continue;
         reviewable.push({
           id: item.id,
           orderItemId: item.id,
@@ -1048,7 +849,7 @@ export default function CartPage() {
           variantLabel: item.variantLabel || item.sku || "-",
           imageUrl: item.imageUrl || "",
           storeName: item.storeName || order.subOrders?.[0]?.storeName || "Toko",
-          orderNumber: order.orderNumber || order.order_number || "-",
+          orderNumber: order.orderNumber || "-",
           reviewed: reviewedItemIds.has(String(item.id)),
         });
       }
@@ -1063,9 +864,7 @@ export default function CartPage() {
       productSlug: review.product_slug || "",
       productName: review.product_name || "Produk",
       rating: Number(review.rating || 0),
-      date: review.created_at
-        ? new Date(review.created_at).toLocaleDateString("id-ID")
-        : "-",
+      date: review.created_at ? new Date(review.created_at).toLocaleDateString("id-ID") : "-",
       content: review.review || "",
       imageUrl: resolveMediaUrl(review.product_thumbnail),
       media: Array.isArray(review.media) ? review.media : [],
@@ -1073,20 +872,17 @@ export default function CartPage() {
   }, [reviewedReviewRows]);
 
   const [reviewTarget, setReviewTarget] = useState(null);
-  const handleReviewSaved = () => {
-    setReviewTarget(null);
-  };
+  const handleReviewSaved = () => setReviewTarget(null);
 
   const handleOpenProductReview = (review) => {
     const slug = review.productSlug || review.productId || "";
-    if (!slug) return;
-    navigate(`/products/${slug}#review-${review.id}`);
+    if (slug) navigate(`/products/${slug}#review-${review.id}`);
   };
 
   const changeTab = (tab) => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", tab);
-    if (tab !== "order") next.delete("orderId");
+    if (tab !== "order") { next.delete("orderId"); next.delete("ppobRef"); }
     setSearchParams(next, { replace: true });
   };
 
@@ -1094,13 +890,23 @@ export default function CartPage() {
     const next = new URLSearchParams(searchParams);
     next.set("tab", "order");
     next.set("orderId", String(id));
+    next.delete("ppobRef");
     setSearchParams(next);
   };
 
-  const closeOrderDetail = () => {
+  const openPpobDetail = (ref) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "order");
+    next.set("ppobRef", String(ref));
+    next.delete("orderId");
+    setSearchParams(next);
+  };
+
+  const closeDetail = () => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", "order");
     next.delete("orderId");
+    next.delete("ppobRef");
     setSearchParams(next, { replace: true });
   };
 
@@ -1112,106 +918,39 @@ export default function CartPage() {
     });
   }, [sortedCartItems]);
 
-  const selectedItems = sortedCartItems.filter((item) =>
-    selectedKeys.includes(getItemKey(item)),
-  );
-  const selectedCount = selectedItems.reduce(
-    (sum, item) => sum + (item.quantity || 1),
-    0,
-  );
-  const goCheckout = () =>
-    navigate("/checkout", {
-      state: {
-        cartItemIds: selectedItems
-          .map((item) => item.cartItemId)
-          .filter(Boolean),
-        voucherCode,
-      },
-    });
+  const [selectedKeys, setSelectedKeys] = useState([]);
+  const selectedItems = sortedCartItems.filter((item) => selectedKeys.includes(getItemKey(item)));
+  const selectedCount = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-  const handleToggleAll = () => {
-    setSelectedKeys((current) =>
-      current.length === sortedCartItems.length
-        ? []
-        : sortedCartItems.map(getItemKey),
-    );
-  };
+  const goCheckout = () => navigate("/checkout", { state: { cartItemIds: selectedItems.map((item) => item.cartItemId).filter(Boolean), voucherCode } });
 
+  const handleToggleAll = () => setSelectedKeys((current) => current.length === sortedCartItems.length ? [] : sortedCartItems.map(getItemKey));
   const handleToggleStore = (storeItems) => {
     const storeKeys = storeItems.map(getItemKey);
     const allChecked = storeKeys.every((key) => selectedKeys.includes(key));
-    setSelectedKeys((current) =>
-      allChecked
-        ? current.filter((key) => !storeKeys.includes(key))
-        : Array.from(new Set([...current, ...storeKeys])),
-    );
+    setSelectedKeys((current) => allChecked ? current.filter((key) => !storeKeys.includes(key)) : Array.from(new Set([...current, ...storeKeys])));
   };
-
-  const handleToggleItem = (itemKey) => {
-    setSelectedKeys((current) =>
-      current.includes(itemKey)
-        ? current.filter((key) => key !== itemKey)
-        : [...current, itemKey],
-    );
-  };
-
-  const handleDecrease = (item) => {
-    const currentQuantity = Math.max(1, Number(item.quantity || 1));
-    const nextQuantity = Math.max(1, currentQuantity - 1);
-
-    if (nextQuantity !== currentQuantity) {
-      updateQty(item.productId, item.variantId, nextQuantity);
-    }
-  };
-
-  const handleIncrease = (item) => {
-    const currentQuantity = Math.max(1, Number(item.quantity || 1));
-    const stock = Number(item.stock || 0);
-    const nextQuantity = stock > 0
-      ? Math.min(stock, currentQuantity + 1)
-      : currentQuantity + 1;
-
-    if (nextQuantity !== currentQuantity) {
-      updateQty(item.productId, item.variantId, nextQuantity);
-    }
-  };
+  const handleToggleItem = (itemKey) => setSelectedKeys((current) => current.includes(itemKey) ? current.filter((key) => key !== itemKey) : [...current, itemKey]);
+  const handleDecrease = (item) => { const q = Math.max(1, Number(item.quantity || 1) - 1); if (q !== item.quantity) updateQty(item.productId, item.variantId, q); };
+  const handleIncrease = (item) => { const q = Math.min(Number(item.stock || Infinity), Math.max(1, Number(item.quantity || 1)) + 1); if (q !== item.quantity) updateQty(item.productId, item.variantId, q); };
 
   return (
-    <div className="min-h-screen bg-white text-[#181c1f]">
-      <main className="mx-auto max-w-[1280px] px-5 py-6">
+    <div className="min-h-screen bg-slate-50/30">
+      <main className="mx-auto max-w-[1120px] px-4 py-5 sm:px-6">
         <TabNavigation activeTab={activeTab} onChange={changeTab} />
 
-        <section className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <SectionHeader
-            title="Aktivitas Ziip"
-            description="Kelola wishlist, cart, order, dan review dalam satu layout utama yang mengikuti referensi HTML."
-          />
-          <SortDropdown value={sortBy} onChange={setSortBy} />
-        </section>
+        <div className="transition-all duration-200">
+          {activeTab === "wishlist" ? (
+            <WishlistTab
+              items={wishlistItems}
+              onAddToCart={(item) => addItem({ productId: item.productId, variantId: item.variantId, quantity: 1 })}
+              onRemoveFromWishlist={(item) => removeWishlistItem(item.productId)}
+            />
+          ) : null}
 
-        <div className="transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
-              {activeTab === "wishlist" ? (
-  <WishlistTab
-    items={wishlistItems}
-    onAddToCart={(item) =>
-      addItem({
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity: 1,
-      })
-    }
-    onRemoveFromWishlist={(item) =>
-      removeWishlistItem(item.productId)
-    }
-  />
-) : null}
           {activeTab === "cart" ? (
             <>
-              {syncError ? (
-                <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-                  {syncError}
-                </div>
-              ) : null}
+              {syncError ? <div className="mb-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600">{syncError}</div> : null}
               <CartTab
                 items={sortedCartItems}
                 selectedKeys={selectedKeys}
@@ -1229,48 +968,77 @@ export default function CartPage() {
               />
             </>
           ) : null}
+
           {activeTab === "order" ? (
-            selectedOrderId ? (
-              <OrderDetailPanel
-                orderId={selectedOrderId}
-                onBack={closeOrderDetail}
-                paymentNotice={
-                  location.state?.paymentError ||
-                  (location.state?.orderCreated
-                    ? "Pesanan berhasil dibuat dan tersimpan."
-                    : "")
-                }
-              />
+            selectedPpobRef ? (
+              <PpobDetailPanel referenceId={selectedPpobRef} onBack={closeDetail} />
+            ) : selectedOrderId ? (
+              <OrderDetailPanel orderId={selectedOrderId} onBack={closeDetail} paymentNotice={location.state?.paymentError || (location.state?.orderCreated ? "Pesanan berhasil dibuat." : "")} />
             ) : (
-              <OrderTab items={orderItems} onOpen={openOrderDetail} />
+              <>
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <div className="max-w-[180px]">
+                    <SearchableSelect
+                      value={orderTypeFilter}
+                      onChange={(v) => { setOrderTypeFilter(v); setOrderStatusFilter(""); }}
+                      options={ORDER_TYPE_OPTIONS}
+                      placeholder="Semua jenis"
+                      emptyText="—"
+                    />
+                  </div>
+                  <div className="max-w-[180px]">
+                    <SearchableSelect
+                      value={orderStatusFilter}
+                      onChange={setOrderStatusFilter}
+                      options={ORDER_STATUS_OPTIONS}
+                      placeholder="Semua status"
+                      emptyText="—"
+                    />
+                  </div>
+                </div>
+                <OrderTab
+                  items={orderItems}
+                  ppobItems={ppobItems}
+                  onOpen={openOrderDetail}
+                  onOpenPpob={openPpobDetail}
+                  typeFilter={orderTypeFilter}
+                  statusFilter={orderStatusFilter}
+                />
+              </>
             )
           ) : null}
+
           {activeTab === "review" ? (
-            <ReviewTab
-              items={reviewableItems}
-              reviews={existingReviews}
-              onReviewItem={setReviewTarget}
-              onOpenProduct={handleOpenProductReview}
-            />
+            <>
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="max-w-[180px]">
+                  <SearchableSelect
+                    value={reviewRatingFilter}
+                    onChange={setReviewRatingFilter}
+                    options={REVIEW_RATING_OPTIONS}
+                    placeholder="Semua rating"
+                    emptyText="—"
+                  />
+                </div>
+              </div>
+              <ReviewTab
+                items={reviewableItems}
+                reviews={existingReviews}
+                onReviewItem={setReviewTarget}
+                onOpenProduct={handleOpenProductReview}
+                ratingFilter={reviewRatingFilter}
+                onRatingFilterChange={setReviewRatingFilter}
+              />
+            </>
           ) : null}
         </div>
 
-        <OrderReviewModal
-          item={reviewTarget}
-          open={Boolean(reviewTarget)}
-          onClose={() => setReviewTarget(null)}
-          onSaved={handleReviewSaved}
-        />
+        <OrderReviewModal item={reviewTarget} open={Boolean(reviewTarget)} onClose={() => setReviewTarget(null)} onSaved={handleReviewSaved} />
 
         {activeTab === "cart" && sortedCartItems.length ? (
-          <div className="mt-6 lg:hidden">
-            <button
-              type="button"
-              disabled={!selectedCount}
-              onClick={goCheckout}
-              className="w-full rounded-xl bg-[#10B981] py-5 text-2xl font-bold text-white shadow-lg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Lanjut ke Pembayaran
+          <div className="mt-4 lg:hidden">
+            <button type="button" disabled={!selectedCount} onClick={goCheckout} className="w-full rounded-2xl bg-[#10B981] py-4 text-lg font-bold text-white shadow-lg active:scale-[0.98] disabled:opacity-50">
+              Bayar ({selectedCount})
             </button>
           </div>
         ) : null}

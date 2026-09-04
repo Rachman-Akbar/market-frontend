@@ -2,18 +2,55 @@ import { CreditCard, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import { useOrders } from "@/features/order/ordering/orderService";
-import { formatPrice } from "@/shared/utils/utils";
+import { useTransactionHistory } from "@/features/ppob/services/ppobService";
+import { formatPrice, formatRupiah } from "@/shared/utils/utils";
+import { Badge } from "@/shared/components/ui/Badge";
+
+const TYPE_LABELS = {
+  digital: { label: "Digital", className: "bg-blue-100 text-blue-700" },
+  order: { label: "Pesanan", className: "bg-orange-100 text-orange-700" },
+};
 
 function labelStatus(value = "") {
   const status = String(value).toLowerCase();
-  if (["paid", "success", "settlement"].includes(status)) return "Berhasil";
+  if (["paid", "success", "settlement", "completed"].includes(status)) return "Berhasil";
   if (["failed", "cancelled", "expired"].includes(status)) return "Gagal";
   return "Diproses";
 }
 
 export default function PaymentsPage() {
-  const ordersQuery = useOrders({ per_page: 100 });
+  const ordersQuery = useOrders({ per_page: 50 });
+  const historyQuery = useTransactionHistory({ per_page: 50 });
   const orders = ordersQuery.data?.data || [];
+  const historyRows = historyQuery.data?.rows || [];
+
+  // Merge both into a unified list
+  const allTransactions = [
+    ...orders.map((o) => ({
+      id: o.id,
+      type: "order",
+      reference: o.orderNumber,
+      product: o.orderNumber,
+      method: o.paymentMethod || "-",
+      status: o.paymentStatus,
+      total: o.grandTotal,
+      date: o.createdAt,
+    })),
+    ...historyRows.map((h) => ({
+      id: `${h.type}-${h.id}`,
+      type: h.type,
+      reference: h.reference_id,
+      product: h.product_name,
+      method: h.payment_method || "-",
+      status: h.payment_status,
+      total: h.total_amount,
+      date: h.created_at,
+    })),
+  ].sort((a, b) => {
+    const da = a.date ? new Date(a.date).getTime() : 0;
+    const db = b.date ? new Date(b.date).getTime() : 0;
+    return db - da;
+  });
 
   return (
     <section
@@ -26,7 +63,7 @@ export default function PaymentsPage() {
             <span className={profileLayout.contentEyebrow}>Payment center</span>
             <h2 className={profileLayout.contentTitle}>Pembayaran</h2>
             <p className={`mt-2 ${profileLayout.contentDesc}`}>
-              Riwayat pembayaran berasal dari transaksi pesanan Anda.
+              Riwayat pembayaran dari transaksi pesanan dan digital Anda.
             </p>
           </div>
         </div>
@@ -42,7 +79,7 @@ export default function PaymentsPage() {
             </strong>
             <p className="mt-4 text-sm leading-6 text-slate-500">
               Status pembayaran diperbarui oleh notification webhook Midtrans
-              dan ditampilkan dari data order.
+              dan ditampilkan dari data transaksi.
             </p>
           </div>
           <div>
@@ -78,11 +115,11 @@ export default function PaymentsPage() {
                 Riwayat Transaksi
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Status dan nilai transaksi dari API order.
+                Status dan nilai transaksi dari pesanan dan layanan digital.
               </p>
             </div>
             <Link
-              to="/cart?tab=order"
+              to="/riwayat"
               className="text-sm font-semibold text-[#10B981] hover:underline"
             >
               Lihat Semua
@@ -93,40 +130,47 @@ export default function PaymentsPage() {
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-[#e5e7eb] text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <th className="px-2 py-3">Jenis</th>
                   <th className="px-2 py-3">Tanggal</th>
-                  <th className="px-2 py-3">Pesanan</th>
+                  <th className="px-2 py-3">Referensi</th>
                   <th className="px-2 py-3">Metode</th>
                   <th className="px-2 py-3">Status</th>
                   <th className="px-2 py-3 text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-[#eef0f2] text-sm text-slate-600"
-                  >
-                    <td className="px-2 py-4">
-                      {order.createdAt
-                        ? new Date(order.createdAt).toLocaleDateString("id-ID")
-                        : "-"}
-                    </td>
-                    <td className="px-2 py-4 font-semibold text-slate-950">
-                      {order.orderNumber}
-                    </td>
-                    <td className="px-2 py-4">{order.paymentMethod || "-"}</td>
-                    <td className="px-2 py-4">
-                      {labelStatus(order.paymentStatus)}
-                    </td>
-                    <td className="px-2 py-4 text-right font-semibold text-slate-950">
-                      {formatPrice(order.grandTotal)}
-                    </td>
-                  </tr>
-                ))}
+                {allTransactions.map((tx) => {
+                  const typeInfo = TYPE_LABELS[tx.type] || TYPE_LABELS.order;
+                  return (
+                    <tr
+                      key={tx.id}
+                      className="border-b border-[#eef0f2] text-sm text-slate-600"
+                    >
+                      <td className="px-2 py-4">
+                        <Badge className={typeInfo.className}>{typeInfo.label}</Badge>
+                      </td>
+                      <td className="px-2 py-4">
+                        {tx.date
+                          ? new Date(tx.date).toLocaleDateString("id-ID")
+                          : "-"}
+                      </td>
+                      <td className="px-2 py-4 font-semibold text-slate-950">
+                        {tx.reference || tx.product || "-"}
+                      </td>
+                      <td className="px-2 py-4">{tx.method}</td>
+                      <td className="px-2 py-4">
+                        {labelStatus(tx.status)}
+                      </td>
+                      <td className="px-2 py-4 text-right font-semibold text-slate-950">
+                        {formatRupiah ? formatRupiah(tx.total) : formatPrice(tx.total)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          {!ordersQuery.isLoading && !orders.length ? (
+          {!ordersQuery.isLoading && !historyQuery.isLoading && !allTransactions.length ? (
             <p className="py-12 text-center text-sm text-slate-500">
               Belum ada transaksi pembayaran.
             </p>

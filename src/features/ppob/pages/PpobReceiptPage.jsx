@@ -3,7 +3,7 @@ import { Button } from "@/shared/components/ui/Button";
 import { Card, CardContent } from "@/shared/components/ui/Card";
 import { Badge } from "@/shared/components/ui/Badge";
 import { Skeleton } from "@/shared/components/feedback/Skeleton";
-import { usePpobInvoice } from "@/features/ppob/services/ppobService";
+import { usePpobReceipt } from "@/features/ppob/services/ppobService";
 import {
   PPOB_STATUS_STYLES,
   PPOB_PAYMENT_STATUS_LABELS,
@@ -11,21 +11,21 @@ import {
   formatRupiah,
 } from "@/features/ppob/components/PpobCheckoutModal";
 
-export default function PpobInvoicePage() {
+export default function PpobReceiptPage() {
   const { ref } = useParams();
   const navigate = useNavigate();
 
-  const { data: invoice, isLoading, error } = usePpobInvoice(ref);
+  const { data: receipt, isLoading, error } = usePpobReceipt(ref);
 
   const handlePrintOrDone = () => {
-    if (ref && invoice) {
+    if (ref && receipt) {
       window.print();
     } else {
       navigate("/ppob?tab=riwayat");
     }
   };
 
-  if (isLoading && !invoice) {
+  if (isLoading && !receipt) {
     return (
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
         <div className="space-y-3">
@@ -37,14 +37,14 @@ export default function PpobInvoicePage() {
     );
   }
 
-  if (error || !invoice) {
+  if (error || !receipt) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-10">
         <Card>
           <CardContent className="flex flex-col items-center gap-4 p-10 text-center">
             <span className="material-symbols-outlined text-5xl text-slate-300">receipt_long</span>
-            <h2 className="text-lg font-bold text-slate-900">Invoice tidak ditemukan</h2>
-            <p className="text-sm text-slate-500">Invoice tidak tersedia atau tidak berhak diakses.</p>
+            <h2 className="text-lg font-bold text-slate-900">Bukti pembayaran tidak ditemukan</h2>
+            <p className="text-sm text-slate-500">Bukti pembayaran tidak tersedia atau tidak berhak diakses.</p>
             <Button onClick={() => navigate("/ppob?tab=riwayat")}>Kembali ke Riwayat</Button>
           </CardContent>
         </Card>
@@ -52,8 +52,8 @@ export default function PpobInvoicePage() {
     );
   }
 
-  const dateStr = invoice.paidAt || invoice.createdAt
-    ? new Date(invoice.paidAt || invoice.createdAt).toLocaleString("id-ID", {
+  const dateStr = receipt.paidAt || receipt.createdAt
+    ? new Date(receipt.paidAt || receipt.createdAt).toLocaleString("id-ID", {
         day: "2-digit",
         month: "long",
         year: "numeric",
@@ -62,20 +62,23 @@ export default function PpobInvoicePage() {
       })
     : "-";
 
+  const sn = receipt.raw?.sn;
+  const trId = receipt.raw?.tr_id;
+
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-extrabold text-slate-950">Detail Invoice</h1>
-        <p className="text-sm text-slate-500">Ringkasan pembelian layanan digital Anda.</p>
+        <h1 className="text-2xl font-extrabold text-slate-950">Bukti Pembayaran</h1>
+        <p className="text-sm text-slate-500">Bukti pembayaran layanan digital / pesanan Anda.</p>
       </div>
 
-      <div id="invoice-print" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div id="receipt-print" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 bg-orange-600 px-6 py-5 text-white">
+        <div className="flex items-center justify-between gap-2 bg-emerald-600 px-6 py-5 text-white">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-orange-100">Marketplace — Invoice</p>
-            <p className="text-xl font-extrabold">#{invoice.invoiceNumber || "-"}</p>
-            <p className="text-xs text-orange-100">Ref Transaksi: {invoice.transactionReference || "-"}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-100">Pembayaran Berhasil</p>
+            <p className="text-xl font-extrabold">{receipt.receiptNumber ? `#${receipt.receiptNumber}` : "Bukti Pembayaran"}</p>
+            <p className="text-xs text-emerald-100">Ref Transaksi: {receipt.transactionReference || "-"}</p>
           </div>
           <span className="material-symbols-outlined text-4xl">receipt_long</span>
         </div>
@@ -84,47 +87,59 @@ export default function PpobInvoicePage() {
           {/* Customer */}
           <div className="rounded-xl bg-slate-50 p-4">
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Pelanggan</p>
-            <p className="font-semibold text-slate-900">{invoice.customerId || "-"}</p>
-            {invoice.customerName ? <p className="text-slate-600">{invoice.customerName}</p> : null}
+            <p className="font-semibold text-slate-900">{receipt.customerId || "-"}</p>
+            {receipt.customerName ? <p className="text-slate-600">{receipt.customerName}</p> : null}
           </div>
 
           {/* Item */}
           <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between px-4 py-3">
               <dt className="text-slate-500">Produk / Layanan</dt>
-              <dd className="font-semibold text-slate-900">{invoice.productName || "-"}</dd>
+              <dd className="font-semibold text-slate-900">{receipt.productName || "-"}</dd>
             </div>
             <div className="flex items-center justify-between px-4 py-3">
               <dt className="text-slate-500">Kategori</dt>
-              <dd className="font-semibold text-slate-900">{invoice.category || "-"}</dd>
+              <dd className="font-semibold text-slate-900">{receipt.category || "-"}</dd>
             </div>
             <div className="flex items-center justify-between px-4 py-3">
               <dt className="text-slate-500">Tanggal</dt>
               <dd className="font-semibold text-slate-900">{dateStr}</dd>
             </div>
+            {trId ? (
+              <div className="flex items-center justify-between px-4 py-3">
+                <dt className="text-slate-500">TRID</dt>
+                <dd className="font-semibold text-slate-900">{trId}</dd>
+              </div>
+            ) : null}
+            {sn ? (
+              <div className="flex items-center justify-between px-4 py-3">
+                <dt className="text-slate-500">Serial Number (SN)</dt>
+                <dd className="font-semibold text-slate-900">{sn}</dd>
+              </div>
+            ) : null}
           </dl>
 
           {/* Price breakdown */}
           <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between px-4 py-3">
               <dt className="text-slate-500">Subtotal</dt>
-              <dd className="font-semibold text-slate-900">{formatRupiah(invoice.subtotal)}</dd>
+              <dd className="font-semibold text-slate-900">{formatRupiah(receipt.subtotal)}</dd>
             </div>
-            {Number(invoice.adminFee) > 0 ? (
+            {Number(receipt.adminFee) > 0 ? (
               <div className="flex items-center justify-between px-4 py-3">
                 <dt className="text-slate-500">Biaya Admin</dt>
-                <dd className="font-semibold text-slate-900">{formatRupiah(invoice.adminFee)}</dd>
+                <dd className="font-semibold text-slate-900">{formatRupiah(receipt.adminFee)}</dd>
               </div>
             ) : null}
-            {Number(invoice.discount) > 0 ? (
+            {Number(receipt.discount) > 0 ? (
               <div className="flex items-center justify-between px-4 py-3">
                 <dt className="text-slate-500">Diskon</dt>
-                <dd className="font-semibold text-green-600">-{formatRupiah(invoice.discount)}</dd>
+                <dd className="font-semibold text-green-600">-{formatRupiah(receipt.discount)}</dd>
               </div>
             ) : null}
             <div className="flex items-center justify-between px-4 py-3">
               <dt className="text-base font-semibold text-slate-700">Total</dt>
-              <dd className="text-base font-extrabold text-orange-600">{formatRupiah(invoice.total)}</dd>
+              <dd className="text-base font-extrabold text-emerald-600">{formatRupiah(receipt.total)}</dd>
             </div>
           </dl>
 
@@ -132,20 +147,20 @@ export default function PpobInvoicePage() {
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-2">
               <span className="text-slate-500">Pembayaran:</span>
-              <Badge className={PPOB_PAYMENT_STATUS_STYLES[invoice.paymentStatus] || "bg-slate-100 text-slate-700"}>
-                {PPOB_PAYMENT_STATUS_LABELS[invoice.paymentStatus] || invoice.paymentStatus || "-"}
+              <Badge className={PPOB_PAYMENT_STATUS_STYLES[receipt.paymentStatus] || "bg-slate-100 text-slate-700"}>
+                {PPOB_PAYMENT_STATUS_LABELS[receipt.paymentStatus] || receipt.paymentStatus || "-"}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-slate-500">Transaksi:</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PPOB_STATUS_STYLES[invoice.transactionStatus] || "bg-slate-100 text-slate-700"}`}>
-                {invoice.transactionStatus || "-"}
+              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PPOB_STATUS_STYLES[receipt.transactionStatus] || "bg-slate-100 text-slate-700"}`}>
+                {receipt.transactionStatus || "-"}
               </span>
             </div>
-            {invoice.paymentMethod ? (
+            {receipt.paymentMethod ? (
               <div className="flex items-center gap-2">
                 <span className="text-slate-500">Metode:</span>
-                <span className="font-semibold uppercase text-slate-900">{invoice.paymentMethod}</span>
+                <span className="font-semibold uppercase text-slate-900">{receipt.paymentMethod}</span>
               </div>
             ) : null}
           </div>

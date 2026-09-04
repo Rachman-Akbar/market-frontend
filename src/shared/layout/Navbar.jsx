@@ -13,6 +13,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
   const sharedItems = [
     { icon: "person", label: "Profil Saya", path: "/profile" },
     { icon: "location_on", label: "Alamat Saya", path: "/profile/addresses" },
+    { icon: "history", label: "Riwayat Transaksi", path: "/riwayat" },
   ];
 
   const normalizedRoles = Array.isArray(roles)
@@ -159,6 +160,7 @@ export function Navbar() {
           <div className="hidden items-center gap-5 lg:flex">
             <Link to="/promotions" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Promo</Link>
             <Link to="/ppob" className="whitespace-nowrap transition-colors hover:text-[#10B981]">PPOB &amp; Top Up</Link>
+            <Link to="/riwayat" className="whitespace-nowrap transition-colors hover:text-[#10B981]">Riwayat</Link>
             <span className="whitespace-nowrap">Pusat Edukasi Seller</span>
             <span className="whitespace-nowrap">Ziip Care</span>
           </div>

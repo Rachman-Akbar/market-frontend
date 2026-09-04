@@ -234,7 +234,7 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
                       <th className="py-2 pr-3 font-semibold">Status</th>
                       <th className="py-2 pr-3 font-semibold">Pembayaran</th>
                       <th className="py-2 pr-3 font-semibold">Tanggal</th>
-                      <th className="py-2 font-semibold">Invoice</th>
+                      <th className="py-2 font-semibold">Detail</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -266,7 +266,7 @@ const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin })
                         <td className="py-2">
                           {["success", "processing"].includes(tx.status) ? (
                             <Link
-                              to={`/ppob/invoice/${encodeURIComponent(tx.referenceId)}`}
+                              to={`/ppob/receipt/${encodeURIComponent(tx.referenceId)}`}
                               className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600 hover:underline"
                             >
                               <span className="material-symbols-outlined text-sm">receipt_long</span> Lihat

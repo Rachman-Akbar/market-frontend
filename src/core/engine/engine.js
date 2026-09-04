@@ -1,6 +1,7 @@
 import { apiClient } from "@/core/utils/apiClient";
 
 const AUTH_PATH = "/api/v1/identity/auth";
+const RECEIPT_PATH = "/api/v1/ppob/receipts";
 
 export class EmailVerificationEngineError extends Error {
   constructor(message, cause = null) {
@@ -68,6 +69,52 @@ export const emailVerificationEngine = Object.freeze({
       password,
       password_confirmation,
     });
+
+    return response.data;
+  },
+});
+
+// ── Receipt Email Engine ────────────────────────────────────────────────
+
+export class ReceiptEmailEngineError extends Error {
+  constructor(message, cause = null) {
+    super(message);
+    this.name = "ReceiptEmailEngineError";
+    this.cause = cause;
+  }
+}
+
+export function toReceiptEmailError(error, fallback = "Gagal mengirim bukti pembayaran.") {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return new ReceiptEmailEngineError(responseData.message, error);
+  }
+
+  if (responseData?.errors && typeof responseData.errors === "object") {
+    const first = Object.values(responseData.errors).flat().find(Boolean);
+    if (first) return new ReceiptEmailEngineError(String(first), error);
+  }
+
+  if (typeof error?.message === "string" && error.message.trim() && !/^request failed/i.test(error.message)) {
+    return new ReceiptEmailEngineError(error.message, error);
+  }
+
+  return new ReceiptEmailEngineError(fallback, error);
+}
+
+export const receiptEmailEngine = Object.freeze({
+  async sendEmail(referenceOrId) {
+    const ref = String(referenceOrId || "").trim();
+
+    if (!ref) {
+      throw new ReceiptEmailEngineError("Referensi bukti pembayaran wajib diisi.");
+    }
+
+    const response = await apiClient.post(
+      `${RECEIPT_PATH}/${encodeURIComponent(ref)}/send-email`,
+      {},
+    );
 
     return response.data;
   },
