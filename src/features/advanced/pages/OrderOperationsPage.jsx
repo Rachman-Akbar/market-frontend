@@ -45,7 +45,7 @@ export default function OrderOperationsPage() {
     { key: "paymentStatus", label: "Pembayaran" },
     { key: "status", label: "Status" },
     { key: "preorderReleaseAt", label: "Rilis Preorder", render: (row) => row.preorderReleaseAt ? new Date(row.preorderReleaseAt).toLocaleString("id-ID") : "-" },
-    { key: "bookingExpiresAt", label: "Batas Booking", render: (row) => row.bookingExpiresAt ? new Date(row.bookingExpiresAt).toLocaleString("id-ID") : "-" },
+    { key: "scheduledAt", label: "Jadwal Kirim/Pickup", render: (row) => row.scheduledAt ? new Date(row.scheduledAt).toLocaleString("id-ID") : "-" },
   ], []);
 
   async function changeStatus(row, nextStatus) {

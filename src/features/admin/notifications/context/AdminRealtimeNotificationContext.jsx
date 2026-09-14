@@ -99,9 +99,25 @@ export function AdminRealtimeNotificationProvider({ children }) {
 
   useEffect(() => {
     if (!user?.id || activeRole !== "admin" || connectionStatus === "connected") return undefined;
-    const interval = window.setInterval(reconcileState, 60000);
+    const interval = window.setInterval(reconcileState, 20000);
     return () => window.clearInterval(interval);
   }, [activeRole, connectionStatus, reconcileState, user?.id]);
+
+  const prevConnectionRef = useRef(getEchoStatus());
+  useEffect(() => {
+    const prev = prevConnectionRef.current;
+    prevConnectionRef.current = connectionStatus;
+    if (connectionStatus === "connected" && prev !== "connected") {
+      reconcileState();
+    }
+  }, [activeRole, connectionStatus, reconcileState, user?.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || activeRole !== "admin") return undefined;
+    const onFocus = () => reconcileState();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [activeRole, reconcileState]);
 
   const markRead = useCallback(async (notification) => {
     if (!notification?.id || notification.readAt) return notification;

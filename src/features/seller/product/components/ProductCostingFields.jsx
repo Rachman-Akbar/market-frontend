@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { advancedError, useProductCosting, useRawMaterials, useSaveProductCosting } from "@/features/advanced/services/advancedMarketplaceService";
+import { advancedError, useProductCosting, useRawMaterials, useSaveProductCosting, useSaveRawMaterial } from "@/features/advanced/services/advancedMarketplaceService";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+
+const DEFAULT_COSTING = { materials: [], labor_cost: 0, overhead_cost: 0, other_cost: 0, margin_percent: 30, selling_price: 0, apply_to_variants: false };
+
+const COMMON_UNITS = ["pcs", "pack", "box", "kg", "gram", "liter", "ml", "meter", "roll", "sak", "lembar"];
 
 function money(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -11,17 +15,21 @@ function qty(value) {
   return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(Number(value || 0));
 }
 
-export function ProductCostingFields({ productId }) {
+export function ProductCostingFields({ productId, value, onChange }) {
+  const createMode = !productId && typeof onChange === "function";
   const materialsQuery = useRawMaterials({ per_page: 100 });
   const costingQuery = useProductCosting(productId, Boolean(productId));
   const save = useSaveProductCosting();
-  const [form, setForm] = useState({ materials: [], labor_cost: 0, overhead_cost: 0, other_cost: 0, margin_percent: 30, selling_price: 0, apply_to_variants: false });
+  const saveRawMaterial = useSaveRawMaterial();
+  const [form, setForm] = useState(DEFAULT_COSTING);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCreate, setQuickCreate] = useState({ code: "", name: "", unit: "pcs" });
   const data = costingQuery.data || {};
 
   useEffect(() => {
-    if (!data.costing && !data.materials) return;
+    if (createMode || (!data.costing && !data.materials)) return;
     setForm({
       materials: (data.materials || []).map((row) => ({ raw_material_id: row.raw_material_id, quantity: row.quantity })),
       labor_cost: data.costing?.labor_cost || 0,
@@ -31,25 +39,65 @@ export function ProductCostingFields({ productId }) {
       selling_price: data.costing?.selling_price || 0,
       apply_to_variants: false,
     });
-  }, [data.costing, data.materials]);
+  }, [createMode, data.costing, data.materials]);
+
+  const activeForm = createMode ? { ...DEFAULT_COSTING, ...(value || {}) } : form;
+
+  function updateForm(updater) {
+    if (createMode) {
+      onChange(typeof updater === "function" ? updater(activeForm) : updater);
+      return;
+    }
+    setForm(updater);
+  }
 
   const materialOptions = materialsQuery.data?.rows || [];
-  const materialCost = useMemo(() => form.materials.reduce((sum, row) => {
+  const materialCost = useMemo(() => activeForm.materials.reduce((sum, row) => {
     const material = materialOptions.find((item) => Number(item.id) === Number(row.raw_material_id));
     return sum + Number(row.quantity || 0) * Number(material?.average_cost || 0);
-  }, 0), [form.materials, materialOptions]);
-  const hpp = materialCost + Number(form.labor_cost || 0) + Number(form.overhead_cost || 0) + Number(form.other_cost || 0);
-  const suggested = hpp * (1 + Number(form.margin_percent || 0) / 100);
+  }, 0), [activeForm.materials, materialOptions]);
+  const hpp = materialCost + Number(activeForm.labor_cost || 0) + Number(activeForm.overhead_cost || 0) + Number(activeForm.other_cost || 0);
+  const suggested = hpp * (1 + Number(activeForm.margin_percent || 0) / 100);
 
-  if (!productId) return <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Simpan produk terlebih dahulu. Setelah produk memiliki ID, tab HPP dapat digunakan.</div>;
+  if (!productId && !createMode) return <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Simpan produk terlebih dahulu. Setelah produk memiliki ID, tab HPP dapat digunakan.</div>;
 
-  function updateMaterial(index, field, value) {
-    setForm((current) => ({ ...current, materials: current.materials.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row) }));
+  function updateMaterial(index, field, fieldValue) {
+    updateForm((current) => ({ ...current, materials: current.materials.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: fieldValue } : row) }));
+  }
+
+  async function createRawMaterial() {
+    const code = quickCreate.code.trim();
+    const name = quickCreate.name.trim();
+    if (!code || !name) {
+      setMessageType("error");
+      setMessage("Kode dan nama bahan baku wajib diisi.");
+      return;
+    }
+    try {
+      const created = await saveRawMaterial.mutateAsync({ values: { code, name, unit: quickCreate.unit.trim() || "pcs" } });
+      const createdId = String(created?.data?.id || created?.id || "");
+      await materialsQuery.refetch();
+      const emptyIndex = activeForm.materials.findIndex((row) => !String(row.raw_material_id || "").trim());
+      const newRow = { raw_material_id: createdId, quantity: 1 };
+      if (emptyIndex >= 0) {
+        updateMaterial(emptyIndex, "raw_material_id", createdId);
+        updateMaterial(emptyIndex, "quantity", 1);
+      } else {
+        updateForm((current) => ({ ...current, materials: [...current.materials, newRow] }));
+      }
+      setQuickCreateOpen(false);
+      setQuickCreate({ code: "", name: "", unit: "pcs" });
+      setMessageType("success");
+      setMessage(`Bahan baku ${created?.data?.code || code} berhasil dibuat dan langsung dipilih pada resep.`);
+    } catch (error) {
+      setMessageType("error");
+      setMessage(advancedError(error, "Bahan baku gagal dibuat."));
+    }
   }
 
   async function submit(event) {
     event.preventDefault();
-    const rows = form.materials.filter((row) => row.raw_material_id);
+    const rows = activeForm.materials.filter((row) => row.raw_material_id);
     const ids = rows.map((row) => Number(row.raw_material_id));
     if (ids.length !== new Set(ids).size) {
       setMessageType("error");
@@ -62,7 +110,7 @@ export function ProductCostingFields({ productId }) {
       return;
     }
     try {
-      await save.mutateAsync({ productId, values: { ...form, materials: rows, selling_price: Number(form.selling_price || suggested) } });
+      await save.mutateAsync({ productId, values: { ...activeForm, materials: rows, selling_price: Number(activeForm.selling_price || suggested) } });
       setMessageType("success");
       setMessage("HPP dan harga jual berhasil disimpan menggunakan biaya bahan baku terbaru dari database.");
       costingQuery.refetch();
@@ -76,16 +124,32 @@ export function ProductCostingFields({ productId }) {
     {message ? <p className={`border px-4 py-3 text-sm font-semibold ${messageType === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{message}</p> : null}
 
     <section className="border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Tahap 1</p>
           <h3 className="text-sm font-black">Pilih bahan baku dan quantity per 1 produk</h3>
           <p className="text-xs text-slate-500">Biaya satuan dikunci dari average cost bahan baku aktual sehingga HPP selalu sinkron dengan database.</p>
         </div>
-        <Button type="button" size="sm" variant="outline" onClick={() => setForm((current) => ({ ...current, materials: [...current.materials, { raw_material_id: "", quantity: 1 }] }))}>Tambah Bahan</Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => setQuickCreateOpen((current) => !current)}>Bahan Baru</Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => updateForm((current) => ({ ...current, materials: [...current.materials, { raw_material_id: "", quantity: 1 }] }))}>Tambah Bahan</Button>
+        </div>
       </div>
+
+      {quickCreateOpen ? (
+        <div className="mb-3 grid gap-2 border border-emerald-200 bg-emerald-50 p-3 md:grid-cols-[140px_minmax(0,1fr)_100px_120px_auto]">
+          <Input value={quickCreate.code} onChange={(event) => setQuickCreate((current) => ({ ...current, code: event.target.value }))} placeholder="Kode mis. RM-BOX" className="uppercase" />
+          <Input value={quickCreate.name} onChange={(event) => setQuickCreate((current) => ({ ...current, name: event.target.value }))} placeholder="Nama bahan baku" />
+          <select className="h-10 border border-slate-300 bg-white px-3 text-sm" value={quickCreate.unit} onChange={(event) => setQuickCreate((current) => ({ ...current, unit: event.target.value }))}>
+            {COMMON_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+          </select>
+          <Button type="button" size="sm" disabled={saveRawMaterial.isPending} onClick={createRawMaterial}>Simpan & Pilih</Button>
+          <button type="button" className="text-xs font-bold text-slate-500 hover:text-slate-700" onClick={() => setQuickCreateOpen(false)}>Batal</button>
+        </div>
+      ) : null}
+
       <div className="space-y-2">
-        {form.materials.map((row, index) => {
+        {activeForm.materials.map((row, index) => {
           const material = materialOptions.find((item) => Number(item.id) === Number(row.raw_material_id));
           return <div key={`${row.raw_material_id}-${index}`} className="grid gap-2 border border-slate-100 p-2 md:grid-cols-[minmax(0,1fr)_120px_140px_130px_70px]">
             <select className="h-10 border border-slate-300 bg-white px-3 text-sm" value={row.raw_material_id} onChange={(event) => updateMaterial(index, "raw_material_id", event.target.value)}>
@@ -95,10 +159,10 @@ export function ProductCostingFields({ productId }) {
             <Input type="number" step="0.0001" min="0.0001" value={row.quantity} onChange={(event) => updateMaterial(index, "quantity", event.target.value)} />
             <div className="flex h-10 items-center border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">{money(material?.average_cost || 0)}</div>
             <div className="flex h-10 items-center border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600">Stok {qty(material?.stock || 0)} {material?.unit || ""}</div>
-            <button type="button" className="text-sm font-bold text-red-600" onClick={() => setForm((current) => ({ ...current, materials: current.materials.filter((_, rowIndex) => rowIndex !== index) }))}>Hapus</button>
+            <button type="button" className="text-sm font-bold text-red-600" onClick={() => updateForm((current) => ({ ...current, materials: current.materials.filter((_, rowIndex) => rowIndex !== index) }))}>Hapus</button>
           </div>;
         })}
-        {!form.materials.length ? <p className="border border-dashed border-slate-200 p-4 text-sm text-slate-500">Belum ada bahan baku pada resep produk.</p> : null}
+        {!activeForm.materials.length ? <p className="border border-dashed border-slate-200 p-4 text-sm text-slate-500">Belum ada bahan baku pada resep produk. Gunakan "Tambah Bahan" atau buat bahan baru lewat "Bahan Baru".</p> : null}
       </div>
     </section>
 
@@ -106,9 +170,9 @@ export function ProductCostingFields({ productId }) {
       <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Tahap 2</p>
       <h3 className="mb-3 text-sm font-black">Perhitungan HPP</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs font-bold">Tenaga Kerja<Input type="number" min="0" value={form.labor_cost} onChange={(event) => setForm((current) => ({ ...current, labor_cost: event.target.value }))} /></label>
-        <label className="text-xs font-bold">Overhead<Input type="number" min="0" value={form.overhead_cost} onChange={(event) => setForm((current) => ({ ...current, overhead_cost: event.target.value }))} /></label>
-        <label className="text-xs font-bold">Biaya Lain<Input type="number" min="0" value={form.other_cost} onChange={(event) => setForm((current) => ({ ...current, other_cost: event.target.value }))} /></label>
+        <label className="text-xs font-bold">Tenaga Kerja<Input type="number" min="0" value={activeForm.labor_cost} onChange={(event) => updateForm((current) => ({ ...current, labor_cost: event.target.value }))} /></label>
+        <label className="text-xs font-bold">Overhead<Input type="number" min="0" value={activeForm.overhead_cost} onChange={(event) => updateForm((current) => ({ ...current, overhead_cost: event.target.value }))} /></label>
+        <label className="text-xs font-bold">Biaya Lain<Input type="number" min="0" value={activeForm.other_cost} onChange={(event) => updateForm((current) => ({ ...current, other_cost: event.target.value }))} /></label>
         <div className="border border-slate-200 bg-white p-3"><span className="text-xs text-slate-500">Biaya Bahan</span><strong className="block text-base">{money(materialCost)}</strong></div>
       </div>
     </section>
@@ -118,11 +182,11 @@ export function ProductCostingFields({ productId }) {
       <h3 className="mb-3 text-sm font-black">Pembentukan harga jual</h3>
       <div className="grid gap-3 sm:grid-cols-4">
         <div><span className="text-xs text-slate-500">Modal / HPP</span><strong className="block text-lg">{money(hpp)}</strong></div>
-        <label className="text-xs font-bold">Margin %<Input type="number" min="0" step="0.01" value={form.margin_percent} onChange={(event) => setForm((current) => ({ ...current, margin_percent: event.target.value }))} /></label>
+        <label className="text-xs font-bold">Margin %<Input type="number" min="0" step="0.01" value={activeForm.margin_percent} onChange={(event) => updateForm((current) => ({ ...current, margin_percent: event.target.value }))} /></label>
         <div><span className="text-xs text-slate-500">Saran Harga Jual</span><strong className="block text-lg text-emerald-700">{money(suggested)}</strong></div>
-        <label className="text-xs font-bold">Harga Jual<Input type="number" min="0" value={form.selling_price} onChange={(event) => setForm((current) => ({ ...current, selling_price: event.target.value }))} /></label>
+        <label className="text-xs font-bold">Harga Jual<Input type="number" min="0" value={activeForm.selling_price} onChange={(event) => updateForm((current) => ({ ...current, selling_price: event.target.value }))} /></label>
       </div>
-      <label className="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={form.apply_to_variants} onChange={(event) => setForm((current) => ({ ...current, apply_to_variants: event.target.checked }))} /> Terapkan harga jual ke seluruh variant produk</label>
+      <label className="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={activeForm.apply_to_variants} onChange={(event) => updateForm((current) => ({ ...current, apply_to_variants: event.target.checked }))} /> Terapkan harga jual ke seluruh variant produk</label>
     </section>
 
     <section className="border border-blue-200 bg-blue-50 p-4">
@@ -131,6 +195,10 @@ export function ProductCostingFields({ productId }) {
       <p className="mt-1 text-sm text-blue-800">Setelah resep HPP disimpan, penambahan stok produk pada menu Persediaan otomatis mengurangi stok bahan baku sesuai quantity resep. Jika salah satu bahan tidak cukup, penambahan stok produk ditolak seluruhnya agar saldo tidak setengah berubah.</p>
     </section>
 
-    <div className="flex justify-end"><Button type="submit" disabled={save.isPending}>Simpan Pembentukan Harga</Button></div>
+    {createMode ? (
+      <p className="rounded-lg bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-700">Resep, HPP, dan harga jual disimpan bersamaan saat produk dibuat pada tab ini.</p>
+    ) : (
+      <div className="flex justify-end"><Button type="submit" disabled={save.isPending}>Simpan Pembentukan Harga</Button></div>
+    )}
   </form>;
 }

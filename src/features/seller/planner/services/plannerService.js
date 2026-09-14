@@ -35,6 +35,7 @@ export const plannerKeys = {
   lists: () => [...plannerKeys.all, "list"],
   list: (params) => [...plannerKeys.lists(), params],
   grid: (year, month, params) => [...plannerKeys.all, "grid", year, month, params],
+  board: (params) => [...plannerKeys.all, "board", params],
   detail: (id) => [...plannerKeys.all, "detail", id],
 };
 
@@ -70,6 +71,14 @@ export function useGrid(year, month, params = {}) {
   });
 }
 
+export function useBoard(params = {}) {
+  return useQuery({
+    queryKey: plannerKeys.board(params),
+    queryFn: () => get(`${BASE}/board`, params),
+    staleTime: 15_000,
+  });
+}
+
 export function useScheduleDetail(id, enabled = true) {
   return useQuery({
     queryKey: plannerKeys.detail(id),
@@ -93,9 +102,21 @@ export function useDeleteSchedule() {
   return useMutationHelper((id) => remove(`${BASE}/${id}`), [plannerKeys.all]);
 }
 
+export function useMoveSchedule() {
+  return useMutationHelper(
+    ({ id, values }) => patch(`${BASE}/${id}/move`, values),
+    [plannerKeys.all]
+  );
+}
+
 export function useCompleteSchedule() {
   return useMutationHelper(
-    (id) => patch(`${BASE}/${id}/complete`),
+    (arg) => {
+      if (arg && typeof arg === "object" && arg.id) {
+        return patch(`${BASE}/${arg.id}/complete`, arg.values || {});
+      }
+      return patch(`${BASE}/${arg}/complete`, {});
+    },
     [plannerKeys.all]
   );
 }

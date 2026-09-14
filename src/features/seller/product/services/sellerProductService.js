@@ -32,6 +32,9 @@ function normalizeVariant(variant = {}) {
     price: Number(variant.price || 0),
     stock: Number(variant.stock || 0),
     poStock: Number(variant.po_stock ?? variant.poStock ?? 0),
+    maxOrderQty: Number(
+      variant.max_order_qty ?? variant.maxOrderQty ?? 0,
+    ) || 999999,
     isDefault: Boolean(variant.is_default ?? variant.isDefault),
     values: (variant.values || []).map((value) => ({
       attributeId: Number(value.attribute_id || value.attribute?.id || 0),
@@ -50,6 +53,9 @@ export function normalizeSellerProduct(row = {}) {
     .filter(Boolean);
   const stock = Number(row.stock ?? defaultVariant.stock ?? 0);
   const poStock = Number(row.po_stock ?? defaultVariant.poStock ?? 0);
+  const maxOrderQty = Number(
+    row.max_order_qty ?? row.maxOrderQty ?? defaultVariant.maxOrderQty ?? 0,
+  ) || 999999;
 
   return {
     id: Number(row.id || 0),
@@ -64,6 +70,7 @@ export function normalizeSellerProduct(row = {}) {
     price: Number(row.price ?? defaultVariant.price ?? 0),
     stock,
     poStock,
+    maxOrderQty,
     totalStock: stock + poStock,
     status: row.status || "draft",
     isActive: toBoolean(row.is_active, true),
@@ -107,6 +114,7 @@ function serializeVariant(variant, index) {
     price: Number(variant.price || 0),
     stock: Number(variant.stock || 0),
     po_stock: Number(variant.poStock || 0),
+    max_order_qty: Math.max(1, Number(variant.maxOrderQty || 999999)),
     is_default: index === 0,
     values: (variant.values || [])
       .filter((value) => Number(value.attributeId) && String(value.value || "").trim())
@@ -141,6 +149,7 @@ export function serializeSellerProduct(values = {}, options = {}) {
     payload.price = Number(values.price || 0);
     payload.stock = Number(values.stock || 0);
     payload.po_stock = Number(values.poStock || 0);
+    payload.max_order_qty = Math.max(1, Number(values.maxOrderQty || 999999));
     payload.variants = [
       serializeVariant(
         {
@@ -150,6 +159,7 @@ export function serializeSellerProduct(values = {}, options = {}) {
           price: values.price,
           stock: values.stock,
           poStock: values.poStock,
+          maxOrderQty: values.maxOrderQty,
           isDefault: true,
           values: [],
         },

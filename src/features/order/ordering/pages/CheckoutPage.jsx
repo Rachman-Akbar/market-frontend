@@ -109,6 +109,16 @@ function normalizeDirectItem(item = {}) {
     quantity,
     subtotal: Number(item.subtotal ?? price * quantity),
     stock: Number(item.stock ?? 0),
+    availableStock: Number(
+      item.availableStock ?? item.available_stock ?? item.stock ?? 0,
+    ),
+    maxOrderQty: Number(item.maxOrderQty ?? item.max_order_qty ?? 0),
+    allowsPreorder:
+      typeof item.allowsPreorder === "boolean"
+        ? item.allowsPreorder
+        : typeof item.allows_preorder === "boolean"
+          ? item.allows_preorder
+          : true,
     imageUrl:
       item.imageUrl || item.image_url || item.image || item.thumbnail || "",
     attributes:
@@ -129,7 +139,7 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState("midtrans");
   const [orderType, setOrderType] = useState("normal");
   const [preorderReleaseAt, setPreorderReleaseAt] = useState("");
-  const [bookingExpiresAt, setBookingExpiresAt] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const initialVoucherCode = String(location.state?.voucherCode || "")
     .trim()
     .toUpperCase();
@@ -168,6 +178,10 @@ export default function CheckoutPage() {
       ? items.filter((item) => requestedIds.includes(item.cartItemId))
       : items;
   }, [directItems, items, requestedIds]);
+  const anyOutOfStock = selectedItems.some(
+    (item) => Number(item.availableStock ?? item.stock ?? 0) <= 0,
+  );
+  const effectiveOrderType = anyOutOfStock ? "preorder" : orderType;
   const cartItemIds = useMemo(
     () =>
       directItems.length
@@ -375,13 +389,8 @@ export default function CheckoutPage() {
       return false;
     }
 
-    if (orderType === "preorder" && !preorderReleaseAt) {
-      setError("Tentukan tanggal rilis preorder.");
-      return false;
-    }
-
-    if (orderType === "booking" && !bookingExpiresAt) {
-      setError("Tentukan batas waktu booking.");
+    if (effectiveOrderType === "booking" && !scheduledAt) {
+      setError("Tentukan jadwal kirim atau slot pickup untuk pesanan booking.");
       return false;
     }
 
@@ -411,9 +420,14 @@ export default function CheckoutPage() {
         service: shipping.service,
         paymentMethod: payment,
         voucherCode: selectedVoucher?.code || null,
-        orderType,
-        preorderReleaseAt: orderType === "preorder" && preorderReleaseAt ? new Date(preorderReleaseAt).toISOString() : null,
-        bookingExpiresAt: orderType === "booking" && bookingExpiresAt ? new Date(bookingExpiresAt).toISOString() : null,
+        orderType: effectiveOrderType,
+        preorderReleaseAt: preorderReleaseAt
+          ? new Date(preorderReleaseAt).toISOString()
+          : null,
+        scheduledAt:
+          effectiveOrderType === "booking" && scheduledAt
+            ? new Date(scheduledAt).toISOString()
+            : null,
       });
     } catch (requestError) {
       setError(getOrderError(requestError));
@@ -516,9 +530,10 @@ export default function CheckoutPage() {
               <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Pengiriman dan Pembayaran</p>
               <p className="mt-2 font-bold text-slate-900">{shipping?.courier_label || shipping?.courier} {shipping?.service}</p>
               <p className="mt-1 text-sm text-slate-600">{PAYMENT_METHODS.find((method) => method.id === payment)?.label || payment}</p>
-              <p className="mt-2 text-xs font-black uppercase text-[#047857]">{orderType}</p>
-              {orderType === "preorder" && preorderReleaseAt ? <p className="mt-1 text-xs text-slate-500">Rilis {new Date(preorderReleaseAt).toLocaleString("id-ID")}</p> : null}
-              {orderType === "booking" && bookingExpiresAt ? <p className="mt-1 text-xs text-slate-500">Batas {new Date(bookingExpiresAt).toLocaleString("id-ID")}</p> : null}
+              <p className="mt-2 text-xs font-black uppercase text-[#047857]">{effectiveOrderType}</p>
+              {effectiveOrderType === "preorder" && preorderReleaseAt ? <p className="mt-1 text-xs text-slate-500">Perkiraan rilis {new Date(preorderReleaseAt).toLocaleString("id-ID")}</p> : null}
+              {effectiveOrderType === "preorder" && !preorderReleaseAt ? <p className="mt-1 text-xs text-slate-500">Preorder otomatis, tanpa kuota</p> : null}
+              {effectiveOrderType === "booking" && scheduledAt ? <p className="mt-1 text-xs text-slate-500">Jadwal kirim/pickup {new Date(scheduledAt).toLocaleString("id-ID")}</p> : null}
             </section>
 
             <section className="rounded-xl border border-slate-200 p-4 md:col-span-2">
@@ -757,17 +772,69 @@ export default function CheckoutPage() {
               <ShoppingBag size={18} className="text-[#10B981]" />
               Tipe Pesanan
             </h2>
-            <p className="mt-1 text-xs text-slate-500">Normal order diproses langsung, preorder menunggu tanggal rilis, dan booking memiliki batas pembayaran.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              {[{ id: "normal", label: "Normal" }, { id: "preorder", label: "Preorder" }, { id: "booking", label: "Booking" }].map((option) => (
-                <label key={option.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${orderType === option.id ? "border-[#10B981] bg-emerald-50" : "border-slate-200"}`}>
-                  <input type="radio" checked={orderType === option.id} onChange={() => setOrderType(option.id)} className="accent-[#10B981]" />
-                  <span className="text-sm font-bold text-slate-800">{option.label}</span>
-                </label>
-              ))}
-            </div>
-            {orderType === "preorder" ? <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">Tanggal Rilis Preorder<input type="datetime-local" min={new Date().toISOString().slice(0, 16)} value={preorderReleaseAt} onChange={(event) => setPreorderReleaseAt(event.target.value)} className="h-10 rounded-md border border-slate-300 px-3 text-sm" required /></label> : null}
-            {orderType === "booking" ? <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">Batas Waktu Booking<input type="datetime-local" min={new Date().toISOString().slice(0, 16)} value={bookingExpiresAt} onChange={(event) => setBookingExpiresAt(event.target.value)} className="h-10 rounded-md border border-slate-300 px-3 text-sm" required /></label> : null}
+            {anyOutOfStock ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+                Sebagian produk stok habis, sehingga pesanan ini otomatis menjadi{" "}
+                <strong>preorder (tanpa kuota)</strong>. Preorder ini tidak
+                ditampilkan sebagai stok di marketplace dan akan diproses setelah
+                toko selesai memproduksi.
+              </div>
+            ) : (
+              <label
+                className={`mt-4 flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
+                  orderType === "booking"
+                    ? "border-[#10B981] bg-emerald-50"
+                    : "border-slate-200"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-[#10B981]"
+                  checked={orderType === "booking"}
+                  onChange={(event) =>
+                    setOrderType(event.target.checked ? "booking" : "normal")
+                  }
+                />
+                <span className="text-sm font-bold text-slate-800">
+                  Jadwalkan kirim/pickup (Booking)
+                </span>
+                <span className="ml-auto text-[11px] leading-4 text-slate-500 sm:max-w-[220px]">
+                  Pilih tanggal kirim (kurir) atau slot tanggal & jam (ambil
+                  sendiri) untuk pesanan stok tersedia.
+                </span>
+              </label>
+            )}
+            {effectiveOrderType === "preorder" ? (
+              <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">
+                Perkiraan Tanggal Rilis (opsional)
+                <input
+                  type="datetime-local"
+                  min={new Date().toISOString().slice(0, 16)}
+                  value={preorderReleaseAt}
+                  onChange={(event) => setPreorderReleaseAt(event.target.value)}
+                  className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                />
+              </label>
+            ) : null}
+            {effectiveOrderType === "booking" ? (
+              <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">
+                {shipping?.courier === "ambil_sendiri"
+                  ? "Slot Ambil di Toko (tanggal dan jam)"
+                  : "Tanggal Kirim"}
+                <input
+                  type={shipping?.courier === "ambil_sendiri" ? "datetime-local" : "date"}
+                  min={
+                    shipping?.courier === "ambil_sendiri"
+                      ? new Date().toISOString().slice(0, 16)
+                      : new Date().toISOString().slice(0, 10)
+                  }
+                  value={scheduledAt}
+                  onChange={(event) => setScheduledAt(event.target.value)}
+                  className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  required
+                />
+              </label>
+            ) : null}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">

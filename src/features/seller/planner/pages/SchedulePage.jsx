@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useStoreContextStores } from "@/features/admin/storeContext/services/adminStoreContextService";
 import { cn } from "@/shared/utils/utils";
+import KanbanBoard from "../components/KanbanBoard";
 
 const TYPE_OPTIONS = [
   { value: "task", label: "Task", color: "#3b82f6" },
@@ -81,7 +82,7 @@ export default function SchedulePage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [viewMode, setViewMode] = useState("board");
+  const [viewMode, setViewMode] = useState(isAdmin ? "board" : "kanban");
   const [, setSelectedDate] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -280,7 +281,8 @@ export default function SchedulePage() {
         </div>
 
         <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <button onClick={() => setViewMode("board")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "board" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Papan</button>
+          <button onClick={() => setViewMode("kanban")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "kanban" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Papan</button>
+          <button onClick={() => setViewMode("board")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "board" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Kalender</button>
           <button onClick={() => setViewMode("table")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "table" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Tabel</button>
         </div>
 
@@ -313,7 +315,11 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Calendar / Table content (this gets exported as image) */}
+      {/* Kanban board */}
+      {viewMode === "kanban" ? (
+        <KanbanBoard isAdmin={isAdmin} filterStoreId={filterStoreId} filterType={filterType} filterPriority={filterPriority} />
+      ) : (
+      /* Calendar / Table content (this gets exported as image) */
       <div ref={calendarRef} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         {viewMode === "board" ? (
           <div
@@ -443,6 +449,7 @@ export default function SchedulePage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Legend */}
       {viewMode === "board" && (

@@ -44,7 +44,7 @@ const PORTALS = {
 
 export default function LoginPage({ portal = "buyer" }) {
   const config = useMemo(() => PORTALS[portal] || PORTALS.buyer, [portal]);
-  const { loginWithPassword, loginWithGoogle, logout, loading, error, clearError } =
+  const { loginWithPassword, loginWithGoogle, logout, loading, clearError } =
     useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +53,7 @@ export default function LoginPage({ portal = "buyer" }) {
     password: "",
   });
   const [localError, setLocalError] = useState("");
-  const message = localError || error;
+  const message = localError;
 
 
   const ensurePortalAccess = async (session) => {

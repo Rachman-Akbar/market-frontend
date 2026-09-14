@@ -3,6 +3,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { advancedError, useAdjustRawMaterial, useAdjustStock, useManageableProducts, useProductCosting, useRawMaterialCostImpacts, useRawMaterialMovements, useRawMaterials, useSaveRawMaterial, useStockMovements } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
+import StockChartTab from "@/features/advanced/components/StockChartTab";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
@@ -157,7 +158,7 @@ export default function StockPage() {
     }
   }
 
-  const tabs = [["product", "Stok Produk"], ["materials", "Bahan Baku"], ["product-history", "Riwayat Produk"], ["material-history", "Riwayat Bahan Baku"], ["cost-impact", "Kenaikan Bahan & HPP"]];
+  const tabs = [["product", "Stok Produk"], ["materials", "Bahan Baku"], ["grafik", "Grafik"], ["product-history", "Riwayat Produk"], ["material-history", "Riwayat Bahan Baku"], ["cost-impact", "Kenaikan Bahan & HPP"]];
 
   return <>
     <ModuleFrame
@@ -173,6 +174,7 @@ export default function StockPage() {
       {message ? <p className={`border px-4 py-3 text-sm font-semibold ${messageType === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{message}</p> : null}
       {tab === "product" ? <DataGrid storageKey="inventory.product-stock" columns={productColumns} rows={variants} emptyText="Produk belum tersedia." actions={(row) => <Button size="sm" variant="outline" onClick={() => { setProductAdjust(row); setDelta(""); }}>Stock / Restock</Button>} /> : null}
       {tab === "materials" ? <><div className="flex justify-end"><Button onClick={() => setMaterialForm({ ...MATERIAL_EMPTY })}>Data Baru Bahan Baku</Button></div><DataGrid storageKey="inventory.raw-materials" columns={materialColumns} rows={materialRows} emptyText="Bahan baku belum tersedia." actions={(row) => <div className="flex gap-1"><Button size="sm" variant="outline" onClick={() => setMaterialForm({ ...row })}>Edit</Button><Button size="sm" onClick={() => { setMaterialAdjust(row); setDelta(""); setUnitCost(String(row.average_cost || "")); }}>Stock / Restock</Button></div>} /></> : null}
+      {tab === "grafik" ? <StockChartTab variants={variants} /> : null}
       {tab === "product-history" ? <DataGrid storageKey="inventory.product-history" columns={productHistoryColumns} rows={productMovements.data?.rows || []} emptyText="Riwayat stok produk belum tersedia." /> : null}
       {tab === "material-history" ? <DataGrid storageKey="inventory.material-history" columns={materialHistoryColumns} rows={materialMovements.data?.rows || []} emptyText="Riwayat stok bahan baku belum tersedia." /> : null}
       {tab === "cost-impact" ? <><div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Laporan ini muncul otomatis saat average cost bahan baku naik dan perubahan tersebut menaikkan HPP produk. Harga jual aktif tidak diubah otomatis; Seller dapat memakai kolom Saran Harga Baru sebagai dasar keputusan.</div><DataGrid storageKey="inventory.cost-impact" columns={impactColumns} rows={costImpacts.data?.rows || []} emptyText="Belum ada kenaikan biaya bahan baku yang memengaruhi HPP." /></> : null}

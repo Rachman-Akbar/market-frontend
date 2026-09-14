@@ -5,7 +5,7 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 
 export default function RegisterPage() {
-  const { registerWithPassword, loginWithGoogle, loading, error, clearError } =
+  const { registerWithPassword, loginWithGoogle, loading, clearError } =
     useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -15,7 +15,7 @@ export default function RegisterPage() {
     confirm: "",
   });
   const [localError, setLocalError] = useState("");
-  const message = localError || error;
+  const message = localError;
 
   const handleChange = (event) => {
     setLocalError("");

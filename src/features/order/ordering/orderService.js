@@ -129,7 +129,7 @@ export function normalizeOrder(row = {}, payment = {}) {
     orderNumber: row.order_number || row.orderNumber || String(rawId || ""),
     orderType: row.order_type || row.orderType || "normal",
     preorderReleaseAt: row.preorder_release_at || row.preorderReleaseAt || null,
-    bookingExpiresAt: row.booking_expires_at || row.bookingExpiresAt || null,
+    scheduledAt: row.scheduled_at || row.scheduledAt || null,
     receivedAt: row.received_at || row.receivedAt || null,
     userId: row.user_id ? String(row.user_id) : "",
     status: row.status || "pending",
@@ -588,8 +588,8 @@ function buildOrderPayload(payload, cartItemIds = payload.cartItemIds) {
     payment_method: payload.paymentMethod,
     voucher_code: payload.voucherCode || null,
     order_type: payload.orderType || "normal",
-    preorder_release_at: payload.orderType === "preorder" ? payload.preorderReleaseAt || null : null,
-    booking_expires_at: payload.orderType === "booking" ? payload.bookingExpiresAt || null : null,
+    preorder_release_at: payload.preorderReleaseAt || null,
+    scheduled_at: payload.orderType === "booking" ? payload.scheduledAt || null : null,
   };
 
   if (Array.isArray(cartItemIds) && cartItemIds.length) {

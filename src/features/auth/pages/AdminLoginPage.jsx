@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
 export default function AdminLoginPage() {
-  const { loginWithPassword, logout, loading, error, clearError } = useAuth();
+  const { loginWithPassword, logout, loading, clearError } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [localError, setLocalError] = useState("");
@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
                   <input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} className="h-full w-full bg-transparent text-sm outline-none" placeholder="Masukkan password" required />
                 </div>
               </label>
-              {(localError || error) ? <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{localError || error}</div> : null}
+              {localError ? <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{localError}</div> : null}
               <button type="submit" disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 bg-teal-600 text-sm font-black text-white hover:bg-teal-700 disabled:opacity-60">
                 <span className={`material-symbols-outlined text-[19px] ${loading ? "animate-spin" : ""}`}>{loading ? "progress_activity" : "login"}</span>
                 {loading ? "Memverifikasi..." : "Masuk sebagai Admin"}

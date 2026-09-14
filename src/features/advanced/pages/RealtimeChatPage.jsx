@@ -393,10 +393,13 @@ export default function RealtimeChatPage() {
                   const mine = String(item.sender_id) === String(user?.id);
                   return (
                     <div key={item.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[78%] border px-4 py-3 text-sm ${mine ? "border-orange-500 bg-orange-500 text-white" : item.message_type === "announcement" ? "border-amber-200 bg-amber-50 text-amber-950" : "border-slate-200 bg-white text-slate-800"}`}>
+                      <div className={`max-w-[78%] border px-4 py-3 text-sm ${mine ? "border-orange-500 bg-orange-500 text-white" : item.message_type === "system" ? "border-sky-200 bg-sky-50 text-sky-950" : item.message_type === "announcement" ? "border-amber-200 bg-amber-50 text-amber-950" : "border-slate-200 bg-white text-slate-800"}`}>
                         <div className="mb-1 flex items-center gap-1.5 text-[11px] font-extrabold opacity-75">
                           {item.sender_identity_type === "store" ? <span className="material-symbols-outlined text-[14px]">store</span> : null}
-                          <span>{item.sender_name || (mine ? "Anda" : "User")}</span>
+                          {item.message_type === "system" ? (
+                            <span className="material-symbols-outlined text-[14px]">notifications</span>
+                          ) : null}
+                          <span>{item.message_type === "system" ? "Sistem" : item.sender_name || (mine ? "Anda" : "User")}</span>
                         </div>
                         <p className="whitespace-pre-wrap break-words">{item.message}</p>
                         <p className="mt-1 text-right text-[10px] opacity-70">{item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : ""}</p>
@@ -406,8 +409,10 @@ export default function RealtimeChatPage() {
                 })}
                 <div ref={bottomRef} />
               </div>
-              {active.type === "announcement" ? (
-                <div className="border-t border-slate-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">Pengumuman bersifat satu arah dan hanya dapat dikirim oleh admin.</div>
+              {active.type === "announcement" || active.type === "system" ? (
+                <div className="border-t border-slate-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+                  {active.type === "system" ? "Pesan sistem satu arah untuk informasi otomatis toko Anda." : "Pengumuman bersifat satu arah dan hanya dapat dikirim oleh admin."}
+                </div>
               ) : (
                 <form onSubmit={send} className="flex gap-2 border-t border-slate-200 bg-white p-4">
                   <Input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Tulis pesan" required autoComplete="off" />

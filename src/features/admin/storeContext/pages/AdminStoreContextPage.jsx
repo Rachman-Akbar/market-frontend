@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { Card, CardContent } from "@/shared/components/ui/Card";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
@@ -27,9 +28,16 @@ const ORDER_TABS = [
 
 export default function AdminStoreContextPage() {
   const [search] = useState("");
-  const [storeId, setStoreId] = useState("");
+  const [searchParams] = useSearchParams();
+  const paramStoreId = searchParams.get("storeId") || "";
+  const [storeId, setStoreId] = useState(paramStoreId);
   const [period, setPeriod] = useState("monthly");
   const [tab, setTab] = useState("stats");
+
+  useEffect(() => {
+    const next = searchParams.get("storeId") || "";
+    if (next) setStoreId(next);
+  }, [searchParams]);
 
   const storesQuery = useStoreContextStores({ search: search || undefined, per_page: 100 });
   const stores = storesQuery.data?.rows || [];

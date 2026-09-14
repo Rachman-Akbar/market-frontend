@@ -21,6 +21,7 @@ import {
   useSellerProductCategories,
   useUpdateSellerProduct,
 } from "@/features/seller/product/services/sellerProductService";
+import { advancedError, useSaveProductCosting } from "@/features/advanced/services/advancedMarketplaceService";
 
 function createInitialValues(product) {
   if (!product) {
@@ -37,9 +38,11 @@ function createInitialValues(product) {
       price: "",
       stock: 0,
       poStock: 0,
+      maxOrderQty: 999999,
       thumbnail: "",
       images: [],
-      variants: [{ clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, poStock: 0, values: [] }],
+      variants: [{ clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, poStock: 0, maxOrderQty: 999999, values: [] }],
+      costing: { materials: [], labor_cost: 0, overhead_cost: 0, other_cost: 0, margin_percent: 30, selling_price: 0, apply_to_variants: false },
     };
   }
 
@@ -56,6 +59,7 @@ function createInitialValues(product) {
     price: product.price,
     stock: product.stock,
     poStock: product.poStock ?? 0,
+    maxOrderQty: product.maxOrderQty ?? 999999,
     thumbnail: product.thumbnail,
     images: product.images.length
       ? product.images.map((image) => ({ ...image, clientId: image.clientId || createClientId("image") }))
@@ -69,7 +73,7 @@ function createInitialValues(product) {
             clientId: value.clientId || createClientId("attribute-value"),
           })),
         }))
-      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, poStock: product.poStock ?? 0, values: [] }],
+      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, poStock: product.poStock ?? 0, maxOrderQty: product.maxOrderQty ?? 999999, values: [] }],
   };
 }
 
@@ -99,7 +103,7 @@ function getErrorTabs(errors) {
   if (errors.storeId || errors.name || errors.categoryId) tabs.push("general");
   if (errors.variants) tabs.push("variant");
   if (errors.images || errors.thumbnail) tabs.push("images");
-  if (errors.price || errors.stock || errors.poStock || errors.variantStock) tabs.push("stock");
+  if (errors.price || errors.stock || errors.poStock || errors.maxOrderQty || errors.variantStock) tabs.push("stock");
   return tabs;
 }
 
@@ -131,6 +135,7 @@ export function SellerProductEditor({
   const attributeOptions = attributes || attributesQuery.data || [];
   const createMutation = useCreateMutation();
   const updateMutation = useUpdateMutation();
+  const saveProductCosting = useSaveProductCosting();
   const isAdmin = portal === "admin";
 
   useEffect(() => {
@@ -178,6 +183,7 @@ export function SellerProductEditor({
     price: values.mode === "simple" ? [required("Harga"), minimumNumber("Harga", 1)] : () => "",
     stock: values.mode === "simple" ? [required("Stok"), minimumNumber("Stok", 0)] : () => "",
     poStock: values.mode === "simple" ? minimumNumber("Stok PO", 0) : () => "",
+    maxOrderQty: values.mode === "simple" ? minimumNumber("Batas item per pesanan", 1) : () => "",
   }), [isAdmin, values.mode]);
 
   const setField = (field, value) => {
@@ -197,6 +203,7 @@ export function SellerProductEditor({
           price: firstVariant.price ?? current.price,
           stock: firstVariant.stock ?? current.stock,
           poStock: firstVariant.poStock ?? current.poStock,
+          maxOrderQty: firstVariant.maxOrderQty ?? current.maxOrderQty ?? 999999,
         };
       }
 
@@ -210,6 +217,7 @@ export function SellerProductEditor({
                 price: variant.price || current.price,
                 stock: variant.stock || current.stock,
                 poStock: variant.poStock ?? current.poStock,
+                maxOrderQty: variant.maxOrderQty ?? current.maxOrderQty ?? 999999,
               }
             : variant)
           : [{
@@ -220,6 +228,7 @@ export function SellerProductEditor({
               price: current.price,
               stock: current.stock,
               poStock: current.poStock,
+              maxOrderQty: current.maxOrderQty ?? 999999,
               values: [],
             }];
 
@@ -258,8 +267,8 @@ export function SellerProductEditor({
 
       if (values.variants.some((variant) => String(variant.price ?? "").trim() === "" || String(variant.stock ?? "").trim() === "")) {
         nextErrors.variantStock = "Harga dan stok setiap variant wajib diisi.";
-      } else if (values.variants.some((variant) => Number(variant.price) <= 0 || Number(variant.stock) < 0 || Number(variant.poStock) < 0)) {
-        nextErrors.variantStock = "Harga setiap variant harus lebih dari 0 dan stok tidak boleh kurang dari 0.";
+      } else if (values.variants.some((variant) => Number(variant.price) <= 0 || Number(variant.stock) < 0 || Number(variant.poStock) < 0 || Number(variant.maxOrderQty ? variant.maxOrderQty : 999999) < 1)) {
+        nextErrors.variantStock = "Harga setiap variant harus lebih dari 0, stok tidak boleh negatif, dan batas item per pesanan minimal 1.";
       }
     }
 
@@ -275,12 +284,41 @@ export function SellerProductEditor({
       const saved = product
         ? await updateMutation.mutateAsync({ id: product.id, values })
         : await createMutation.mutateAsync(values);
+
+      if (!product && hasCosting(values.costing)) {
+        try {
+          const costingRows = values.costing.materials.filter((row) => String(row.raw_material_id || "").trim() !== "");
+          await saveProductCosting.mutateAsync({
+            productId: saved.id,
+            values: {
+              materials: costingRows.map((row) => ({ raw_material_id: Number(row.raw_material_id), quantity: Number(row.quantity || 0) })),
+              labor_cost: Number(values.costing.labor_cost || 0),
+              overhead_cost: Number(values.costing.overhead_cost || 0),
+              other_cost: Number(values.costing.other_cost || 0),
+              margin_percent: Number(values.costing.margin_percent || 0),
+              selling_price: String(values.costing.selling_price || "").trim() !== "" ? Number(values.costing.selling_price) : null,
+              apply_to_variants: false,
+            },
+          });
+          notifications.push({ type: "success", title: "HPP tersimpan", message: "Resep, HPP, dan harga jual produk berhasil disimpan." });
+        } catch (costingError) {
+          setMessage(advancedError(costingError, "Produk berhasil dibuat, tetapi HPP gagal disimpan."));
+          return;
+        }
+      }
+
       onSaved?.(saved);
       onClose?.();
     } catch (error) {
       setMessage(getError(error));
     }
   };
+
+  function hasCosting(costing) {
+    const hasMaterials = (costing.materials || []).some((row) => String(row.raw_material_id || "").trim() !== "");
+    const hasVariableCost = [costing.labor_cost, costing.overhead_cost, costing.other_cost].some((value) => Number(value || 0) > 0);
+    return hasMaterials || hasVariableCost || String(costing.selling_price || "").trim() !== "";
+  }
 
   return (
     <CrudDialog
@@ -465,10 +503,16 @@ export function SellerProductEditor({
           ) : null}
 
           {activeSection === "stock" ? (
-            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} poStock={values.poStock} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
+            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} poStock={values.poStock} maxOrderQty={values.maxOrderQty} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
           ) : null}
 
-          {activeSection === "costing" ? <ProductCostingFields productId={product?.id} /> : null}
+          {activeSection === "costing" ? (
+            product ? (
+              <ProductCostingFields productId={product.id} />
+            ) : (
+              <ProductCostingFields productId={null} value={values.costing} onChange={(costing) => setField("costing", costing)} />
+            )
+          ) : null}
 
           {message ? <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>

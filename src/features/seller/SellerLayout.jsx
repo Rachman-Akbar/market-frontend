@@ -33,7 +33,7 @@ export default function SellerLayout() {
   return (
     <PanelTabsProvider items={SELLER_NAV_ITEMS}>
       <div className="min-h-screen bg-slate-50">
-        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[248px_minmax(0,1fr)]">
+        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[76px_minmax(0,1fr)]">
           <PanelSidebar items={SELLER_NAV_ITEMS} homeHref="/seller" title="Ziip Store" sidebarClassName="border-emerald-950/10 bg-[#102a43]" activeClassName="bg-emerald-400 text-slate-950" showHomeLink={false} showMarketplaceLink={false} />
           <div className="min-w-0 max-w-full overflow-x-hidden">
             <PanelHeader eyebrow="Seller Center" title={store?.name || "Official Store"} userName={user?.name || "Seller"} roleLabel="Store Owner" actionHref="/seller/store-preview" actionLabel="Preview Toko" accentTextClassName="text-emerald-700" avatarClassName="bg-emerald-500" actionClassName="hover:bg-emerald-50 hover:text-emerald-700" notificationClassName="hover:bg-emerald-50 hover:text-emerald-700" mobileNavigation={<PanelMobileNavigation items={SELLER_NAV_ITEMS} activeClassName="bg-emerald-50 text-emerald-700" />} />

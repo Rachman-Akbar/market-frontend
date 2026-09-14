@@ -10,7 +10,7 @@ function normalizeCode(value) {
 }
 
 export default function ResetPasswordPage() {
-  const { resetPasswordWithCode, loading, error, clearError } = useAuth();
+  const { resetPasswordWithCode, loading, clearError } = useAuth();
   const [searchParams] = useSearchParams();
   const email = searchParams.get("email") || "";
   const targetEmail = String(email).trim();
@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState("");
   const [resendMsg, setResendMsg] = useState("");
   const [resending, setResending] = useState(false);
-  const message = localError || error;
+  const message = localError;
 
   const handleResend = async () => {
     if (!targetEmail) return;

@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { advancedError, useDeleteFinance, useFinance, useFinancePaymentHistory, useRecordFinancePayment, useSaveFinance } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
+import FinanceChartPanel from "@/features/advanced/components/FinanceChartPanel";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
@@ -42,6 +43,7 @@ function typeLabel(type) {
 
 export default function FinancePage({ mode = "cashflow" }) {
   const allowedTypes = mode === "cashflow" ? ["income", "expense"] : ["receivable", "payable"];
+  const [listTab, setListTab] = useState("list");
   const [type, setType] = useState(allowedTypes[0]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -205,24 +207,29 @@ export default function FinancePage({ mode = "cashflow" }) {
           bulkActions={spreadsheet.actions}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid
-            columns={columns}
-            rows={rows}
-            emptyText={listQuery.isLoading ? "" : `${typeLabel(type)} belum tersedia.`}
-            selectionEnabled={selection.enabled}
-            selectedIds={selection.selectedIds}
-            allSelected={selection.allSelected}
-            onToggleRow={selection.toggleRow}
-            onToggleAll={selection.toggleAll}
-            actions={(row) => (
-              <div className="flex justify-end gap-1">
-                {mode !== "cashflow" && Number(row.outstanding_amount) > 0 ? <Button size="sm" variant="outline" onClick={() => recordPayment(row)}>Bayar</Button> : null}
-                <Button size="sm" variant="outline" onClick={() => editor.edit(row)}>Edit</Button>
-                <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(row)}>Hapus</Button>
-              </div>
-            )}
-          />
-          {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+          <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{[["list", "List"], ["grafik", "Grafik"]].map(([id, label]) => <button key={id} type="button" onClick={() => setListTab(id)} className={`h-9 px-4 text-sm font-bold ${listTab === id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{label}</button>)}</div>
+          {listTab === "grafik" ? <FinanceChartPanel mode={mode} /> : (
+            <>
+              <DataGrid
+                columns={columns}
+                rows={rows}
+                emptyText={listQuery.isLoading ? "" : `${typeLabel(type)} belum tersedia.`}
+                selectionEnabled={selection.enabled}
+                selectedIds={selection.selectedIds}
+                allSelected={selection.allSelected}
+                onToggleRow={selection.toggleRow}
+                onToggleAll={selection.toggleAll}
+                actions={(row) => (
+                  <div className="flex justify-end gap-1">
+                    {mode !== "cashflow" && Number(row.outstanding_amount) > 0 ? <Button size="sm" variant="outline" onClick={() => recordPayment(row)}>Bayar</Button> : null}
+                    <Button size="sm" variant="outline" onClick={() => editor.edit(row)}>Edit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(row)}>Hapus</Button>
+                  </div>
+                )}
+              />
+              {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+            </>
+          )}
         </ModuleFrame>
       ) : null}
 

@@ -19,6 +19,20 @@ const CartContext = createContext(null);
 const CART_KEY = ["order", "cart"];
 const QUANTITY_SYNC_DELAY = 180;
 
+function resolveQuantityCap(item = {}) {
+  const stock = Number(item.availableStock ?? item.stock ?? 0);
+  const maxOrder = Number(item.maxOrderQty ?? 0);
+
+  if (stock > 0 && maxOrder > 0) {
+    return Math.min(stock, maxOrder);
+  }
+  if (stock > 0) {
+    return stock;
+  }
+
+  return maxOrder > 0 ? maxOrder : 0;
+}
+
 function normalizeCartItem(item = {}) {
   const attributes =
     item.attributes && typeof item.attributes === "object"
@@ -40,6 +54,10 @@ function normalizeCartItem(item = {}) {
     quantity: Number(item.quantity || 0),
     subtotal: Number(item.subtotal || 0),
     stock: Number(item.stock ?? 0),
+    availableStock: Number(
+      item.available_stock ?? item.availableStock ?? item.stock ?? 0,
+    ),
+    maxOrderQty: Number(item.max_order_qty ?? item.maxOrderQty ?? 0),
     imageUrl: item.thumbnail || item.image || item.image_url || "",
     attributes,
   };
@@ -319,9 +337,9 @@ export function CartProvider({ children }) {
         const nextItems = current.items.map((item) => {
           if (Number(item.variantId) !== id) return item;
 
-          const stock = Number(item.stock || 0);
-          const resolvedQuantity = stock > 0
-            ? Math.min(nextQuantity, stock)
+          const cap = resolveQuantityCap(item);
+          const resolvedQuantity = cap > 0
+            ? Math.min(nextQuantity, cap)
             : nextQuantity;
 
           return {
@@ -380,9 +398,16 @@ export function CartProvider({ children }) {
         const existing = base.items?.find((row) => Number(row.variantId) === variantId);
 
         if (existing) {
-          const stock = Number(existing.stock || item.stock || 0);
-          const nextQuantity = stock > 0
-            ? Math.min(stock, Number(existing.quantity || 0) + quantity)
+          const cap = resolveQuantityCap({
+            ...existing,
+            stock: Number(existing.stock || item.stock || 0),
+            availableStock: Number(
+              existing.availableStock ?? item.availableStock ?? item.stock ?? 0,
+            ),
+            maxOrderQty: Number(existing.maxOrderQty ?? item.maxOrderQty ?? 0),
+          });
+          const nextQuantity = cap > 0
+            ? Math.min(cap, Number(existing.quantity || 0) + quantity)
             : Number(existing.quantity || 0) + quantity;
           const nextItems = base.items.map((row) =>
             Number(row.variantId) === variantId

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import { useOrders } from "@/features/order/ordering/orderService";
 import { useTransactionHistory } from "@/features/ppob/services/ppobService";
-import { formatPrice, formatRupiah } from "@/shared/utils/utils";
+import { formatPrice } from "@/shared/utils/utils";
 import { Badge } from "@/shared/components/ui/Badge";
 
 const TYPE_LABELS = {
@@ -162,7 +162,7 @@ export default function PaymentsPage() {
                         {labelStatus(tx.status)}
                       </td>
                       <td className="px-2 py-4 text-right font-semibold text-slate-950">
-                        {formatRupiah ? formatRupiah(tx.total) : formatPrice(tx.total)}
+                        {formatPrice(tx.total)}
                       </td>
                     </tr>
                   );

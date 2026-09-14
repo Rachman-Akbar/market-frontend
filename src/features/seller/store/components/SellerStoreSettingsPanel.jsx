@@ -118,8 +118,13 @@ export function SellerStoreSettingsPanel({ store }) {
     [],
   );
 
-  const change = (key) => (event) =>
-    setForm((current) => ({ ...current, [key]: event.target.value }));
+  const change = (key) => (valueOrEvent) => {
+    const nextValue =
+      valueOrEvent && typeof valueOrEvent === "object" && valueOrEvent.target
+        ? valueOrEvent.target.value
+        : valueOrEvent;
+    setForm((current) => ({ ...current, [key]: nextValue }));
+  };
 
   const buildAddress = () => ({
     label: "Alamat Toko",

@@ -266,7 +266,7 @@ export default function SellerOnboardingPage() {
     ],
   );
 
-  const change = (key) => (event) => {
+  const change = (key) => (valueOrEvent) => {
     hasInteractedRef.current = true;
     setMessage("");
     const resetDestination = [
@@ -276,10 +276,14 @@ export default function SellerOnboardingPage() {
       "subdistrict",
       "postal_code",
     ].includes(key);
+    const nextValue =
+      valueOrEvent && typeof valueOrEvent === "object" && valueOrEvent.target
+        ? valueOrEvent.target.value
+        : valueOrEvent;
 
     setForm((current) => ({
       ...current,
-      [key]: event.target.value,
+      [key]: nextValue,
       ...(resetDestination ? { komerce_destination_id: "" } : {}),
     }));
   };

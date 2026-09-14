@@ -14,7 +14,7 @@ function normalizeOrder(row = {}) {
     orderNumber: row.order_number || row.orderNumber || "",
     orderType: row.order_type || row.orderType || "normal",
     preorderReleaseAt: row.preorder_release_at || row.preorderReleaseAt || null,
-    bookingExpiresAt: row.booking_expires_at || row.bookingExpiresAt || null,
+    scheduledAt: row.scheduled_at || row.scheduledAt || null,
     receivedAt: row.received_at || row.receivedAt || null,
     subOrderNumber: row.sub_order_number || row.subOrderNumber || "",
     storeId: Number(row.store_id || row.storeId || 0),

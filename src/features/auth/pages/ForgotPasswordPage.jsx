@@ -5,11 +5,11 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 
 export default function ForgotPasswordPage() {
-  const { forgotPassword, loading, error, clearError } = useAuth();
+  const { forgotPassword, loading, clearError } = useAuth();
   const [email, setEmail] = useState("");
   const [localError, setLocalError] = useState("");
   const [success, setSuccess] = useState("");
-  const message = localError || error;
+  const message = localError;
 
   const handleSubmit = async (event) => {
     event.preventDefault();

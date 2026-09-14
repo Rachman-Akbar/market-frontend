@@ -7,7 +7,7 @@ import {
   subscribeAdminMode,
 } from "@/features/admin/adminMode";
 import AdminDashboardPage from "@/features/admin/dashboard/pages/AdminDashboardPage";
-import AdminStoreContextPage from "@/features/admin/storeContext/pages/AdminStoreContextPage";
+import AdminMonitorOverviewPage from "@/features/admin/dashboard/pages/AdminMonitorOverviewPage";
 
 function readMode() {
   return typeof window !== "undefined" ? getAdminMode() : "seller";
@@ -94,7 +94,7 @@ export default function AdminHomePage() {
       ) : mode === "seller" ? (
         <AdminDashboardPage />
       ) : (
-        <AdminStoreContextPage />
+        <AdminMonitorOverviewPage />
       )}
     </div>
   );

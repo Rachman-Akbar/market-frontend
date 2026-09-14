@@ -10,12 +10,14 @@ import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
+import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
 
 export default function SellerOrdersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
+  const [printRow, setPrintRow] = useState(null);
   const deferredQuery = useDeferredValue(query.trim());
   const ordersQuery = useSellerOrders({ page, per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(status ? { status } : {}) });
   const updateMutation = useUpdateOrderStatus();
@@ -107,6 +109,7 @@ export default function SellerOrdersPage() {
               columns={columns}
               portal="seller"
               pendingId={updateMutation.variables?.id}
+              onPrint={setPrintRow}
               visibleSet={columnVisibility.visibleSet}
               selectionEnabled={selection.enabled}
               selectedIds={selection.selectedIds}
@@ -128,6 +131,7 @@ export default function SellerOrdersPage() {
         </>
       ) : null}
       <SpreadsheetOperationPanel workspace={spreadsheet} />
+      {printRow ? <OrderPrintSheet row={printRow} onClose={() => setPrintRow(null)} /> : null}
     </SellerPanelShell>
   );
 }

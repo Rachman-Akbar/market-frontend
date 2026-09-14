@@ -79,3 +79,44 @@ export function useAdminDashboard() {
     staleTime: 60000,
   });
 }
+
+const monitorKeys = {
+  overview: (period) => ["admin", "monitor", "overview", period],
+};
+
+export async function getAdminMonitorOverview(period = "monthly") {
+  const [statsResponse, topStoresResponse, trendResponse] = await Promise.all([
+    apiClient.get("/api/v1/admin/dashboard/stats", { params: { period } }),
+    apiClient.get("/api/v1/admin/dashboard/top-stores", { params: { period, limit: 10 } }),
+    apiClient.get("/api/v1/admin/dashboard/order-trend", { params: { period } }),
+  ]);
+
+  const stats = statsResponse.data?.data ?? statsResponse.data ?? {};
+  const topStores = Array.isArray(topStoresResponse.data?.data)
+    ? topStoresResponse.data.data
+    : Array.isArray(topStoresResponse.data)
+      ? topStoresResponse.data
+      : (topStoresResponse.data?.data?.data || []);
+  const trendData = trendResponse.data?.data ?? trendResponse.data ?? {};
+
+  return {
+    period,
+    start_date: stats.start_date || trendData.start_date || null,
+    stats,
+    topStores: topStores.map((store) => ({
+      store_id: Number(store.store_id || 0),
+      store_name: store.store_name || "Toko",
+      order_count: Number(store.order_count || 0),
+      revenue: Number(store.revenue || 0),
+    })),
+    trend: Array.isArray(trendData.trend) ? trendData.trend : [],
+  };
+}
+
+export function useAdminMonitorOverview(period = "monthly") {
+  return useQuery({
+    queryKey: monitorKeys.overview(period),
+    queryFn: () => getAdminMonitorOverview(period),
+    staleTime: 60000,
+  });
+}

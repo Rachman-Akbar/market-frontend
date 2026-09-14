@@ -144,6 +144,16 @@ export function useDeleteFinance() {
   return useMutationHelper((id) => remove(`/api/v1/seller/finance/${id}`), advancedKeys.finance);
 }
 
+export function useFinanceDashboard(params = {}) {
+  return useQuery({
+    queryKey: [...advancedKeys.finance, "dashboard", params],
+    queryFn: async () => {
+      const response = await apiClient.get("/api/v1/seller/finance/dashboard", { params });
+      return data(response.data);
+    },
+  });
+}
+
 export function useStockMovements(params = {}) {
   return useQuery({ queryKey: [...advancedKeys.stock, params], queryFn: () => getList("/api/v1/seller/stock/movements", params) });
 }

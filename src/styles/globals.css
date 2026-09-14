@@ -143,3 +143,40 @@ body,
     background-color: transparent;
   }
 }
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .order-print-overlay {
+    position: absolute !important;
+    inset: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .order-print-overlay > * {
+    box-shadow: none !important;
+    max-height: none !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #print-area,
+  #print-area * {
+    visibility: visible;
+  }
+
+  #print-area {
+    position: static;
+    width: 100%;
+    color: #111827;
+  }
+}

@@ -64,7 +64,7 @@ function AdminLayoutContent() {
   return (
     <PanelTabsProvider items={ADMIN_NAV_ITEMS}>
       <div className="min-h-screen bg-slate-50">
-        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[248px_minmax(0,1fr)]">
+        <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[76px_minmax(0,1fr)]">
           <PanelSidebar items={ADMIN_NAV_ITEMS} homeHref="/admin" title="Admin Control" sidebarClassName="border-slate-800/20 bg-[#0f172a]" activeClassName="bg-teal-400 text-slate-950" badges={realtime.badges} />
           <div className="min-w-0 max-w-full overflow-x-hidden">
             <PanelHeader
