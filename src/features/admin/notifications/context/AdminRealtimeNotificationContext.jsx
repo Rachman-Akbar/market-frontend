@@ -6,6 +6,8 @@ import {
   fetchAdminNotificationState,
   markAdminNotificationRead,
   markAllAdminNotificationsRead,
+  deleteAdminNotification,
+  deleteAllAdminNotifications,
   normalizeRealtimeAdminNotification,
 } from "@/features/admin/notifications/services/adminNotificationService";
 
@@ -148,6 +150,27 @@ export function AdminRealtimeNotificationProvider({ children }) {
     }
   }, [applyState]);
 
+  const deleteOne = useCallback(async (id) => {
+    setNotifications((current) => current.filter((item) => Number(item.id) !== Number(id)));
+    try {
+      await deleteAdminNotification(id);
+    } catch {
+      return;
+    }
+    reconcileState();
+  }, [reconcileState]);
+
+  const clearAll = useCallback(async () => {
+    try {
+      await deleteAllAdminNotifications();
+    } catch {
+      return;
+    }
+    setNotifications([]);
+    setModuleCounts({});
+    setUnreadCount(0);
+  }, []);
+
   useEffect(() => {
     if (!open || activeRole !== "admin") return;
     refresh();
@@ -173,8 +196,10 @@ export function AdminRealtimeNotificationProvider({ children }) {
     setOpen,
     markRead,
     markAllRead,
+    deleteOne,
+    clearAll,
     refresh,
-  }), [badges, connectionStatus, loading, markAllRead, markRead, moduleCounts, notifications, open, refresh, unreadCount]);
+  }), [badges, clearAll, connectionStatus, deleteOne, loading, markAllRead, markRead, moduleCounts, notifications, open, refresh, unreadCount]);
 
   return <AdminRealtimeNotificationContext.Provider value={value}>{children}</AdminRealtimeNotificationContext.Provider>;
 }

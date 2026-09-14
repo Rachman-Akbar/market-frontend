@@ -6,6 +6,7 @@ import { Input } from "@/shared/components/ui/Input";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { SkeletonProductGrid, SkeletonStatGrid, SkeletonTable } from "@/shared/components/feedback/Skeleton";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
+import { DonutChart } from "@/shared/components/charts/chartKit";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import {
   usePpobAdminDashboard,
@@ -15,9 +16,14 @@ import {
   usePpobAdminOperators,
   usePpobAdminPricingRules,
   useCreatePpobAdminProduct,
+  useUpdatePpobAdminProduct,
   useDeletePpobAdminProduct,
   useCreatePpobAdminOperator,
+  useUpdatePpobAdminOperator,
+  useDeletePpobAdminOperator,
   useCreatePpobAdminPricingRule,
+  useUpdatePpobAdminPricingRule,
+  useDeletePpobAdminPricingRule,
   getPpobAdminError,
 } from "@/features/ppob/services/ppobService";
 import {
@@ -318,11 +324,21 @@ function DashboardTab() {
             <Card>
               <CardContent className="pt-6">
                 <h3 className="mb-3 text-base font-extrabold text-slate-950">Per Kategori</h3>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <DonutChart
+                  size={150}
+                  items={data.by_category.map((c, index) => ({
+                    label: CATEGORY_LABELS[c.category] || c.category,
+                    value: c.revenue,
+                    color: ["#14b8a6", "#818cf8", "#a78bfa", "#fb7185", "#f59e0b", "#38bdf8", "#f97316", "#6366f1", "#22c55e"][index % 9],
+                  }))}
+                  format={formatRupiah}
+                  emptyText="Belum ada transaksi."
+                />
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {data.by_category.map((c) => (
-                    <div key={c.category} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-                      <span className="font-semibold text-slate-700">{CATEGORY_LABELS[c.category] || c.category}</span>
-                      <span className="text-sm text-slate-500">{c.count} transaksi • {formatRupiah(c.revenue)}</span>
+                    <div key={c.category} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                      <span className="font-bold text-slate-700">{CATEGORY_LABELS[c.category] || c.category}</span>
+                      <span className="text-slate-500">{c.count} transaksi</span>
                     </div>
                   ))}
                 </div>
@@ -414,37 +430,65 @@ function FinanceTab() {
 function ProductsTab({ notifications }) {
   const [category, setCategory] = useState("pulsa");
   const [isOpen, setIsOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const products = usePpobAdminProducts({ category });
   const operatorsQuery = usePpobAdminOperators();
   const createMut = useCreatePpobAdminProduct();
+  const updateMut = useUpdatePpobAdminProduct();
   const deleteMut = useDeletePpobAdminProduct();
 
   const operators = operatorsQuery.data?.rows || [];
 
   const openCreate = () => {
+    setEditing(null);
     setForm({ category, product_type: "prepaid", provider_price: 0, admin_fee: 0, margin: 0, commission: 0, operator_id: "" });
     setIsOpen(true);
   };
 
+  const openEdit = (p) => {
+    setEditing(p);
+    setForm({
+      category: p.category || category,
+      product_type: p.productType || "prepaid",
+      provider_product_code: p.providerProductCode || "",
+      name: p.name || "",
+      brand: p.brand || "",
+      nominal: p.nominal || "",
+      operator_id: p.operatorId ? String(p.operatorId) : "",
+      provider_price: p.providerPrice || 0,
+      admin_fee: p.adminFee || 0,
+      margin: p.margin || 0,
+      commission: p.commission || 0,
+      icon_url: p.iconUrl || "",
+      is_available: p.isAvailable,
+    });
+    setIsOpen(true);
+  };
+
   const save = async () => {
+    const payload = {
+      category: form.category,
+      product_type: form.product_type,
+      name: form.name,
+      brand: form.brand || null,
+      nominal: form.nominal || null,
+      operator_id: form.operator_id ? Number(form.operator_id) : null,
+      provider_price: Number(form.provider_price || 0),
+      admin_fee: Number(form.admin_fee || 0),
+      margin: Number(form.margin || 0),
+      commission: Number(form.commission || 0),
+      icon_url: form.icon_url || null,
+    };
     try {
-      await createMut.mutateAsync({
-        category: form.category,
-        product_type: form.product_type,
-        provider_product_code: form.provider_product_code,
-        name: form.name,
-        brand: form.brand || null,
-        nominal: form.nominal || null,
-        operator_id: form.operator_id ? Number(form.operator_id) : null,
-        provider_price: Number(form.provider_price || 0),
-        admin_fee: Number(form.admin_fee || 0),
-        margin: Number(form.margin || 0),
-        commission: Number(form.commission || 0),
-        icon_url: form.icon_url || null,
-      });
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, values: { ...payload, is_available: form.is_available } });
+        notifications.push({ type: "success", title: "Produk PPOB", message: "Produk berhasil diperbarui." });
+      } else {
+        await createMut.mutateAsync({ ...payload, provider_product_code: form.provider_product_code });
+        notifications.push({ type: "success", title: "Produk PPOB", message: "Produk berhasil dibuat." });
+      }
       setIsOpen(false);
-      notifications.push({ type: "success", title: "Produk PPOB", message: "Produk berhasil dibuat." });
     } catch (e) {
       notifications.push({ type: "error", title: "Produk PPOB", message: getPpobAdminError(e) });
     }
@@ -506,9 +550,14 @@ function ProductsTab({ notifications }) {
                   <td className="py-2 pr-3 font-semibold text-slate-900">{formatRupiah(p.sellingPrice)}</td>
                   <td className="py-2 pr-3 text-slate-600">{formatRupiah(p.margin)}</td>
                   <td className="py-2">
-                    <button type="button" onClick={() => remove(p.id, p.name)} className="inline-flex items-center gap-1 text-red-600 hover:text-red-800">
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => openEdit(p)} title="Edit" className="text-slate-500 hover:text-teal-700">
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                      </button>
+                      <button type="button" onClick={() => remove(p.id, p.name)} title="Hapus" className="text-red-600 hover:text-red-800">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -518,12 +567,12 @@ function ProductsTab({ notifications }) {
       )}
 
       {isOpen && (
-        <Modal title="Tambah Produk PPOB" onClose={() => setIsOpen(false)} onSave={save} pending={createMut.isPending}>
+        <Modal title={editing ? "Edit Produk PPOB" : "Tambah Produk PPOB"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending}>
           <Field label="Nama Produk (wajib)">
             <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Telkomsel 10rb" />
           </Field>
           <Field label="Kode Produk Provider (wajib, unik)">
-            <Input value={form.provider_product_code || ""} onChange={(e) => setForm({ ...form, provider_product_code: e.target.value })} placeholder="e.g. PLSR10" />
+            <Input value={form.provider_product_code || ""} onChange={(e) => setForm({ ...form, provider_product_code: e.target.value })} placeholder="e.g. PLSR10" disabled={Boolean(editing)} />
           </Field>
           <Field label="Tipe Produk">
             <SearchableSelect
@@ -568,29 +617,62 @@ function ProductsTab({ notifications }) {
 
 function OperatorsTab({ notifications }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const operators = usePpobAdminOperators();
   const createMut = useCreatePpobAdminOperator();
+  const updateMut = useUpdatePpobAdminOperator();
+  const deleteMut = useDeletePpobAdminOperator();
 
   const rows = operators.data?.rows || [];
 
   const openCreate = () => {
+    setEditing(null);
     setForm({ category: "pulsa" });
     setIsOpen(true);
   };
 
+  const openEdit = (o) => {
+    setEditing(o);
+    setForm({
+      name: o.name || "",
+      slug: o.slug || "",
+      category: o.category || "pulsa",
+      brand: o.brand || "",
+      operator_prefix: o.operatorPrefix || "",
+      icon_url: o.iconUrl || "",
+      is_active: o.isActive,
+    });
+    setIsOpen(true);
+  };
+
   const save = async () => {
+    const payload = {
+      name: form.name,
+      category: form.category,
+      brand: form.brand || null,
+      operator_prefix: form.operator_prefix || null,
+      icon_url: form.icon_url || null,
+    };
     try {
-      await createMut.mutateAsync({
-        name: form.name,
-        slug: form.slug,
-        category: form.category,
-        brand: form.brand || null,
-        operator_prefix: form.operator_prefix || null,
-        icon_url: form.icon_url || null,
-      });
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, values: { ...payload, is_active: form.is_active } });
+        notifications.push({ type: "success", title: "Operator PPOB", message: "Operator berhasil diperbarui." });
+      } else {
+        await createMut.mutateAsync({ ...payload, slug: form.slug });
+        notifications.push({ type: "success", title: "Operator PPOB", message: "Operator berhasil dibuat." });
+      }
       setIsOpen(false);
-      notifications.push({ type: "success", title: "Operator PPOB", message: "Operator berhasil dibuat." });
+    } catch (e) {
+      notifications.push({ type: "error", title: "Operator PPOB", message: getPpobAdminError(e) });
+    }
+  };
+
+  const remove = async (id, name) => {
+    if (!confirm(`Hapus operator "${name}"?`)) return;
+    try {
+      await deleteMut.mutateAsync(id);
+      notifications.push({ type: "success", title: "Operator PPOB", message: "Operator berhasil dihapus." });
     } catch (e) {
       notifications.push({ type: "error", title: "Operator PPOB", message: getPpobAdminError(e) });
     }
@@ -612,9 +694,17 @@ function OperatorsTab({ notifications }) {
               {rows.map((o) => (
                 <div key={o.id} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
                   <span className="material-symbols-outlined text-2xl text-slate-400">sim_card</span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-slate-900">{o.name}</p>
                     <p className="text-xs text-slate-500">{CATEGORY_LABELS[o.category] || o.category}{o.operatorPrefix ? ` • ${o.operatorPrefix}` : ""}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => openEdit(o)} title="Edit" className="p-1 text-slate-500 hover:text-teal-700">
+                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                    </button>
+                    <button type="button" onClick={() => remove(o.id, o.name)} title="Hapus" className="p-1 text-red-600 hover:text-red-800">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -624,12 +714,12 @@ function OperatorsTab({ notifications }) {
       )}
 
       {isOpen && (
-        <Modal title="Tambah Operator PPOB" onClose={() => setIsOpen(false)} onSave={save} pending={createMut.isPending}>
+        <Modal title={editing ? "Edit Operator PPOB" : "Tambah Operator PPOB"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending}>
           <Field label="Nama Operator (wajib)">
-            <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })} placeholder="e.g. Telkomsel" />
+            <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value, slug: editing ? form.slug : slugify(e.target.value) })} placeholder="e.g. Telkomsel" />
           </Field>
           <Field label="Slug (wajib, unik)">
-            <Input value={form.slug || ""} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+            <Input value={form.slug || ""} onChange={(e) => setForm({ ...form, slug: e.target.value })} disabled={Boolean(editing)} />
           </Field>
           <Field label="Kategori">
             <SearchableSelect
@@ -646,6 +736,17 @@ function OperatorsTab({ notifications }) {
           <Field label="Prefiks Operator (opsional)">
             <Input value={form.operator_prefix || ""} onChange={(e) => setForm({ ...form, operator_prefix: e.target.value })} placeholder="e.g. 0811" />
           </Field>
+          {editing && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Aktif (tampilkan di katalog)</span>
+            </label>
+          )}
         </Modal>
       )}
     </div>
@@ -654,36 +755,85 @@ function OperatorsTab({ notifications }) {
 
 function PricingTab({ notifications }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const pricing = usePpobAdminPricingRules();
+  const operatorsQuery = usePpobAdminOperators();
   const createMut = useCreatePpobAdminPricingRule();
+  const updateMut = useUpdatePpobAdminPricingRule();
+  const deleteMut = useDeletePpobAdminPricingRule();
+
+  const operators = operatorsQuery.data?.rows || [];
 
   const rows = pricing.data?.rows || [];
 
   const openCreate = () => {
-    setForm({ level: "global", margin_type: "fixed", margin_value: 0, admin_fee_type: "fixed", admin_fee_value: 0, commission_type: "fixed", commission_value: 0, priority: 0 });
+    setEditing(null);
+    setForm({ level: "global", margin_type: "fixed", margin_value: 0, admin_fee_type: "fixed", admin_fee_value: 0, commission_type: "fixed", commission_value: 0, priority: 0, operator_id: "", product_id: "" });
+    setIsOpen(true);
+  };
+
+  const openEdit = (r) => {
+    setEditing(r);
+    setForm({
+      level: r.level || r.ruleType || "global",
+      category: r.category || "",
+      operator_id: r.operatorId ? String(r.operatorId) : "",
+      product_id: r.productId ? String(r.productId) : "",
+      margin_type: r.marginType || "fixed",
+      margin_value: r.marginValue || 0,
+      admin_fee_type: r.adminFeeType || "fixed",
+      admin_fee_value: r.adminFeeValue || 0,
+      commission_type: r.commissionType || "fixed",
+      commission_value: r.commissionValue || 0,
+      priority: r.priority ?? 0,
+    });
     setIsOpen(true);
   };
 
   const save = async () => {
+    const payload = {
+      level: form.level,
+      category: form.level === "category" ? form.category : null,
+      operator_id: form.level === "operator" && form.operator_id ? Number(form.operator_id) : null,
+      margin_type: form.margin_type,
+      margin_value: Number(form.margin_value || 0),
+      admin_fee_type: form.admin_fee_type,
+      admin_fee_value: Number(form.admin_fee_value || 0),
+      commission_type: form.commission_type,
+      commission_value: Number(form.commission_value || 0),
+      priority: Number(form.priority || 0),
+    };
     try {
-      await createMut.mutateAsync({
-        level: form.level,
-        category: form.level === "category" ? form.category : null,
-        operator_id: form.level === "operator" && form.operator_id ? Number(form.operator_id) : null,
-        margin_type: form.margin_type,
-        margin_value: Number(form.margin_value || 0),
-        admin_fee_type: form.admin_fee_type,
-        admin_fee_value: Number(form.admin_fee_value || 0),
-        commission_type: form.commission_type,
-        commission_value: Number(form.commission_value || 0),
-        priority: Number(form.priority || 0),
-      });
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, values: payload });
+        notifications.push({ type: "success", title: "Aturan Harga", message: "Aturan harga berhasil diperbarui." });
+      } else {
+        await createMut.mutateAsync(payload);
+        notifications.push({ type: "success", title: "Aturan Harga", message: "Aturan harga berhasil dibuat." });
+      }
       setIsOpen(false);
-      notifications.push({ type: "success", title: "Aturan Harga", message: "Aturan harga berhasil dibuat." });
     } catch (e) {
       notifications.push({ type: "error", title: "Aturan Harga", message: getPpobAdminError(e) });
     }
+  };
+
+  const remove = async (id, label) => {
+    if (!confirm(`Hapus aturan harga ini (${label})?`)) return;
+    try {
+      await deleteMut.mutateAsync(id);
+      notifications.push({ type: "success", title: "Aturan Harga", message: "Aturan harga berhasil dihapus." });
+    } catch (e) {
+      notifications.push({ type: "error", title: "Aturan Harga", message: getPpobAdminError(e) });
+    }
+  };
+
+  const levelLabel = (r) => {
+    if (r.level === "operator") return "Operator";
+    if (r.level === "product") return "Produk";
+    if (r.level === "category") return "Per Kategori";
+    if (r.level === "global") return "Global";
+    return r.level || r.ruleType || "-";
   };
 
   return (
@@ -697,26 +847,39 @@ function PricingTab({ notifications }) {
       {pricing.isLoading && !rows.length ? <SkeletonTable rows={5} cols={6} /> : null}
       {!pricing.isLoading && rows.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-slate-200 text-slate-500">
               <tr>
                 <th className="py-2 pr-3 font-semibold">Level</th>
-                <th className="py-2 pr-3 font-semibold">Kategori</th>
+                <th className="py-2 pr-3 font-semibold">Cakupan</th>
                 <th className="py-2 pr-3 font-semibold">Margin</th>
                 <th className="py-2 pr-3 font-semibold">Biaya Admin</th>
                 <th className="py-2 pr-3 font-semibold">Komisi</th>
-                <th className="py-2 font-semibold">Prioritas</th>
+                <th className="py-2 pr-3 font-semibold">Prioritas</th>
+                <th className="py-2 font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-3 text-slate-600">{r.ruleType || r.level}</td>
-                  <td className="py-2 pr-3 text-slate-600">{CATEGORY_LABELS[r.category] || r.category || "-"}</td>
+                  <td className="py-2 pr-3 text-slate-600">{levelLabel(r)}</td>
+                  <td className="py-2 pr-3 text-slate-600">
+                    {CATEGORY_LABELS[r.category] || r.category || (r.operatorId ? `Operator #${r.operatorId}` : "-")}
+                  </td>
                   <td className="py-2 pr-3 text-slate-600">{formatRule(r.marginType, r.marginValue)}</td>
                   <td className="py-2 pr-3 text-slate-600">{formatRule(r.adminFeeType, r.adminFeeValue)}</td>
                   <td className="py-2 pr-3 text-slate-600">{formatRule(r.commissionType, r.commissionValue)}</td>
-                  <td className="py-2 text-slate-600">{r.priority}</td>
+                  <td className="py-2 pr-3 text-slate-600">{r.priority}</td>
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => openEdit(r)} title="Edit" className="text-slate-500 hover:text-teal-700">
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                      </button>
+                      <button type="button" onClick={() => remove(r.id, levelLabel(r))} title="Hapus" className="text-red-600 hover:text-red-800">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -725,7 +888,7 @@ function PricingTab({ notifications }) {
       )}
 
       {isOpen && (
-        <Modal title="Tambah Aturan Harga" onClose={() => setIsOpen(false)} onSave={save} pending={createMut.isPending}>
+        <Modal title={editing ? "Edit Aturan Harga" : "Tambah Aturan Harga"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending}>
           <Field label="Level">
             <SearchableSelect
               value={form.level}
@@ -747,6 +910,17 @@ function PricingTab({ notifications }) {
                 onChange={(v) => setForm({ ...form, category: v })}
                 options={Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }))}
                 placeholder="Kategori"
+                emptyText="—"
+              />
+            </Field>
+          )}
+          {form.level === "operator" && (
+            <Field label="Operator">
+              <SearchableSelect
+                value={form.operator_id || ""}
+                onChange={(v) => setForm({ ...form, operator_id: v })}
+                options={operators.map((o) => ({ value: String(o.id), label: o.name }))}
+                placeholder="Pilih operator"
                 emptyText="—"
               />
             </Field>
@@ -787,6 +961,9 @@ function PricingTab({ notifications }) {
             </Field>
             <Field label="Nilai Komisi">
               <Input type="number" value={form.commission_value || 0} onChange={(e) => setForm({ ...form, commission_value: e.target.value })} />
+            </Field>
+            <Field label="Prioritas">
+              <Input type="number" value={form.priority ?? 0} onChange={(e) => setForm({ ...form, priority: e.target.value })} />
             </Field>
           </div>
         </Modal>

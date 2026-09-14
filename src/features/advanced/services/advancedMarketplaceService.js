@@ -154,6 +154,16 @@ export function useFinanceDashboard(params = {}) {
   });
 }
 
+export function useSellerOrderTrend(params = {}) {
+  return useQuery({
+    queryKey: [...advancedKeys.finance, "order-trend", params],
+    queryFn: async () => {
+      const response = await apiClient.get("/api/v1/seller/finance/dashboard/order-trend", { params });
+      return data(response.data);
+    },
+  });
+}
+
 export function useStockMovements(params = {}) {
   return useQuery({ queryKey: [...advancedKeys.stock, params], queryFn: () => getList("/api/v1/seller/stock/movements", params) });
 }

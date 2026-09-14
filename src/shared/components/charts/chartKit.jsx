@@ -103,6 +103,44 @@ export function DailyCashflowBars({ days = [], format = (value) => String(value)
   );
 }
 
+export function OrderRevenueBars({ points = [], format = (value) => String(value), maxDays = 45 }) {
+  const visible = useMemo(() => {
+    const parsed = (points || []).map((point) => ({
+      ...point,
+      orders: Number(point.orders || 0),
+      revenue: Number(point.revenue || 0),
+    }));
+    return parsed.slice(Math.max(0, parsed.length - maxDays));
+  }, [points, maxDays]);
+
+  const maxOrders = Math.max(1, ...visible.map((point) => point.orders));
+  const maxRevenue = Math.max(1, ...visible.map((point) => point.revenue));
+
+  if (!visible.length) {
+    return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Belum ada data tren.</p>;
+  }
+
+  return (
+    <div>
+      <SeriesLegend series={[{ key: "orders", label: "Order (skala sendiri)", color: "#818CF8" }, { key: "revenue", label: "Pendapatan (skala sendiri)", color: "#34D399" }]} />
+      <div className="mt-3 flex items-end gap-1 overflow-x-auto pb-2">
+        {visible.map((point) => (
+          <div key={point.date} className="flex min-w-[16px] flex-1 flex-col items-center justify-end gap-1" title={`${point.date}\n${point.orders} order\n${format(point.revenue)}`}>
+            <div className="flex items-end gap-[2px]">
+              <div className="w-[6px] rounded-t bg-indigo-400" style={{ height: `${Math.max(3, (point.orders / maxOrders) * 140)}px` }} />
+              <div className="w-[6px] rounded-t bg-emerald-500" style={{ height: `${Math.max(3, (point.revenue / maxRevenue) * 140)}px` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-1 flex justify-between text-xs text-slate-500">
+        <span>{visible[0]?.date}</span>
+        <span>{visible[visible.length - 1]?.date}</span>
+      </div>
+    </div>
+  );
+}
+
 export function StatCard({ label, value, tone = "slate", hint }) {
   const tones = {
     slate: "bg-white ring-slate-200 text-slate-900",
@@ -116,6 +154,80 @@ export function StatCard({ label, value, tone = "slate", hint }) {
       <p className="text-[10px] font-extrabold uppercase tracking-wide opacity-70">{label}</p>
       <p className="mt-1 truncate text-lg font-black">{value}</p>
       {hint ? <p className="mt-0.5 text-[11px] font-semibold opacity-60">{hint}</p> : null}
+    </div>
+  );
+}
+
+export function DonutChart({ items = [], format = (value) => String(value), size = 168, thickness = 22, centerLabel = "", centerValue = "", emptyText = "Belum ada data." }) {
+  const segments = useMemo(() => {
+    const total = items.reduce((sum, item) => sum + Math.max(0, Number(item.value || 0)), 0);
+    if (total <= 0) return [];
+    const radius = Math.max(1, (size - thickness) / 2);
+    const circumference = 2 * Math.PI * radius;
+    let cursor = 0;
+    return items
+      .filter((item) => Number(item.value || 0) > 0)
+      .map((item, index) => {
+        const value = Math.max(0, Number(item.value || 0));
+        const fraction = value / total;
+        const gap = items.length > 1 ? 2.5 : 0;
+        const segment = {
+          key: `${item.label}-${index}`,
+          label: item.label || "Item",
+          color: item.color || "#cbd5e1",
+          value,
+          fraction,
+          dash: Math.max(0, fraction * circumference - gap),
+          offset: cursor,
+        };
+        cursor += fraction * circumference;
+        return segment;
+      });
+  }, [items, size, thickness]);
+
+  if (!segments.length) {
+    return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{emptyText}</p>;
+  }
+
+  const radius = Math.max(1, (size - thickness) / 2);
+  const center = size / 2;
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-6">
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <svg className="-rotate-90" width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={centerLabel || "Diagram lingkaran"}>
+          <circle cx={center} cy={center} r={radius} fill="none" stroke="#f1f5f9" strokeWidth={thickness} />
+          {segments.map((segment) => (
+            <circle
+              key={segment.key}
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke={segment.color}
+              strokeWidth={thickness}
+              strokeDasharray={`${segment.dash} ${2 * Math.PI * radius - segment.dash}`}
+              strokeDashoffset={-segment.offset}
+            />
+          ))}
+        </svg>
+        {centerLabel || centerValue ? (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+            {centerLabel ? <p className="max-w-[104px] truncate text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{centerLabel}</p> : null}
+            {centerValue ? <p className="max-w-[104px] truncate text-base font-black text-slate-900">{centerValue}</p> : null}
+          </div>
+        ) : null}
+      </div>
+      <div className="min-w-44 flex-1 space-y-2">
+        {segments.map((segment) => (
+          <div key={segment.key} className="flex items-center gap-2 text-xs">
+            <span className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: segment.color }} />
+            <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{segment.label}</span>
+            <span className="shrink-0 font-extrabold text-slate-900">{format(segment.value)}</span>
+            <span className="w-10 shrink-0 text-right font-semibold text-slate-400">{Math.round(segment.fraction * 100)}%</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

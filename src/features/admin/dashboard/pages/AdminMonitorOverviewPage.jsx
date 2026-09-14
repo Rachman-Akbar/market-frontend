@@ -6,6 +6,7 @@ import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useAdminMonitorOverview } from "@/features/admin/adminService";
 import { getApiMessage } from "@/core/utils/apiClient";
+import { OrderRevenueBars, StatCard } from "@/shared/components/charts/chartKit";
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
@@ -101,36 +102,23 @@ function TopStoresRanking({ stores, startDate }) {
 
 function OrderTrendMini({ trend }) {
   const points = trend || [];
-  const max = Math.max(1, ...points.map((p) => Number(p.orders)));
+  const totalOrders = points.reduce((sum, p) => sum + Number(p.orders || 0), 0);
+  const totalRevenue = points.reduce((sum, p) => sum + Number(p.revenue || 0), 0);
+  const totalCompleted = points.reduce((sum, p) => sum + Number(p.completed || 0), 0);
 
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
         <div>
-          <h2 className="text-base font-extrabold text-slate-950">Tren Order</h2>
-          <p className="text-sm text-slate-500">Jumlah pesanan per hari pada periode terpilih.</p>
+          <h2 className="text-base font-extrabold text-slate-950">Tren Order &amp; Pendapatan</h2>
+          <p className="text-sm text-slate-500">Perbandingan jumlah pesanan dan pendapatan per hari pada periode terpilih.</p>
         </div>
-        {points.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-500">Belum ada data tren.</p>
-        ) : (
-          <>
-            <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ height: 140 }}>
-              {points.map((p) => (
-                <div key={p.date} className="flex min-w-[14px] flex-1 flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t bg-indigo-400"
-                    style={{ height: `${Math.max(3, (Number(p.orders) / max) * 100)}px` }}
-                    title={`${p.date}: ${p.orders} order`}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>{points[0]?.date}</span>
-              <span>{points[points.length - 1]?.date}</span>
-            </div>
-          </>
-        )}
+        <div className="grid grid-cols-3 gap-2">
+          <StatCard label="Total Order" value={totalOrders.toLocaleString("id-ID")} tone="sky" />
+          <StatCard label="Pendapatan" value={formatRupiah(totalRevenue)} tone="emerald" />
+          <StatCard label="Selesai" value={totalCompleted.toLocaleString("id-ID")} tone="slate" />
+        </div>
+        <OrderRevenueBars points={points} format={formatRupiah} />
       </CardContent>
     </Card>
   );

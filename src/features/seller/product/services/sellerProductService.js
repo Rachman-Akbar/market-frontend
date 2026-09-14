@@ -35,6 +35,7 @@ function normalizeVariant(variant = {}) {
     maxOrderQty: Number(
       variant.max_order_qty ?? variant.maxOrderQty ?? 0,
     ) || 999999,
+    minStock: Number(variant.min_stock ?? variant.minStock ?? 0),
     isDefault: Boolean(variant.is_default ?? variant.isDefault),
     values: (variant.values || []).map((value) => ({
       attributeId: Number(value.attribute_id || value.attribute?.id || 0),
@@ -56,6 +57,7 @@ export function normalizeSellerProduct(row = {}) {
   const maxOrderQty = Number(
     row.max_order_qty ?? row.maxOrderQty ?? defaultVariant.maxOrderQty ?? 0,
   ) || 999999;
+  const minStock = Number(row.min_stock ?? row.minStock ?? defaultVariant.minStock ?? 0);
 
   return {
     id: Number(row.id || 0),
@@ -71,6 +73,7 @@ export function normalizeSellerProduct(row = {}) {
     stock,
     poStock,
     maxOrderQty,
+    minStock,
     totalStock: stock + poStock,
     status: row.status || "draft",
     isActive: toBoolean(row.is_active, true),
@@ -115,6 +118,7 @@ function serializeVariant(variant, index) {
     stock: Number(variant.stock || 0),
     po_stock: Number(variant.poStock || 0),
     max_order_qty: Math.max(1, Number(variant.maxOrderQty || 999999)),
+    min_stock: Math.max(0, Number(variant.minStock || 0)),
     is_default: index === 0,
     values: (variant.values || [])
       .filter((value) => Number(value.attributeId) && String(value.value || "").trim())
@@ -150,6 +154,7 @@ export function serializeSellerProduct(values = {}, options = {}) {
     payload.stock = Number(values.stock || 0);
     payload.po_stock = Number(values.poStock || 0);
     payload.max_order_qty = Math.max(1, Number(values.maxOrderQty || 999999));
+    payload.min_stock = Math.max(0, Number(values.minStock || 0));
     payload.variants = [
       serializeVariant(
         {
@@ -160,6 +165,7 @@ export function serializeSellerProduct(values = {}, options = {}) {
           stock: values.stock,
           poStock: values.poStock,
           maxOrderQty: values.maxOrderQty,
+          minStock: values.minStock,
           isDefault: true,
           values: [],
         },

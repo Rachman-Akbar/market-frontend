@@ -50,6 +50,8 @@ const AdminBannersPage = lazy(() => import("@/features/admin/banner/pages/AdminB
 const AdminOrdersPage = lazy(() => import("@/features/admin/order/pages/AdminOrdersPage"));
 const AdminPpobPage = lazy(() => import("@/features/admin/ppob/pages/AdminPpobPage"));
 const AdminStoreContextPage = lazy(() => import("@/features/admin/storeContext/pages/AdminStoreContextPage"));
+const AdminFeeConfigPage = lazy(() => import("@/features/admin/finance/pages/AdminFeeConfigPage"));
+const AdminWithdrawalsPage = lazy(() => import("@/features/admin/finance/pages/AdminWithdrawalsPage"));
 const ProfilePage = lazy(() => import("@/features/profile/identity/pages/ProfilePage"));
 const AddressesPage = lazy(() => import("@/features/profile/address/pages/AddressesPage"));
 const GroupChatPage = lazy(() => import("@/features/profile/chat/pages/GroupChatPage"));
@@ -176,10 +178,6 @@ function renderSellerRoutes() {
           <Route path="/seller/store" element={<SellerStorePage />} />
           <Route path="/seller/banners" element={<SellerBannerPage />} />
           <Route path="/seller/store-preview" element={<SellerStorePreviewPage />} />
-          <Route path="/seller/categories" element={<ModulePlaceholderPage title="Category" group="Aplikasi" icon="account_tree" />} />
-          <Route path="/seller/catalog-groups" element={<ModulePlaceholderPage title="Catalog Group" group="Aplikasi" icon="category" />} />
-          <Route path="/seller/users" element={<ModulePlaceholderPage title="User" group="Manajemen" icon="group" />} />
-          <Route path="/seller/store-management" element={<ModulePlaceholderPage title="Toko" group="Manajemen" icon="storefront" actionHref="/seller/store" actionLabel="Buka Informasi Toko" />} />
         </Route>
       </Route>
     </Route>
@@ -201,6 +199,8 @@ function renderAdminRoutes() {
         <Route path="/admin/order-operations" element={<OrderOperationsPage />} />
         <Route path="/admin/cashflow" element={<FinancePage mode="cashflow" />} />
         <Route path="/admin/receivables-payables" element={<FinancePage mode="receivables" />} />
+        <Route path="/admin/fee-configs" element={<AdminFeeConfigPage />} />
+        <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
         <Route path="/admin/showcases" element={<ShowcasePage />} />
         <Route path="/admin/promotion-payments" element={<PromotionPaymentsPage />} />
         <Route path="/admin/reviews" element={<ReviewsPage />} />

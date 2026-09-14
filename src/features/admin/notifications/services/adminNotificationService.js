@@ -62,6 +62,25 @@ export async function markAllAdminNotificationsRead(module = "") {
   return normalizeState(response.data?.data || {});
 }
 
+export async function deleteAdminNotification(id) {
+  const response = await apiClient.delete(`/api/v1/admin/notifications/${id}`);
+  return {
+    deleted: Boolean(response.data?.data?.deleted),
+    state: normalizeState(response.data?.state || {}),
+  };
+}
+
+export async function deleteAllAdminNotifications(module = "") {
+  const response = await apiClient.delete(
+    "/api/v1/admin/notifications",
+    module ? { data: { module } } : {},
+  );
+  return {
+    deleted: Number(response.data?.data?.deleted || 0),
+    state: normalizeState(response.data?.data || {}),
+  };
+}
+
 export function normalizeRealtimeAdminNotification(event = {}) {
   return normalizeNotification(event?.notification || event);
 }

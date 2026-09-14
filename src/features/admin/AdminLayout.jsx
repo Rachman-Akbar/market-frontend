@@ -22,6 +22,8 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/reviews", label: "Review", icon: "reviews", group: "Penjualan" },
   { href: "/admin/cashflow", label: "Pemasukan dan Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
   { href: "/admin/receivables-payables", label: "Hutang dan Piutang", icon: "payments", group: "Finance" },
+  { href: "/admin/fee-configs", label: "Konfigurasi Fee", icon: "tune", group: "Finance" },
+  { href: "/admin/withdrawals", label: "Penarikan Dana", icon: "currency_exchange", group: "Finance" },
   { href: "/admin/store-information", label: "Informasi", icon: "store", group: "Toko" },
   { href: "/admin/showcases", label: "Etalase", icon: "view_module", group: "Toko" },
   { href: "/admin/banners", label: "Banner", icon: "view_carousel", group: "Toko" },

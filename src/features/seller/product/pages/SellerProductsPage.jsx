@@ -16,7 +16,7 @@ import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWork
 import { getSellerProductError, useDeleteSellerProduct, useSellerProducts, useUpdateSellerProduct } from "@/features/seller/product/services/sellerProductService";
 
 const PER_PAGE = 20;
-const EMPTY_COLUMN_FILTERS = { product: "", mode: "", price: { min: "", max: "" }, stock: { min: "", max: "" }, active: "" };
+const EMPTY_COLUMN_FILTERS = { product: "", mode: "", price: { min: "", max: "" }, stock: { min: "", max: "" }, active: "", lowStock: false };
 
 export default function SellerProductsPage() {
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
@@ -40,6 +40,7 @@ export default function SellerProductsPage() {
     ...(columnFilters.stock.min !== "" ? { stock_min: columnFilters.stock.min } : {}),
     ...(columnFilters.stock.max !== "" ? { stock_max: columnFilters.stock.max } : {}),
     ...(columnFilters.active ? { is_active: columnFilters.active === "active" } : {}),
+    ...(columnFilters.lowStock ? { low_stock: true } : {}),
   });
   const deleteMutation = useDeleteSellerProduct();
   const quickUpdateMutation = useUpdateSellerProduct();
@@ -103,6 +104,27 @@ export default function SellerProductsPage() {
             hasActiveFilters={hasActiveFilters}
             onClearFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
           />
+          {hasActiveFilters || columnFilters.lowStock ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <span className="font-semibold text-slate-500">Filter aktif:</span>
+              <button
+                type="button"
+                onClick={() => setColumnFilters((c) => ({ ...c, lowStock: !c.lowStock }))}
+                className={`rounded-full px-3 py-1 font-bold transition-colors ${
+                  columnFilters.lowStock ? "bg-amber-600 text-white shadow-sm" : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                }`}
+              >
+                {columnFilters.lowStock ? "Sembunyikan stok rendah" : "Stok rendah"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
+                className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300"
+              >
+                Reset semua
+              </button>
+            </div>
+          ) : null}
           <AsyncState loading={productsQuery.isLoading} error={productsQuery.error ? getSellerProductError(productsQuery.error) : ""} />
           {!productsQuery.isLoading ? (
             <>

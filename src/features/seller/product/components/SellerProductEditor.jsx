@@ -39,9 +39,10 @@ function createInitialValues(product) {
       stock: 0,
       poStock: 0,
       maxOrderQty: 999999,
+      minStock: 0,
       thumbnail: "",
       images: [],
-      variants: [{ clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, poStock: 0, maxOrderQty: 999999, values: [] }],
+      variants: [{ clientId: createClientId("variant"), id: null, name: "", sku: "", price: "", stock: 0, poStock: 0, maxOrderQty: 999999, minStock: 0, values: [] }],
       costing: { materials: [], labor_cost: 0, overhead_cost: 0, other_cost: 0, margin_percent: 30, selling_price: 0, apply_to_variants: false },
     };
   }
@@ -60,6 +61,7 @@ function createInitialValues(product) {
     stock: product.stock,
     poStock: product.poStock ?? 0,
     maxOrderQty: product.maxOrderQty ?? 999999,
+    minStock: product.minStock ?? 0,
     thumbnail: product.thumbnail,
     images: product.images.length
       ? product.images.map((image) => ({ ...image, clientId: image.clientId || createClientId("image") }))
@@ -73,7 +75,7 @@ function createInitialValues(product) {
             clientId: value.clientId || createClientId("attribute-value"),
           })),
         }))
-      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, poStock: product.poStock ?? 0, maxOrderQty: product.maxOrderQty ?? 999999, values: [] }],
+      : [{ clientId: createClientId("variant"), id: null, name: product.name, sku: product.sku, price: product.price, stock: product.stock, poStock: product.poStock ?? 0, maxOrderQty: product.maxOrderQty ?? 999999, minStock: product.minStock ?? 0, values: [] }],
   };
 }
 
@@ -103,7 +105,7 @@ function getErrorTabs(errors) {
   if (errors.storeId || errors.name || errors.categoryId) tabs.push("general");
   if (errors.variants) tabs.push("variant");
   if (errors.images || errors.thumbnail) tabs.push("images");
-  if (errors.price || errors.stock || errors.poStock || errors.maxOrderQty || errors.variantStock) tabs.push("stock");
+  if (errors.price || errors.stock || errors.poStock || errors.maxOrderQty || errors.minStock || errors.variantStock) tabs.push("stock");
   return tabs;
 }
 
@@ -184,6 +186,7 @@ export function SellerProductEditor({
     stock: values.mode === "simple" ? [required("Stok"), minimumNumber("Stok", 0)] : () => "",
     poStock: values.mode === "simple" ? minimumNumber("Stok PO", 0) : () => "",
     maxOrderQty: values.mode === "simple" ? minimumNumber("Batas item per pesanan", 1) : () => "",
+    minStock: values.mode === "simple" ? minimumNumber("Minimal stok", 0) : () => "",
   }), [isAdmin, values.mode]);
 
   const setField = (field, value) => {
@@ -204,6 +207,7 @@ export function SellerProductEditor({
           stock: firstVariant.stock ?? current.stock,
           poStock: firstVariant.poStock ?? current.poStock,
           maxOrderQty: firstVariant.maxOrderQty ?? current.maxOrderQty ?? 999999,
+          minStock: firstVariant.minStock ?? current.minStock ?? 0,
         };
       }
 
@@ -218,6 +222,7 @@ export function SellerProductEditor({
                 stock: variant.stock || current.stock,
                 poStock: variant.poStock ?? current.poStock,
                 maxOrderQty: variant.maxOrderQty ?? current.maxOrderQty ?? 999999,
+                minStock: variant.minStock ?? current.minStock ?? 0,
               }
             : variant)
           : [{
@@ -229,6 +234,7 @@ export function SellerProductEditor({
               stock: current.stock,
               poStock: current.poStock,
               maxOrderQty: current.maxOrderQty ?? 999999,
+              minStock: current.minStock ?? 0,
               values: [],
             }];
 
@@ -267,7 +273,7 @@ export function SellerProductEditor({
 
       if (values.variants.some((variant) => String(variant.price ?? "").trim() === "" || String(variant.stock ?? "").trim() === "")) {
         nextErrors.variantStock = "Harga dan stok setiap variant wajib diisi.";
-      } else if (values.variants.some((variant) => Number(variant.price) <= 0 || Number(variant.stock) < 0 || Number(variant.poStock) < 0 || Number(variant.maxOrderQty ? variant.maxOrderQty : 999999) < 1)) {
+      } else if (values.variants.some((variant) => Number(variant.price) <= 0 || Number(variant.stock) < 0 || Number(variant.poStock) < 0 || Number(variant.maxOrderQty ? variant.maxOrderQty : 999999) < 1 || Number(variant.minStock || 0) < 0)) {
         nextErrors.variantStock = "Harga setiap variant harus lebih dari 0, stok tidak boleh negatif, dan batas item per pesanan minimal 1.";
       }
     }
@@ -503,7 +509,7 @@ export function SellerProductEditor({
           ) : null}
 
           {activeSection === "stock" ? (
-            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} poStock={values.poStock} maxOrderQty={values.maxOrderQty} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
+            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} poStock={values.poStock} maxOrderQty={values.maxOrderQty} minStock={values.minStock} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
           ) : null}
 
           {activeSection === "costing" ? (

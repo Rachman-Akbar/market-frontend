@@ -13,6 +13,7 @@ import {
   useStoreContextSettlements,
   getStoreContextError,
 } from "@/features/admin/storeContext/services/adminStoreContextService";
+import { OrderRevenueBars, StatCard } from "@/shared/components/charts/chartKit";
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
@@ -122,7 +123,7 @@ export default function AdminStoreContextPage() {
   );
 }
 
-function StatCard({ label, value, icon, accent = "text-teal-700" }) {
+function ContextStatCard({ label, value, icon, accent = "text-teal-700" }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3 p-4">
@@ -148,14 +149,14 @@ function StatsTab({ storeId, period }) {
       {data && (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Orders (periode)" value={data.orders?.total ?? 0} icon="receipt_long" />
-            <StatCard label="Pendapatan" value={formatRupiah(data.orders?.revenue)} icon="payments" />
-            <StatCard label="Biaya Admin" value={formatRupiah(data.orders?.admin_fees)} icon="percent" />
-            <StatCard label="Penjual Bersih" value={formatRupiah(data.orders?.seller_net)} icon="trending_up" />
-            <StatCard label="Produk Aktif" value={data.products?.active ?? 0} icon="inventory_2" accent="text-green-700" />
-            <StatCard label="Total Produk" value={data.products?.total ?? 0} icon="category" accent="text-green-700" />
-            <StatCard label="Settlement Selesai" value={data.settlements?.settled ?? 0} icon="task_alt" accent="text-blue-700" />
-            <StatCard label="Settlement Pending" value={data.settlements?.pending ?? 0} icon="pending" accent="text-amber-700" />
+            <ContextStatCard label="Orders (periode)" value={data.orders?.total ?? 0} icon="receipt_long" />
+            <ContextStatCard label="Pendapatan" value={formatRupiah(data.orders?.revenue)} icon="payments" />
+            <ContextStatCard label="Biaya Admin" value={formatRupiah(data.orders?.admin_fees)} icon="percent" />
+            <ContextStatCard label="Penjual Bersih" value={formatRupiah(data.orders?.seller_net)} icon="trending_up" />
+            <ContextStatCard label="Produk Aktif" value={data.products?.active ?? 0} icon="inventory_2" accent="text-green-700" />
+            <ContextStatCard label="Total Produk" value={data.products?.total ?? 0} icon="category" accent="text-green-700" />
+            <ContextStatCard label="Settlement Selesai" value={data.settlements?.settled ?? 0} icon="task_alt" accent="text-blue-700" />
+            <ContextStatCard label="Settlement Pending" value={data.settlements?.pending ?? 0} icon="pending" accent="text-amber-700" />
           </div>
 
           <Card>
@@ -187,30 +188,21 @@ function TrendTab({ storeId, period }) {
   const trend = useStoreContextOrderTrend(storeId, period);
   const data = trend.data;
   const points = data?.trend || [];
-  const max = Math.max(1, ...points.map((p) => p.orders), ...points.map((p) => Number(p.revenue)));
+  const totalOrders = points.reduce((sum, p) => sum + Number(p.orders || 0), 0);
+  const totalRevenue = points.reduce((sum, p) => sum + Number(p.revenue || 0), 0);
 
   return (
     <div className="space-y-4">
       <AsyncState loading={trend.isLoading} error={trend.error ? getStoreContextError(trend.error) : ""} empty={!trend.isLoading && !points.length} emptyText="Belum ada data tren." />
       {!trend.isLoading && points.length > 0 && (
         <Card>
-          <CardContent className="pt-6">
-            <h3 className="mb-4 text-base font-extrabold text-slate-950">Tren Order &amp; Pendapatan ({period})</h3>
-            <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ height: 160 }}>
-              {points.map((p) => (
-                <div key={p.date} className="flex min-w-[24px] flex-1 flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t bg-teal-500"
-                    style={{ height: `${Math.max(3, (Number(p.orders) / max) * 120)}px` }}
-                    title={`${p.date}: ${p.orders} order, ${formatRupiah(p.revenue)}`}
-                  />
-                </div>
-              ))}
+          <CardContent className="space-y-4 pt-6">
+            <h3 className="text-base font-extrabold text-slate-950">Tren Order &amp; Pendapatan ({period})</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="Total Order" value={totalOrders.toLocaleString("id-ID")} tone="sky" />
+              <StatCard label="Pendapatan" value={formatRupiah(totalRevenue)} tone="emerald" />
             </div>
-            <div className="mt-1 flex justify-between text-xs text-slate-500">
-              <span>{points[0]?.date}</span>
-              <span>{points[points.length - 1]?.date}</span>
-            </div>
+            <OrderRevenueBars points={points} format={formatRupiah} />
           </CardContent>
         </Card>
       )}
