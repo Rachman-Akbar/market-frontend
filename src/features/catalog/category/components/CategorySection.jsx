@@ -10,8 +10,18 @@ import {
 } from "@/features/catalog/category/services/categoryService";
 import { usePpobCatalog } from "@/features/ppob/hooks/usePpobCatalog";
 import { PpobCheckoutModal, formatRupiah } from "@/features/ppob/components/PpobCheckoutModal";
+import { cn } from "@/shared/utils/utils";
 
 const DEFAULT_CATEGORY = "pulsa";
+
+const CATEGORY_ICONS = {
+  pulsa: "phone_android",
+  data: "wifi",
+  "token-listrik": "bolt",
+  tagihan: "receipt_long",
+  internet: "router",
+  voucher: "confirmation_number",
+};
 
 function flattenCategories(categories = []) {
   return categories.flatMap((category) => [
@@ -26,13 +36,20 @@ function TopUpSection() {
   const navigate = useNavigate();
   const notifications = useNotificationCenter();
 
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [productId, setProductId] = useState("");
   const [checkoutProduct, setCheckoutProduct] = useState(null);
   const [pendingCustomerId, setPendingCustomerId] = useState("");
 
-  const catalog = usePpobCatalog(DEFAULT_CATEGORY);
+  const catalog = usePpobCatalog(category);
+  const { categories } = catalog;
   const products = catalog.products;
   const isLoadingProducts = catalog.isLoadingProducts;
+
+  const onSelectCategory = useCallback((key) => {
+    setCategory(key);
+    setProductId("");
+  }, []);
 
   const selected = useMemo(
     () => products.find((p) => String(p.id) === productId) || null,
@@ -64,6 +81,39 @@ function TopUpSection() {
           Lihat Semua
         </Link>
       </div>
+
+      {catalog.isLoadingCategories && !categories.length ? (
+        <div className="mb-3 flex flex-wrap gap-2" aria-busy="true">
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+        </div>
+      ) : (
+        <OverflowMenu
+          items={categories}
+          maxVisible={4}
+          buttonLabel="Layanan lain"
+          buttonClass="py-1.5"
+          menuClassName="w-48"
+          className="mb-3"
+          renderItem={(cat) => (
+            <button
+              key={cat.key}
+              type="button"
+              onClick={() => onSelectCategory(cat.key)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                category === cat.key
+                  ? "border-[#10B981] bg-[#10B981] text-white"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-[#10B981] hover:text-[#10B981]"
+              )}
+            >
+              <span className="material-symbols-outlined text-sm">{CATEGORY_ICONS[cat.key] || "category"}</span>
+              {cat.label}
+            </button>
+          )}
+        />
+      )}
 
       {isLoadingProducts && !products.length ? (
         <div className="space-y-2" aria-busy="true">
@@ -202,24 +252,6 @@ export function CategorySection() {
                   <span className="material-symbols-outlined text-[52px]">shopping_bag</span>
                 </div>
               </div>
-
-              <OverflowMenu
-                items={["Pulsa", "Paket Data", "Listrik PLN", "Roaming"]}
-                maxVisible={3}
-                buttonLabel="Lainnya"
-                className="mt-4"
-                menuClassName="w-44"
-                renderItem={(label) => (
-                  <Link
-                    key={label}
-                    to="/search"
-                    className="block w-full px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-[#10B981]"
-                    style={{ borderRadius: 5 }}
-                  >
-                    {label}
-                  </Link>
-                )}
-              />
             </>
           )}
         </div>

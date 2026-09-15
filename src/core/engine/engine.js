@@ -119,3 +119,82 @@ export const receiptEmailEngine = Object.freeze({
     return response.data;
   },
 });
+
+// ── Status Notification Engines ──────────────────────────────────────────
+// Memberi tahu buyer lewat chat + email saat order disetujui/diproses,
+// order selesai, atau transaksi produk digital (pulsa, listrik, dll) selesai.
+// Backend idempotent: memanggil berulang untuk status yang sama tidak
+// menghasilkan chat/email ganda.
+
+const ORDER_PATH = "/api/v1/order/orderings";
+const PPOB_TRANSACTION_PATH = "/api/v1/ppob/transactions";
+
+export class StatusNotificationEngineError extends Error {
+  constructor(message, cause = null) {
+    super(message);
+    this.name = "StatusNotificationEngineError";
+    this.cause = cause;
+  }
+}
+
+export function toStatusNotificationError(error, fallback = "Gagal mengirim notifikasi status.") {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return new StatusNotificationEngineError(responseData.message, error);
+  }
+
+  if (responseData?.errors && typeof responseData.errors === "object") {
+    const first = Object.values(responseData.errors).flat().find(Boolean);
+    if (first) return new StatusNotificationEngineError(String(first), error);
+  }
+
+  if (typeof error?.message === "string" && error.message.trim() && !/^request failed/i.test(error.message)) {
+    return new StatusNotificationEngineError(error.message, error);
+  }
+
+  return new StatusNotificationEngineError(fallback, error);
+}
+
+export const orderStatusEngine = Object.freeze({
+  async notify(referenceOrId, status) {
+    const ref = String(referenceOrId || "").trim();
+
+    if (!ref) {
+      throw new StatusNotificationEngineError("Order wajib diisi.");
+    }
+
+    const payload = status ? { status: String(status).trim() } : {};
+    const response = await apiClient.post(
+      `${ORDER_PATH}/${encodeURIComponent(ref)}/notify-status`,
+      payload,
+    );
+
+    return response.data;
+  },
+
+  async notifyApproved(referenceOrId) {
+    return this.notify(referenceOrId, "processing");
+  },
+
+  async notifyCompleted(referenceOrId) {
+    return this.notify(referenceOrId, "completed");
+  },
+});
+
+export const ppobStatusEngine = Object.freeze({
+  async notify(referenceOrId) {
+    const ref = String(referenceOrId || "").trim();
+
+    if (!ref) {
+      throw new StatusNotificationEngineError("Transaksi digital wajib diisi.");
+    }
+
+    const response = await apiClient.post(
+      `${PPOB_TRANSACTION_PATH}/${encodeURIComponent(ref)}/notify-status`,
+      {},
+    );
+
+    return response.data;
+  },
+});

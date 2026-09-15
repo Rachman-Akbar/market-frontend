@@ -7,7 +7,7 @@ import {
   getPpobAdminError,
 } from "@/features/ppob/services/ppobService";
 import { openMidtransPayment } from "@/features/order/ordering/midtransService";
-import { receiptEmailEngine } from "@/core/engine/engine";
+import { ppobStatusEngine, receiptEmailEngine } from "@/core/engine/engine";
 
 const TERMINAL_PAYMENT_STATUS = ["paid", "failed", "expired", "refunded"];
 const MAX_POLL_ATTEMPTS = 12;
@@ -61,6 +61,7 @@ export function usePpobPayment({ onSuccess, onError } = {}) {
             if (data.status === "success" || data.paymentStatus === "paid") {
               callbacksRef.current.onSuccess?.(data);
               receiptEmailEngine.sendEmail(txId).catch(() => {});
+              ppobStatusEngine.notify(txId).catch(() => {});
             }
             stopPolling();
             return;
@@ -194,6 +195,7 @@ export function usePpobPayment({ onSuccess, onError } = {}) {
           setStep("payment");
           callbacksRef.current.onSuccess?.({ ...result, ...inquiryData });
           receiptEmailEngine.sendEmail(result.reference_id).catch(() => {});
+          ppobStatusEngine.notify(result.reference_id).catch(() => {});
         } else {
           setPaymentResult("pending");
           setStep("payment");
