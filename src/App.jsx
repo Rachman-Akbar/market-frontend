@@ -47,6 +47,7 @@ const AdminUsersPage = lazy(() => import("@/features/admin/identity/pages/AdminU
 const AdminRolesPage = lazy(() => import("@/features/admin/identity/pages/AdminRolesPage"));
 const AdminStoresPage = lazy(() => import("@/features/admin/store/pages/AdminStoresPage"));
 const AdminBannersPage = lazy(() => import("@/features/admin/banner/pages/AdminBannersPage"));
+const AdminGameContentPage = lazy(() => import("@/features/admin/gameContent/pages/AdminGameContentPage"));
 const AdminOrdersPage = lazy(() => import("@/features/admin/order/pages/AdminOrdersPage"));
 const AdminPpobPage = lazy(() => import("@/features/admin/ppob/pages/AdminPpobPage"));
 const AdminStoreContextPage = lazy(() => import("@/features/admin/storeContext/pages/AdminStoreContextPage"));
@@ -206,6 +207,7 @@ function renderAdminRoutes() {
         <Route path="/admin/reviews" element={<ReviewsPage />} />
         <Route path="/admin/help" element={<HelpPage />} />
         <Route path="/admin/missions" element={<MissionsPage />} />
+        <Route path="/admin/game-content" element={<AdminGameContentPage />} />
         <Route path="/admin/planner" element={<SchedulePage />} />
         <Route path="/admin/announcements" element={<AnnouncementPage />} />
         <Route path="/admin/chat" element={<RealtimeChatPage />} />
