@@ -175,10 +175,11 @@ export async function getPpobTransactions(params = {}) {
   return normalizePage(response.data, normalizePpobTransaction);
 }
 
-export function usePpobTransactions(params = {}) {
+export function usePpobTransactions(params = {}, options = {}) {
   return useQuery({
     queryKey: ppobKeys.transactions(params),
     queryFn: () => getPpobTransactions(params),
+    ...options,
   });
 }
 

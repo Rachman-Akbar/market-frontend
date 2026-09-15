@@ -64,10 +64,11 @@ export async function updateAdminStore(id, values) {
   return normalizeAdminStore(response.data?.data || response.data);
 }
 
-export async function updateAdminStoreStatus(id, status, isActive) {
+export async function updateAdminStoreStatus(id, status, isActive, message) {
   const response = await apiClient.patch(`/api/v1/seller/admin/stores/${id}/status`, {
     status,
     ...(isActive === undefined ? {} : { is_active: Boolean(isActive) }),
+    ...(message ? { message } : {}),
   });
   return normalizeAdminStore(response.data?.data || response.data);
 }
@@ -100,7 +101,7 @@ export function useUpdateAdminStore() {
 export function useUpdateAdminStoreStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status, isActive }) => updateAdminStoreStatus(id, status, isActive),
+    mutationFn: ({ id, status, isActive, message }) => updateAdminStoreStatus(id, status, isActive, message),
     onMutate: ({ id, status, isActive }) => beginOptimisticEntityUpdate(
       queryClient,
       ["admin", "stores"],

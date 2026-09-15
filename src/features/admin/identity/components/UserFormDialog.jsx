@@ -23,6 +23,8 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(user));
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
+  const [useCustomChatMessage, setUseCustomChatMessage] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
   const rolesQuery = useAdminRoles();
   const createMutation = useCreateAdminUser();
   const updateMutation = useUpdateAdminUser();
@@ -35,6 +37,8 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
       setValues(initialValues(user));
       setErrors({});
       setMessage("");
+      setUseCustomChatMessage(false);
+      setChatMessage("");
     }
   }, [open, user]);
 
@@ -71,8 +75,12 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
     if (Object.keys(nextErrors).length) return setErrors(nextErrors);
 
     try {
+      const payload = {
+        ...values,
+        ...(user ? { message: useCustomChatMessage && chatMessage.trim() ? chatMessage.trim() : null } : {}),
+      };
       const saved = user
-        ? await updateMutation.mutateAsync({ id: user.id, values })
+        ? await updateMutation.mutateAsync({ id: user.id, values: payload })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
       onClose?.();
@@ -124,6 +132,19 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
           <div className="md:col-span-2">
             <ActiveToggle checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} description="Akun nonaktif tidak dapat menggunakan sesi atau role aktif." />
           </div>
+          {user && (
+            <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <input type="checkbox" checked={useCustomChatMessage} onChange={(event) => setUseCustomChatMessage(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600" />
+                Kirim pesan notifikasi custom ke user
+              </label>
+              {useCustomChatMessage ? (
+                <textarea value={chatMessage} onChange={(event) => setChatMessage(event.target.value)} rows={3} className="mt-2 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30" placeholder="Ketik pesan custom. Gunakan {user_name} jika perlu." />
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">Pesan default akan dikirim otomatis jika status banned atau aktif/nonaktif berubah.</p>
+              )}
+            </div>
+          )}
           {message ? <p className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4">

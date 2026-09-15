@@ -69,6 +69,7 @@ function serializeUser(values, editing = false) {
     is_active: values.isBanned ? false : Boolean(values.isActive),
     banned_at: values.isBanned ? values.bannedAt || new Date().toISOString() : null,
     role_ids: (values.roleIds || []).map(Number).filter(Boolean),
+    ...(values.message ? { message: values.message } : {}),
   };
 
   if (String(values.password || "").trim()) {

@@ -186,7 +186,7 @@ const BuyTab = memo(function BuyTab({ catalog, category, onSelectCategory, opera
 
 const HistoryTab = memo(function HistoryTab({ isAuthenticated, onRequireLogin }) {
   const [statusFilter, setStatusFilter] = useState("");
-  const res = usePpobTransactions({ status: statusFilter || undefined, per_page: 20 });
+  const res = usePpobTransactions({ status: statusFilter || undefined, per_page: 20 }, { enabled: isAuthenticated });
 
   const effectiveRows = res.data?.rows || [];
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { AdminStoreEditor } from "@/features/admin/store/components/AdminStoreEditor";
+import { StoreModerationDialog } from "@/features/admin/store/components/StoreModerationDialog";
 import { ADMIN_STORE_COLUMNS, AdminStoreTable } from "@/features/admin/store/components/AdminStoreTable";
 import { getAdminStoreError, useAdminStores, useUpdateAdminStoreStatus } from "@/features/admin/store/services/adminStoreService";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
@@ -19,6 +20,7 @@ export default function AdminStoresPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
+  const [moderation, setModeration] = useState({ open: false, action: "", stores: [] });
   const editor = useEntityEditor();
   const storesQuery = useAdminStores({ page, per_page: PER_PAGE, ...(search ? { search } : {}), ...(status ? { status } : {}) });
   const statusMutation = useUpdateAdminStoreStatus();
@@ -33,16 +35,23 @@ export default function AdminStoresPage() {
     setSearch(draftQuery.trim());
   };
 
-  const bulkStatus = async (nextStatus) => {
+  const bulkStatus = async (nextStatus, chatMessage = null) => {
     if (!selection.selectedRows.length) return;
     try {
       for (const store of selection.selectedRows) {
-        await statusMutation.mutateAsync({ id: store.id, status: nextStatus, isActive: nextStatus === "suspended" ? false : store.isActive });
+        await statusMutation.mutateAsync({
+          id: store.id,
+          status: nextStatus,
+          isActive: nextStatus === "suspended" ? false : store.isActive,
+          message: chatMessage,
+        });
       }
       selection.clear();
       setMessage(`Status toko terpilih diubah menjadi ${nextStatus}.`);
     } catch (error) {
       setMessage(getAdminStoreError(error));
+    } finally {
+      setModeration({ open: false, action: "", stores: [] });
     }
   };
 
@@ -63,9 +72,9 @@ export default function AdminStoresPage() {
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}
             bulkActions={[
-              { key: "approved", label: "Approve toko terpilih", icon: "verified", onClick: () => bulkStatus("approved") },
+              { key: "approved", label: "Approve toko terpilih", icon: "verified", onClick: () => setModeration({ open: true, action: "approved", stores: selection.selectedRows.map((s) => ({ id: s.id, name: s.name, ownerName: s.ownerName })) }) },
               { key: "pending", label: "Kembalikan ke Pending", icon: "schedule", onClick: () => bulkStatus("pending") },
-              { key: "suspended", label: "Suspend toko terpilih", icon: "block", danger: true, onClick: () => bulkStatus("suspended") },
+              { key: "suspended", label: "Suspend toko terpilih", icon: "block", danger: true, onClick: () => setModeration({ open: true, action: "suspended", stores: selection.selectedRows.map((s) => ({ id: s.id, name: s.name, ownerName: s.ownerName })) }) },
             ]}
             columns={columns}
             visibleColumns={columnVisibility.visibleKeys}
@@ -88,6 +97,14 @@ export default function AdminStoresPage() {
           {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
         </>
       ) : null}
+      <StoreModerationDialog
+        open={moderation.open}
+        action={moderation.action}
+        stores={moderation.stores}
+        pending={statusMutation.isPending}
+        onConfirm={(chatMessage) => bulkStatus(moderation.action, chatMessage)}
+        onClose={() => setModeration({ open: false, action: "", stores: [] })}
+      />
       <AdminStoreEditor open={editor.open} store={editor.entity} onClose={editor.close} onSaved={() => setMessage("Toko berhasil diperbarui.")} />
     </AdminShell>
   );
