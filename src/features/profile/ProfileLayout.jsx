@@ -7,7 +7,6 @@ import {
   TicketPercent,
   Trophy,
   UserRound,
-  UsersRound,
   WalletCards,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -17,7 +16,6 @@ import { cn } from "@/shared/utils/utils";
 
 const NAV_ITEMS = [
   { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/chat/groups", label: "Chat Group", icon: UsersRound },
   { href: "/profile/notifications", label: "Notifikasi", icon: BellRing },
   { href: "/profile/payments", label: "Pembayaran", icon: WalletCards },
   { href: "/profile/vouchers", label: "Voucher", icon: TicketPercent },

@@ -8,6 +8,7 @@ const GROUP_ICONS = {
   Penjualan: "point_of_sale",
   Finance: "account_balance_wallet",
   Toko: "store",
+  Operasional: "event_note",
   Aplikasi: "apps",
   Bantuan: "support_agent",
   Manajemen: "admin_panel_settings",

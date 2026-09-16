@@ -22,7 +22,7 @@ export const SELLER_NAV_ITEMS = [
   { href: "/seller/showcases", label: "Etalase", icon: "view_module", group: "Toko" },
   { href: "/seller/banners", label: "Banner", icon: "view_carousel", group: "Toko" },
   { href: "/seller/store-preview", label: "Preview Toko", icon: "preview", group: "Toko", noChildTabs: true },
-  { href: "/seller/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Aplikasi" },
+  { href: "/seller/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Operasional" },
   { href: "/seller/chat", label: "Chat Buyer", icon: "forum", group: "Bantuan" },
   { href: "/seller/help", label: "Help", icon: "support_agent", group: "Bantuan" },
 ];

@@ -119,7 +119,7 @@ export default function PaymentsPage() {
               </p>
             </div>
             <Link
-              to="/riwayat"
+              to="/cart?tab=order"
               className="text-sm font-semibold text-[#10B981] hover:underline"
             >
               Lihat Semua

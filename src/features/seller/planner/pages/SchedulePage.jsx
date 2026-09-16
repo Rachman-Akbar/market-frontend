@@ -262,7 +262,7 @@ export default function SchedulePage() {
       `}</style>
 
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]">Aplikasi</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]">{isAdmin ? "Aplikasi" : "Operasional"}</p>
         <h1 className="mt-1 text-2xl font-light text-slate-900">Planner / Jadwal</h1>
         <p className="mt-1 text-sm text-slate-500">
           {isAdmin
