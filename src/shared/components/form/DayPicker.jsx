@@ -18,27 +18,55 @@ function normalizeKey(token) {
 }
 
 export function parseDays(value) {
-  const text = String(value || "");
+  const text = String(value || "").toLowerCase().trim();
 
-  if (!text.trim()) {
+  if (!text) {
     return [];
   }
 
   const found = new Set();
-  const tokens = text.toLowerCase().split(/[\s,/\-–—.]+/).filter(Boolean);
-
-  for (const token of tokens) {
+  const addToken = (token) => {
     const key = normalizeKey(token);
 
     if (key) {
       found.add(key);
     }
-  }
+  };
 
-  if (found.size === 0) {
-    for (const day of DAYS) {
-      if (text.toLowerCase().includes(day.key)) {
-        found.add(day.key);
+  for (const part of text.split(",")) {
+    const trimmed = part.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    const range = trimmed.match(/^([a-z]+)\s*[-–—]\s*([a-z]+)$/);
+
+    if (range) {
+      const start = DAY_KEY_INDEX[normalizeKey(range[1])];
+      const end = DAY_KEY_INDEX[normalizeKey(range[2])];
+
+      if (start === undefined || end === undefined) {
+        continue;
+      }
+
+      const [from, to] = start <= end ? [start, end] : [end, start];
+
+      for (let index = from; index <= to; index += 1) {
+        found.add(DAYS[index].key);
+      }
+
+      continue;
+    }
+
+    const before = found.size;
+    trimmed.split(/[\s,/\-–—.]+/).forEach(addToken);
+
+    if (found.size === before) {
+      for (const day of DAYS) {
+        if (trimmed.includes(day.key)) {
+          found.add(day.key);
+        }
       }
     }
   }
@@ -98,7 +126,8 @@ export function DayPicker({ value, onChange, disabled }) {
       next.add(key);
     }
 
-    onChange(compactRange([...next]));
+    const sortedNext = DAYS.filter((day) => next.has(day.key)).map((day) => day.key);
+    onChange(compactRange(sortedNext));
   };
 
   return (

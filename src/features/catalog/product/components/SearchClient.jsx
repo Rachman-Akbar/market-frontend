@@ -4,15 +4,16 @@ import { useSearchParams } from "react-router-dom";
 import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { FilterSidebar } from "@/shared/components/ui/FilterSidebar";
 import { ProductCard } from "@/features/catalog/product/components/ProductCard";
+import { StoreCard } from "@/features/catalog/store/components/StoreCard";
 import { Skeleton, SkeletonProductGrid } from "@/shared/components/feedback/Skeleton";
 import { flattenProductPages, useInfiniteProducts } from "@/features/catalog/product/services/productService";
+import { useStores } from "@/features/catalog/store/services/storefrontService";
 import { getCategories } from "@/features/catalog/category/services/categoryService";
 
-const FILTER_TABS = ["Semua", "Official Store", "Power Merchant", "Diskon"];
+const FILTER_TABS = ["Semua", "Official Store", "Power Merchant", "Diskon", "Toko"];
 const initialFilters = {
   categories: [],
   locations: [],
-  couriers: [],
   minPrice: "",
   maxPrice: "",
 };
@@ -50,9 +51,6 @@ export default function SearchClient() {
       locations: debouncedFilters.locations.length
         ? debouncedFilters.locations
         : undefined,
-      couriers: debouncedFilters.couriers.length
-        ? debouncedFilters.couriers
-        : undefined,
       min_price: debouncedFilters.minPrice || undefined,
       max_price: debouncedFilters.maxPrice || undefined,
       store_type:
@@ -71,6 +69,22 @@ export default function SearchClient() {
   const categoriesQuery = useQuery({
     queryKey: ["catalog", "categories", "filter"],
     queryFn: getCategories,
+    ...publicQueryOptions,
+  });
+  const isStoreTab = activeTab === 4;
+  const storeParams = useMemo(
+    () => ({
+      search: query || undefined,
+      q: query || undefined,
+      locations: debouncedFilters.locations.length
+        ? debouncedFilters.locations
+        : undefined,
+      per_page: 24,
+    }),
+    [debouncedFilters.locations, query],
+  );
+  const storesQuery = useStores(storeParams, {
+    enabled: isStoreTab,
     ...publicQueryOptions,
   });
   const products = useMemo(
@@ -158,32 +172,53 @@ export default function SearchClient() {
           <p className="text-sm text-[#3e4a39] mb-4">
             Menampilkan hasil pencarian untuk <strong className="text-[#1b1c1c]">"{query || "Semua Produk"}"</strong>
           </p>
-          {productsQuery.error ? <div className="text-sm text-red-500 py-8">{productsQuery.error.message}</div> : null}
-          {productsQuery.isLoading ? (
-            <div className="pt-2">
-              <SkeletonProductGrid count={10} columns="grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4" />
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <Skeleton className="h-4 w-48" />
+          {isStoreTab ? (
+            <>
+              {storesQuery.error ? <div className="text-sm text-red-500 py-8">{storesQuery.error.message}</div> : null}
+              {storesQuery.isLoading ? (
+                <div className="pt-2">
+                  <SkeletonProductGrid count={8} columns="grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4" />
+                </div>
+              ) : null}
+              {!storesQuery.isLoading && !storesQuery.error && !storesQuery.data?.length ? <div className="text-sm text-gray-500 py-8">Toko tidak ditemukan.</div> : null}
+              {!storesQuery.isLoading && !storesQuery.error && storesQuery.data?.length ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+                  {storesQuery.data.map((store) => (
+                    <StoreCard key={store.id || store.slug} store={store} />
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {productsQuery.error ? <div className="text-sm text-red-500 py-8">{productsQuery.error.message}</div> : null}
+              {productsQuery.isLoading ? (
+                <div className="pt-2">
+                  <SkeletonProductGrid count={10} columns="grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4" />
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                </div>
+              ) : null}
+              {!productsQuery.isLoading && !productsQuery.error && !products.length ? <div className="text-sm text-gray-500 py-8">Produk tidak ditemukan.</div> : null}
+              {!productsQuery.isLoading && !productsQuery.error && products.length ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {products.map((product) => (
+                    <ProductCard key={product.id || product.slug} {...product} />
+                  ))}
+                </div>
+              ) : null}
+              <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
+                {productsQuery.isFetchingNextPage
+                  ? "Lihat produk berikutnya"
+                  : productsQuery.hasNextPage
+                    ? "Geser ke bawah untuk melihat produk berikutnya"
+                    : products.length
+                      ? "Semua produk sudah ditampilkan"
+                      : ""}
               </div>
-            </div>
-          ) : null}
-          {!productsQuery.isLoading && !productsQuery.error && !products.length ? <div className="text-sm text-gray-500 py-8">Produk tidak ditemukan.</div> : null}
-          {!productsQuery.isLoading && !productsQuery.error && products.length ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {products.map((product) => (
-                <ProductCard key={product.id || product.slug} {...product} />
-              ))}
-            </div>
-          ) : null}
-          <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-4 text-xs font-semibold text-slate-400">
-            {productsQuery.isFetchingNextPage
-              ? "Lihat produk berikutnya"
-              : productsQuery.hasNextPage
-                ? "Geser ke bawah untuk melihat produk berikutnya"
-                : products.length
-                  ? "Semua produk sudah ditampilkan"
-                  : ""}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </main>

@@ -1,12 +1,5 @@
 import { useState } from "react";
 
-const deliveryOptions = [
-  { value: "jne", label: "JNE" },
-  { value: "jnt", label: "J&T" },
-  { value: "sicepat", label: "SiCepat" },
-  { value: "express", label: "Express Internal" },
-];
-
 function toggleValue(values, value) {
   return values.includes(value)
     ? values.filter((item) => item !== value)
@@ -22,7 +15,6 @@ export function FilterSidebar({
 }) {
   const [categoryOpen, setCategoryOpen] = useState(true);
   const [locationOpen, setLocationOpen] = useState(true);
-  const [deliveryOpen, setDeliveryOpen] = useState(true);
   const [priceOpen, setPriceOpen] = useState(true);
 
   const update = (patch) => onChange?.({ ...filters, ...patch });
@@ -40,7 +32,6 @@ export function FilterSidebar({
             onChange?.({
               categories: [],
               locations: [],
-              couriers: [],
               minPrice: "",
               maxPrice: "",
             })
@@ -131,43 +122,6 @@ export function FilterSidebar({
           ) : null}
         </div>
       ) : null}
-
-      <div className="border-b border-[#bccbb4] pb-4 mb-4">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between mb-3"
-          onClick={() => setDeliveryOpen((value) => !value)}
-        >
-          <span className="text-xs font-bold">Pengiriman</span>
-          <span className="material-symbols-outlined text-sm">
-            {deliveryOpen ? "expand_less" : "expand_more"}
-          </span>
-        </button>
-        {deliveryOpen ? (
-          <div className="space-y-3">
-            {deliveryOptions.map((delivery) => (
-              <label
-                key={delivery.value}
-                className="flex items-center gap-2 cursor-pointer group"
-              >
-                <input
-                  type="checkbox"
-                  checked={filters.couriers.includes(delivery.value)}
-                  onChange={() =>
-                    update({
-                      couriers: toggleValue(filters.couriers, delivery.value),
-                    })
-                  }
-                  className="rounded text-[#047857] focus:ring-[#047857] h-4 w-4 border-[#6d7b67]"
-                />
-                <span className="text-sm group-hover:text-[#047857] transition-colors">
-                  {delivery.label}
-                </span>
-              </label>
-            ))}
-          </div>
-        ) : null}
-      </div>
 
       <div className="pb-4">
         <button

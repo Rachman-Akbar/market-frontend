@@ -15,7 +15,6 @@ import { normalizeProduct } from "@/features/catalog/product/services/productSer
 const INITIAL_FILTERS = {
   categories: [],
   locations: [],
-  couriers: [],
   minPrice: "",
   maxPrice: "",
 };
@@ -33,7 +32,7 @@ function unique(values = []) {
 }
 
 function mapSort(value) {
-  if (value === "newest") return "newest";
+  if (value === "newest") return "latest";
   if (value === "price_asc") return "price_asc";
   if (value === "price_desc") return "price_desc";
   return "relevance";
@@ -59,9 +58,6 @@ export default function CategoryPage() {
         : undefined,
       locations: filters.locations.length
         ? filters.locations.join(",")
-        : undefined,
-      couriers: filters.couriers.length
-        ? filters.couriers.join(",")
         : undefined,
       min_price: filters.minPrice || undefined,
       max_price: filters.maxPrice || undefined,

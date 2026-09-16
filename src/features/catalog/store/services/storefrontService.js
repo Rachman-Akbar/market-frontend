@@ -30,6 +30,7 @@ export function normalizeStorefront(row = {}) {
     address: row.address || "",
     status: String(row.status || "pending").trim().toLowerCase(),
     isActive: toBoolean(row.is_active ?? row.isActive, true),
+    storeType: String(row.store_type || row.storeType || detail.store_type || "regular").trim().toLowerCase(),
     detail: {
       openDays: detail.open_days || detail.openDays || "",
       openTime: detail.open_time || detail.openTime || "",

@@ -122,6 +122,9 @@ export function normalizeProduct(product = {}) {
       product.location,
       "",
     ),
+    store_type: String(
+      firstValue(storeSource.store_type, product.store_type, "regular"),
+    ).trim().toLowerCase(),
   };
 
   return {
