@@ -11,6 +11,7 @@ import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
+import OrderCompletionIncomeModal from "@/features/seller/order/components/OrderCompletionIncomeModal";
 
 export default function SellerOrdersPage() {
   const [query, setQuery] = useState("");
@@ -18,6 +19,7 @@ export default function SellerOrdersPage() {
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
   const [printRow, setPrintRow] = useState(null);
+  const [completionRows, setCompletionRows] = useState([]);
   const deferredQuery = useDeferredValue(query.trim());
   const ordersQuery = useSellerOrders({ page, per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(status ? { status } : {}) });
   const updateMutation = useUpdateOrderStatus();
@@ -41,8 +43,18 @@ export default function SellerOrdersPage() {
 
   useEffect(() => setPage(1), [deferredQuery, status]);
 
+  const completeOrders = (rowsToComplete) => {
+    const pending = rowsToComplete.filter((row) => row.status !== "completed");
+    if (!pending.length) return;
+    setCompletionRows(pending);
+  };
+
   const bulkStatus = async (nextStatus) => {
     if (!selection.selectedRows.length) return;
+    if (nextStatus === "completed") {
+      completeOrders(selection.selectedRows);
+      return;
+    }
     try {
       for (const row of selection.selectedRows) {
         await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
@@ -116,14 +128,17 @@ export default function SellerOrdersPage() {
               allSelected={selection.allSelected}
               onToggleRow={selection.toggleRow}
               onToggleAll={selection.toggleAll}
-              onStatusChange={async (row, nextStatus) => {
-                try {
-                  await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
-                  setMessage("Status pesanan berhasil diperbarui.");
-                  ordersQuery.refetch();
-                } catch (error) {
-                  setMessage(getOrderManagementError(error));
+              onStatusChange={(row, nextStatus) => {
+                if (nextStatus === "completed") {
+                  completeOrders([row]);
+                  return;
                 }
+                updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber })
+                  .then(() => {
+                    setMessage("Status pesanan berhasil diperbarui.");
+                    ordersQuery.refetch();
+                  })
+                  .catch((error) => setMessage(getOrderManagementError(error)));
               }}
             />
           ) : null}
@@ -132,6 +147,17 @@ export default function SellerOrdersPage() {
       ) : null}
       <SpreadsheetOperationPanel workspace={spreadsheet} />
       {printRow ? <OrderPrintSheet row={printRow} onClose={() => setPrintRow(null)} /> : null}
+      <OrderCompletionIncomeModal
+        open={completionRows.length > 0}
+        rows={completionRows}
+        onClose={() => setCompletionRows([])}
+        onCompleted={(count) => {
+          setCompletionRows([]);
+          selection.clear();
+          setMessage(count > 1 ? `${count} pesanan berhasil diselesaikan dengan pemasukan dicatat.` : "Pesanan berhasil diselesaikan dengan pemasukan dicatat.");
+          ordersQuery.refetch();
+        }}
+      />
     </SellerPanelShell>
   );
 }

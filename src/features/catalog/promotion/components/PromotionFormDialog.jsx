@@ -8,7 +8,7 @@ import { required, validateFields, validAppUrl } from "@/core/utils/formValidati
 import { getCategories } from "@/features/catalog/category/services/categoryService";
 import { useQuery } from "@tanstack/react-query";
 import { getSellerProducts } from "@/features/seller/product/services/sellerProductService";
-import { apiClient, unwrapCollection } from "@/core/utils/apiClient";
+import { getPublicCatalogProducts } from "@/features/catalog/product/services/productService";
 import {
   getPromotionError,
   useCreateAdminPromotion,
@@ -36,8 +36,11 @@ async function getTargetCategories() {
 }
 
 async function getPublicProducts(query = "") {
-  const response = await apiClient.get("/api/v1/catalog/products", { params: { per_page: 50, ...(query.trim() ? { q: query.trim() } : {}) } });
-  return unwrapCollection(response.data).map((row) => ({ id: Number(row.id), name: row.name || `Produk ${row.id}` }));
+  const result = await getPublicCatalogProducts({
+    per_page: 50,
+    ...(query.trim() ? { q: query.trim() } : {}),
+  });
+  return result.data.map((row) => ({ id: Number(row.id), name: row.name || `Produk ${row.id}` }));
 }
 
 function initialValues(entity) {

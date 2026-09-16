@@ -162,7 +162,7 @@ export default function SearchClient() {
                 className="bg-transparent border-none outline-none text-xs font-bold cursor-pointer text-[#1b1c1c]"
               >
                 <option value="relevance">Paling Sesuai</option>
-                <option value="rating_desc">Ulasan Terbanyak</option>
+                <option value="most_reviewed">Ulasan Terbanyak</option>
                 <option value="price_asc">Harga Terendah</option>
                 <option value="price_desc">Harga Tertinggi</option>
                 <option value="latest">Terbaru</option>

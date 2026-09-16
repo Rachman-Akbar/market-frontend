@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { publicQueryOptions } from "@/core/api/publicQueryOptions";
 import { toBoolean } from "@/core/utils/boolean";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
-import { normalizeProduct } from "@/features/catalog/product/services/productService";
+import { getPublicCatalogProducts } from "@/features/catalog/product/services/productService";
 import { assetUrl } from "@/features/seller/store/services/sellerStoreService";
 
 export const storefrontKeys = {
@@ -69,39 +69,17 @@ export async function getStoreById(id) {
   return normalizeStorefront(unwrapApiData(response.data));
 }
 
-function getStoreProductCursor(payload) {
-  const direct = payload?.meta?.next_cursor || payload?.data?.meta?.next_cursor;
-  if (direct) return String(direct);
-
-  const nextUrl = payload?.links?.next || payload?.data?.links?.next;
-  if (!nextUrl) return undefined;
-
-  try {
-    const origin = globalThis.location?.origin || "http://localhost";
-    return new URL(nextUrl, origin).searchParams.get("cursor") || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 export async function getStoreProducts(storeId, params = {}, options = {}) {
-  const response = await apiClient.get("/api/v1/catalog/products", {
-    params: {
-      per_page: 24,
-      ...params,
-      store_id: Number(storeId),
-    },
-    signal: options.signal,
-  });
-  const rows = unwrapCollection(response.data);
-  const products = rows
-    .map(normalizeProduct)
-    .filter((product) => product.is_active !== false && (!product.status || product.status === "published"));
+  const result = await getPublicCatalogProducts({
+    per_page: 24,
+    store_id: Number(storeId),
+    ...params,
+  }, { signal: options.signal });
 
   return {
-    rows: products,
-    meta: response.data?.meta || null,
-    nextCursor: getStoreProductCursor(response.data),
+    rows: result.data,
+    meta: result.meta,
+    nextCursor: result.nextCursor,
   };
 }
 

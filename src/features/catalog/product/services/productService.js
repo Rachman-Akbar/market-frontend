@@ -235,6 +235,25 @@ export async function getProductAttributes(params = {}) {
   return { data: items, meta };
 }
 
+export async function getPublicCatalogProducts(params = {}, options = {}) {
+  const payload = await catalogRequest("/products", {
+    params: {
+      per_page: 24,
+      ...params,
+    },
+    signal: options.signal,
+  });
+  const { items, meta } = unwrapCollection(payload);
+
+  return {
+    data: items
+      .map(normalizeProduct)
+      .filter((product) => product.is_active !== false && (!product.status || product.status === "published")),
+    meta,
+    nextCursor: getNextCursor(payload, meta),
+  };
+}
+
 
 export const productKeys = {
   list: (params = {}) => ["catalog", "products", params],
