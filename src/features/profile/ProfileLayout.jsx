@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   BellRing,
   LifeBuoy,
-  MessageCircle,
+  MessageSquare,
   TicketPercent,
   Trophy,
   UserRound,
@@ -15,7 +15,7 @@ import { RouteOutletBoundary } from "@/shared/layout/RouteOutletBoundary";
 import { cn } from "@/shared/utils/utils";
 
 const NAV_ITEMS = [
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/profile/chat", label: "Chat", icon: MessageSquare },
   { href: "/profile/notifications", label: "Notifikasi", icon: BellRing },
   { href: "/profile/payments", label: "Pembayaran", icon: WalletCards },
   { href: "/profile/vouchers", label: "Voucher", icon: TicketPercent },
@@ -72,7 +72,7 @@ const ProfileNavigation = memo(function ProfileNavigation() {
       </aside>
 
       <nav className={profileLayout.mobileNav} aria-label="Navigasi akun buyer">
-        {NAV_ITEMS.slice(0, 6).map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
             <Link key={href} to={href} title={label} aria-label={label} className={cn("flex h-11 w-11 items-center justify-center rounded-xl", active ? "bg-emerald-50 text-[#10B981]" : "text-slate-500")}>
@@ -80,9 +80,6 @@ const ProfileNavigation = memo(function ProfileNavigation() {
             </Link>
           );
         })}
-        <Link to="/profile/help" title="Pusat Bantuan" aria-label="Pusat Bantuan" className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isActive(pathname, "/profile/help") ? "bg-emerald-50 text-[#10B981]" : "text-slate-500")}>
-          <LifeBuoy size={19} />
-        </Link>
       </nav>
     </>
   );

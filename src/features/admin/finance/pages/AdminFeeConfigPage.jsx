@@ -15,6 +15,7 @@ import {
   useDeleteAdminFeeConfig,
 } from "@/features/admin/finance/services/adminFinanceService";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
@@ -105,6 +106,7 @@ export default function AdminFeeConfigPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const notifications = useNotificationCenter();
 
   const configsQuery = useAdminFeeConfigs();
@@ -166,12 +168,13 @@ export default function AdminFeeConfigPage() {
   };
 
   const remove = async (cfg) => {
-    if (!confirm(`Hapus konfigurasi fee "${cfg.name}"?`)) return;
     try {
       await deleteMut.mutateAsync(cfg.id);
       notifications.push({ type: "success", title: "Konfigurasi Fee", message: "Konfigurasi fee berhasil dihapus." });
     } catch (e) {
       notifications.push({ type: "error", title: "Konfigurasi Fee", message: getFinanceError(e) });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -219,7 +222,7 @@ export default function AdminFeeConfigPage() {
                             <button type="button" onClick={() => openEdit(cfg)} title="Edit" className="text-slate-500 hover:text-teal-700">
                               <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
-                            <button type="button" onClick={() => remove(cfg)} title="Hapus" className="text-red-600 hover:text-red-800">
+                            <button type="button" onClick={() => setDeleteTarget(cfg)} title="Hapus" className="text-red-600 hover:text-red-800">
                               <span className="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                           </div>
@@ -245,6 +248,15 @@ export default function AdminFeeConfigPage() {
             setForm={setForm}
           />
         )}
+
+        <ConfirmDialog
+          open={Boolean(deleteTarget)}
+          title="Hapus Konfigurasi Fee"
+          message={`Konfigurasi fee ${deleteTarget?.name ? `“${deleteTarget.name}” ` : ""}akan dihapus dan tidak lagi diterapkan.`}
+          pending={deleteMut.isPending}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => remove(deleteTarget)}
+        />
       </div>
     </AdminShell>
   );

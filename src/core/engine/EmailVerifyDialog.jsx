@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MailCheck, RefreshCw, X } from "lucide-react";
+import { CheckCircle2, Loader2, MailCheck, RefreshCw, X } from "lucide-react";
 import { emailVerificationEngine, toEmailVerificationError } from "./engine";
 
 const OTP_INPUT_CLASS =
@@ -17,12 +17,14 @@ export default function EmailVerifyDialog({
   email = "",
   onVerify,
   onVerified,
+  verifiedMessage = "Email berhasil diverifikasi.",
 }) {
   const [code, setCode] = useState("");
   const [notice, setNotice] = useState({ type: "", text: "" });
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [verified, setVerified] = useState(false);
   const inputRef = useRef(null);
 
   const sendCode = useCallback(async () => {
@@ -55,12 +57,14 @@ export default function EmailVerifyDialog({
       setCode("");
       setNotice({ type: "", text: "" });
       setCooldown(0);
+      setVerified(false);
       return;
     }
 
     setCode("");
     setNotice({ type: "", text: "" });
     setCooldown(0);
+    setVerified(false);
     sendCode();
   }, [open, sendCode]);
 
@@ -91,8 +95,11 @@ export default function EmailVerifyDialog({
     try {
       await onVerify?.(code);
       setNotice({ type: "", text: "" });
-      onVerified?.();
-      onClose?.();
+      setVerified(true);
+      window.setTimeout(() => {
+        onVerified?.();
+        onClose?.();
+      }, 1600);
     } catch (error) {
       setNotice({
         type: "error",
@@ -130,91 +137,107 @@ export default function EmailVerifyDialog({
           </button>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
-          <div className="flex items-start gap-3 rounded-2xl border border-[#10B981]/20 bg-[#ECFDF5] px-4 py-3">
-            <MailCheck className="mt-0.5 shrink-0 text-[#10B981]" size={18} />
-            <p className="text-sm leading-6 text-slate-600">{description}</p>
-          </div>
-
-          <label className="block space-y-2">
-            <span className="text-xs font-bold text-slate-600">
-              Kode verifikasi (6 digit)
+        {verified ? (
+          <div className="flex flex-col items-center px-6 py-10 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#ECFDF5]">
+              <CheckCircle2 size={34} className="text-[#10B981]" />
             </span>
-            <input
-              ref={inputRef}
-              value={code}
-              onChange={(event) => { setCode(normalizeCode(event.target.value)); setNotice({ type: "", text: "" }); }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleVerify();
-                }
-              }}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="000000"
-              className={OTP_INPUT_CLASS}
-            />
-          </label>
-
-          <button
-            type="button"
-            disabled={sending || cooldown > 0}
-            onClick={sendCode}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10B981] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {sending ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
-                Mengirim ulang...
-              </>
-            ) : (
-              <>
-                <RefreshCw size={13} />
-                {cooldown > 0
-                  ? "Kirim ulang kode dalam " + cooldown + " detik"
-                  : "Kirim ulang kode"}
-              </>
-            )}
-          </button>
-
-          {notice.text ? (
-            <p
-              className={
-                notice.type === "error"
-                  ? "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
-                  : "rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"
-              }
-            >
-              {notice.text}
+            <h3 className="mt-4 text-lg font-black text-slate-950">
+              Verifikasi Berhasil
+            </h3>
+            <p className="mt-2 max-w-[320px] text-sm leading-6 text-slate-500">
+              {verifiedMessage}
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-4 px-6 py-5">
+            <div className="flex items-start gap-3 rounded-2xl border border-[#10B981]/20 bg-[#ECFDF5] px-4 py-3">
+              <MailCheck className="mt-0.5 shrink-0 text-[#10B981]" size={18} />
+              <p className="text-sm leading-6 text-slate-600">{description}</p>
+            </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            onClick={handleVerify}
-            disabled={verifying || code.length !== 6}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#10B981] px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(3,172,14,0.24)] transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {verifying ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Memverifikasi...
-              </>
-            ) : (
-              "Verifikasi"
-            )}
-          </button>
-        </div>
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">
+                Kode verifikasi (6 digit)
+              </span>
+              <input
+                ref={inputRef}
+                value={code}
+                onChange={(event) => { setCode(normalizeCode(event.target.value)); setNotice({ type: "", text: "" }); }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleVerify();
+                  }
+                }}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000"
+                className={OTP_INPUT_CLASS}
+              />
+            </label>
+
+            <button
+              type="button"
+              disabled={sending || cooldown > 0}
+              onClick={sendCode}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10B981] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sending ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  Mengirim ulang...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={13} />
+                  {cooldown > 0
+                    ? "Kirim ulang kode dalam " + cooldown + " detik"
+                    : "Kirim ulang kode"}
+                </>
+              )}
+            </button>
+
+            {notice.text ? (
+              <p
+                className={
+                  notice.type === "error"
+                    ? "rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+                    : "rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"
+                }
+              >
+                {notice.text}
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        {!verified ? (
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleVerify}
+              disabled={verifying || code.length !== 6}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#10B981] px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(3,172,14,0.24)] transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {verifying ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Memverifikasi...
+                </>
+              ) : (
+                "Verifikasi"
+              )}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
+  CheckCircle2,
   ChevronRight,
   Fingerprint,
   Info,
@@ -34,6 +35,7 @@ import {
 } from "@/shared/services/mediaUploadService";
 import AddressMapTracker from "@/features/profile/address/components/AddressMapTracker";
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { cn } from "@/shared/utils/utils";
 
 const TABS = [
@@ -459,7 +461,15 @@ function AlamatTab() {
   const deleteMutation = useDeleteAddress();
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const addresses = addressesQuery.data || [];
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSettled: () => setDeleteTarget(null),
+    });
+  };
 
   if (showForm)
     return (
@@ -518,7 +528,7 @@ function AlamatTab() {
                 <button
                   type="button"
                   disabled={deleteMutation.isPending}
-                  onClick={() => deleteMutation.mutate(address.id)}
+                  onClick={() => setDeleteTarget(address)}
                   className="text-slate-400 hover:text-red-500"
                 >
                   <Trash2 size={16} />
@@ -556,6 +566,16 @@ function AlamatTab() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Alamat"
+        message={`Alamat ${deleteTarget?.label ? `“${deleteTarget.label}” ` : ""}akan dihapus dari daftar alamat kamu.`}
+        confirmLabel="Hapus Alamat"
+        pending={deleteMutation.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
@@ -568,6 +588,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
   const [message, setMessage] = useState("");
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -580,6 +601,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
     });
     setMessage("");
     setVerifyOpen(false);
+    setSuccess(false);
   }, [open]);
 
   const handleSubmit = () => {
@@ -625,6 +647,20 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
             </button>
           </div>
 
+          {success ? (
+            <div className="flex flex-col items-center px-6 py-10 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#ECFDF5]">
+                <CheckCircle2 size={34} className="text-[#10B981]" />
+              </span>
+              <h3 className="mt-4 text-lg font-black text-slate-950">
+                Kata Sandi Berhasil Ditambahkan
+              </h3>
+              <p className="mt-2 max-w-[320px] text-sm leading-6 text-slate-500">
+                Sekarang akun kamu juga bisa masuk menggunakan email dan kata sandi
+                tanpa menghapus koneksi Google.
+              </p>
+            </div>
+          ) : (
           <div className="space-y-4 px-6 py-5">
             <p className="text-sm leading-6 text-slate-500">
               Kata sandi memungkinkan akun Google ini masuk menggunakan email dan
@@ -673,7 +709,9 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
               </p>
             ) : null}
           </div>
+          )}
 
+          {!success ? (
           <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
             <button
               type="button"
@@ -691,6 +729,7 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
               "Simpan Kata Sandi"
             </button>
           </div>
+          ) : null}
         </div>
       </div>
 
@@ -712,8 +751,12 @@ function PasswordModal({ open, userId, onClose, onSuccess }) {
         }}
         onVerified={() => {
           setVerifyOpen(false);
+          setSuccess(true);
           onSuccess?.();
-          onClose?.();
+          window.setTimeout(() => {
+            setSuccess(false);
+            onClose?.();
+          }, 1800);
         }}
       />
     </>
@@ -897,6 +940,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState("");
@@ -934,6 +978,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   };
 
   const handleLogout = async () => {
+    setLogoutConfirm(false);
     await logout?.();
     queryClient.clear();
     window.close();
@@ -941,6 +986,8 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
       if (!window.closed) navigate("/", { replace: true });
     }, 120);
   };
+
+  const openLogoutConfirm = () => setLogoutConfirm(true);
 
   return (
     <section className={profileLayout.page}>
@@ -1060,7 +1107,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
         <div className="mt-auto border-t border-[#e5e7eb] p-4">
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={openLogoutConfirm}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 text-sm font-semibold text-red-600 transition hover:bg-red-100"
           >
             <LogOut size={16} />
@@ -1108,7 +1155,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
           {activeTab === "alamat" ? <AlamatTab /> : null}
           {activeTab === "keamanan" ? (
             <KeamananTab
-              onLogout={handleLogout}
+              onLogout={openLogoutConfirm}
               onAddPassword={() => setShowPasswordModal(true)}
             />
           ) : null}
@@ -1120,6 +1167,17 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
         userId={user.id}
         onClose={() => setShowPasswordModal(false)}
         onSuccess={refreshMe}
+      />
+
+      <ConfirmDialog
+        open={logoutConfirm}
+        title="Konfirmasi Logout"
+        message="Anda akan keluar dari akun Ziip pada perangkat ini. Pastikan perubahan yang belum tersimpan sudah disimpan terlebih dahulu."
+        confirmLabel="Ya, Logout"
+        pending={false}
+        snoozeable={false}
+        onClose={() => setLogoutConfirm(false)}
+        onConfirm={handleLogout}
       />
 
       <EmailVerifyDialog

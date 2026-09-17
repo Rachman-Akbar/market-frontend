@@ -148,8 +148,8 @@ function renderAccountRoutes() {
         <Route path="/chat" element={<RealtimeChatPage />} />
         <Route path="/chat/groups" element={<GroupChatPage />} />
       </Route>
-      <Route path="/profile/chat" element={<Navigate to="/chat/login?redirect=/chat" replace />} />
-      <Route path="/profile/groups" element={<Navigate to="/chat/login?redirect=/chat/groups" replace />} />
+      <Route path="/profile/chat" element={<Navigate to="/chat" replace />} />
+      <Route path="/profile/groups" element={<Navigate to="/chat/groups" replace />} />
     </Route>
   );
 }

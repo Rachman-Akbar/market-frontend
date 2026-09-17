@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { uploadMarketplaceImage, getMediaUploadError } from "@/shared/services/mediaUploadService";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { cn } from "@/shared/utils/utils";
 import {
   useBoard,
@@ -89,6 +90,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
   const [completeFor, setCompleteFor] = useState(null);
   const [proof, setProof] = useState({ note: "", files: [] });
   const [uploading, setUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const columnBodyRefs = useRef({});
   const fileInputRef = useRef(null);
 
@@ -165,11 +167,12 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
   };
 
   const handleDeleteCard = async (card) => {
-    if (!confirm(`Hapus jadwal "${card.title}"?`)) return;
     try {
       await deleteMutation.mutateAsync(card.id);
     } catch (e) {
       alert(plannerError(e));
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -289,7 +292,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
                 <span className="material-symbols-outlined text-sm">check_circle</span>
               </button>
             )}
-            <button onClick={() => handleDeleteCard(card)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
+            <button onClick={() => setDeleteTarget(card)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
               <span className="material-symbols-outlined text-sm">delete</span>
             </button>
           </div>
@@ -545,6 +548,15 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Jadwal"
+        message={`Jadwal ${deleteTarget?.title ? `“${deleteTarget.title}” ` : ""}akan dihapus dari papan.`}
+        pending={deleteMutation.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => handleDeleteCard(deleteTarget)}
+      />
     </div>
   );
 }

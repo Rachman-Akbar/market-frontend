@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useCart } from "@/features/order/cart/context/CartContext";
 import { CategoryDropdown } from "@/features/catalog/category/components/CategoryDropdown";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 
 function openIndependentPortal(path, windowName) {
   window.open(path, windowName, "noopener,noreferrer");
@@ -102,6 +103,7 @@ export function Navbar() {
   const [query, setQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [profileHover, setProfileHover] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   function handleSearch(event) {
     event.preventDefault();
@@ -111,8 +113,13 @@ export function Navbar() {
     }
   }
 
-  async function handleLogout() {
+  function openLogout() {
     setProfileHover(false);
+    setLogoutOpen(true);
+  }
+
+  async function handleLogout() {
+    setLogoutOpen(false);
     await logout?.();
     queryClient.clear();
     navigate("/", { replace: true });
@@ -140,7 +147,8 @@ export function Navbar() {
   }
 
   return (
-    <header className="relative sticky top-0 z-[80] border-b border-slate-100 bg-white">
+    <>
+      <header className="relative sticky top-0 z-[80] border-b border-slate-100 bg-white">
       <div className="border-b border-slate-100 bg-white">
         <div className="mx-auto flex h-8 max-w-[1200px] items-center justify-between px-4 text-xs text-slate-500">
           <div className="flex items-center gap-1">
@@ -267,7 +275,7 @@ export function Navbar() {
                   >
                     <ProfileTooltip
                       onClose={() => setProfileHover(false)}
-                      onLogout={handleLogout}
+                      onLogout={openLogout}
                       roles={roles}
                       loading={loading}
                     />
@@ -300,5 +308,16 @@ export function Navbar() {
         onClose={() => setCategoryOpen(false)}
       />
     </header>
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Konfirmasi Logout"
+        message="Anda akan keluar dari akun Ziip. Proses transaksi yang belum selesai mungkin perlu dicek kembali saat login berikutnya."
+        confirmLabel="Ya, Logout"
+        pending={loading}
+        snoozeable={false}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={handleLogout}
+      />
+    </>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useStoreContextStores } from "@/features/admin/storeContext/services/adminStoreContextService";
 import { cn } from "@/shared/utils/utils";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import KanbanBoard from "../components/KanbanBoard";
 
 const TYPE_OPTIONS = [
@@ -92,6 +93,7 @@ export default function SchedulePage() {
   const [filterStoreId, setFilterStoreId] = useState("");
   const [exporting, setExporting] = useState(false);
   const [slideDir, setSlideDir] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const calendarRef = useRef(null);
   const swipeStartX = useRef(null);
@@ -208,11 +210,12 @@ export default function SchedulePage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus jadwal ini?")) return;
     try {
       await deleteMutation.mutateAsync(id);
     } catch (e) {
       alert(plannerError(e));
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -262,7 +265,7 @@ export default function SchedulePage() {
       `}</style>
 
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]">{isAdmin ? "Aplikasi" : "Operasional"}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]">{isAdmin ? "Master Data" : "Operasional"}</p>
         <h1 className="mt-1 text-2xl font-light text-slate-900">Planner / Jadwal</h1>
         <p className="mt-1 text-sm text-slate-500">
           {isAdmin
@@ -439,7 +442,7 @@ export default function SchedulePage() {
                     <button onClick={() => openEdit(s)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Edit / Jadwal Ulang">
                       <span className="material-symbols-outlined text-sm">edit_calendar</span>
                     </button>
-                    <button onClick={() => handleDelete(s.id)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
+                    <button onClick={() => setDeleteTarget(s)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
                       <span className="material-symbols-outlined text-sm">delete</span>
                     </button>
                   </div>
@@ -549,6 +552,15 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Jadwal"
+        message={`Jadwal ${deleteTarget?.title ? `“${deleteTarget.title}” ` : ""}akan dihapus dari planner.`}
+        pending={deleteMutation.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => handleDelete(deleteTarget?.id)}
+      />
     </div>
   );
 }

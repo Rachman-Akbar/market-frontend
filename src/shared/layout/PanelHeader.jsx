@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { useSaveShortcut } from "@/shared/layout/useSaveShortcut";
 import { cn } from "@/shared/utils/utils";
 
 function LogoutPage({ open, pending, onClose, onConfirm }) {
@@ -58,6 +59,7 @@ function PanelHeaderComponent({
   notificationConnected,
   onNotificationClick,
   modeHeader,
+  backToMarketplace,
 }) {
   const initial = userName?.slice(0, 1)?.toUpperCase() || "U";
   const center = useNotificationCenter();
@@ -67,6 +69,8 @@ function PanelHeaderComponent({
   const localUnreadCount = center.queueItems.length + center.infoItems.length;
   const unreadCount = notificationCount ?? localUnreadCount;
   const hasRealtimeNotification = notificationCount !== undefined;
+
+  useSaveShortcut();
 
   const confirmLogout = async () => {
     await logout();
@@ -102,19 +106,36 @@ function PanelHeaderComponent({
               {unreadCount ? <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, unreadCount)}</span> : null}
               {hasRealtimeNotification ? <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-white ${notificationConnected ? "bg-emerald-500" : "bg-amber-500"}`} /> : null}
             </button>
-            <button type="button" onClick={() => setLogoutOpen(true)} className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50" aria-label="Buka logout">
-              <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white", avatarClassName)}>{initial}</div>
-              <div className="hidden min-w-0 sm:block">
-                <p className="max-w-[120px] truncate text-xs font-extrabold text-slate-900">{userName}</p>
-                <p className="text-[10px] font-semibold text-slate-400">{roleLabel}</p>
-              </div>
-              <span className="material-symbols-outlined hidden text-[17px] text-slate-400 sm:block">expand_more</span>
-            </button>
+            {backToMarketplace ? (
+              <Link
+                to="/"
+                className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50"
+                aria-label="Kembali ke Marketplace"
+              >
+                <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-white", avatarClassName)}>
+                  <span className="material-symbols-outlined text-[18px]">storefront</span>
+                </div>
+                <div className="hidden min-w-0 sm:block">
+                  <p className="max-w-[120px] truncate text-xs font-extrabold text-slate-900">Kembali ke Marketplace</p>
+                  <p className="text-[10px] font-semibold text-slate-400">{userName}</p>
+                </div>
+                <span className="material-symbols-outlined hidden text-[17px] text-slate-400 sm:block">arrow_forward</span>
+              </Link>
+            ) : (
+              <button type="button" onClick={() => setLogoutOpen(true)} className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50" aria-label="Buka logout">
+                <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white", avatarClassName)}>{initial}</div>
+                <div className="hidden min-w-0 sm:block">
+                  <p className="max-w-[120px] truncate text-xs font-extrabold text-slate-900">{userName}</p>
+                  <p className="text-[10px] font-semibold text-slate-400">{roleLabel}</p>
+                </div>
+                <span className="material-symbols-outlined hidden text-[17px] text-slate-400 sm:block">expand_more</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
       {mobileNavigation}
-      <LogoutPage open={logoutOpen} pending={loading} onClose={() => setLogoutOpen(false)} onConfirm={confirmLogout} />
+      {!backToMarketplace ? <LogoutPage open={logoutOpen} pending={loading} onClose={() => setLogoutOpen(false)} onConfirm={confirmLogout} /> : null}
     </>
   );
 }

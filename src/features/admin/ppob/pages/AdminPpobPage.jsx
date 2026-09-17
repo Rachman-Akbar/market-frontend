@@ -8,6 +8,7 @@ import { SkeletonProductGrid, SkeletonStatGrid, SkeletonTable } from "@/shared/c
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { DonutChart } from "@/shared/components/charts/chartKit";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import {
   usePpobAdminDashboard,
   usePpobAdminFinance,
@@ -432,6 +433,7 @@ function ProductsTab({ notifications }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const products = usePpobAdminProducts({ category });
   const operatorsQuery = usePpobAdminOperators();
   const createMut = useCreatePpobAdminProduct();
@@ -494,13 +496,14 @@ function ProductsTab({ notifications }) {
     }
   };
 
-  const remove = async (id, name) => {
-    if (!confirm(`Hapus produk "${name}"?`)) return;
+  const remove = async (target) => {
     try {
-      await deleteMut.mutateAsync(id);
+      await deleteMut.mutateAsync(target.id);
       notifications.push({ type: "success", title: "Produk PPOB", message: "Produk berhasil dihapus." });
     } catch (e) {
       notifications.push({ type: "error", title: "Produk PPOB", message: getPpobAdminError(e) });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -554,7 +557,7 @@ function ProductsTab({ notifications }) {
                       <button type="button" onClick={() => openEdit(p)} title="Edit" className="text-slate-500 hover:text-teal-700">
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                       </button>
-                      <button type="button" onClick={() => remove(p.id, p.name)} title="Hapus" className="text-red-600 hover:text-red-800">
+                      <button type="button" onClick={() => setDeleteTarget(p)} title="Hapus" className="text-red-600 hover:text-red-800">
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                       </button>
                     </div>
@@ -611,6 +614,15 @@ function ProductsTab({ notifications }) {
           </Field>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Produk PPOB"
+        message={`Produk ${deleteTarget?.name ? `“${deleteTarget.name}” ` : ""}akan dihapus dari toko PPOB.`}
+        pending={deleteMut.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => remove(deleteTarget)}
+      />
     </div>
   );
 }
@@ -619,6 +631,7 @@ function OperatorsTab({ notifications }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const operators = usePpobAdminOperators();
   const createMut = useCreatePpobAdminOperator();
   const updateMut = useUpdatePpobAdminOperator();
@@ -668,13 +681,14 @@ function OperatorsTab({ notifications }) {
     }
   };
 
-  const remove = async (id, name) => {
-    if (!confirm(`Hapus operator "${name}"?`)) return;
+  const remove = async (target) => {
     try {
-      await deleteMut.mutateAsync(id);
+      await deleteMut.mutateAsync(target.id);
       notifications.push({ type: "success", title: "Operator PPOB", message: "Operator berhasil dihapus." });
     } catch (e) {
       notifications.push({ type: "error", title: "Operator PPOB", message: getPpobAdminError(e) });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -702,7 +716,7 @@ function OperatorsTab({ notifications }) {
                     <button type="button" onClick={() => openEdit(o)} title="Edit" className="p-1 text-slate-500 hover:text-teal-700">
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
-                    <button type="button" onClick={() => remove(o.id, o.name)} title="Hapus" className="p-1 text-red-600 hover:text-red-800">
+                    <button type="button" onClick={() => setDeleteTarget(o)} title="Hapus" className="p-1 text-red-600 hover:text-red-800">
                       <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
@@ -749,6 +763,15 @@ function OperatorsTab({ notifications }) {
           )}
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Operator PPOB"
+        message={`Operator ${deleteTarget?.name ? `“${deleteTarget.name}” ` : ""}akan dihapus beserta produk pada operator tersebut.`}
+        pending={deleteMut.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => remove(deleteTarget)}
+      />
     </div>
   );
 }
@@ -757,6 +780,7 @@ function PricingTab({ notifications }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const pricing = usePpobAdminPricingRules();
   const operatorsQuery = usePpobAdminOperators();
   const createMut = useCreatePpobAdminPricingRule();
@@ -818,13 +842,14 @@ function PricingTab({ notifications }) {
     }
   };
 
-  const remove = async (id, label) => {
-    if (!confirm(`Hapus aturan harga ini (${label})?`)) return;
+  const remove = async (target) => {
     try {
-      await deleteMut.mutateAsync(id);
+      await deleteMut.mutateAsync(target.id);
       notifications.push({ type: "success", title: "Aturan Harga", message: "Aturan harga berhasil dihapus." });
     } catch (e) {
       notifications.push({ type: "error", title: "Aturan Harga", message: getPpobAdminError(e) });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -875,7 +900,7 @@ function PricingTab({ notifications }) {
                       <button type="button" onClick={() => openEdit(r)} title="Edit" className="text-slate-500 hover:text-teal-700">
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                       </button>
-                      <button type="button" onClick={() => remove(r.id, levelLabel(r))} title="Hapus" className="text-red-600 hover:text-red-800">
+                      <button type="button" onClick={() => setDeleteTarget(r)} title="Hapus" className="text-red-600 hover:text-red-800">
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                       </button>
                     </div>
@@ -968,6 +993,15 @@ function PricingTab({ notifications }) {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Hapus Aturan Harga"
+        message={`Aturan harga ini akan dihapus dan tidak lagi berlaku untuk transaksi PPOB.`}
+        pending={deleteMut.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => remove(deleteTarget)}
+      />
     </div>
   );
 }

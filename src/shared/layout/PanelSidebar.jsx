@@ -9,17 +9,41 @@ const GROUP_ICONS = {
   Finance: "account_balance_wallet",
   Toko: "store",
   Operasional: "event_note",
-  Aplikasi: "apps",
+  "Master Data": "database",
   Bantuan: "support_agent",
   Manajemen: "admin_panel_settings",
 };
+
+const GROUP_THEMES = {
+  Persediaan: { color: "#f43f5e" },
+  Penjualan: { color: "#f97316" },
+  Finance: { color: "#eab308" },
+  Toko: { color: "#10b981" },
+  Operasional: { color: "#06b6d4" },
+  "Master Data": { color: "#3b82f6" },
+  Manajemen: { color: "#8b5cf6" },
+  Bantuan: { color: "#ec4899" },
+};
+
+const DEFAULT_THEME = { color: "#94a3b8" };
+
+function rgba(hex, alpha) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function themeFor(name) {
+  return GROUP_THEMES[name] || DEFAULT_THEME;
+}
 
 export const PanelSidebar = memo(function PanelSidebar({
   items,
   homeHref,
   title,
   sidebarClassName,
-  activeClassName,
   showHomeLink = true,
   showMarketplaceLink = true,
   badges = {},
@@ -28,8 +52,10 @@ export const PanelSidebar = memo(function PanelSidebar({
   const location = useLocation();
   const [openGroup, setOpenGroup] = useState(null);
   const [tooltip, setTooltip] = useState(null);
+  const [hoveredHref, setHoveredHref] = useState(null);
   const railRef = useRef(null);
   const panelRef = useRef(null);
+  const groupButtonRefs = useRef(new Map());
 
   const dashboard = items.find((item) => item.href === homeHref);
   const groups = useMemo(() => {
@@ -83,33 +109,59 @@ export const PanelSidebar = memo(function PanelSidebar({
     setTooltip({ label, left: rect.right + 10, top: rect.top + rect.height / 2 });
   };
 
+  const showGroupTip = (event, group) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const color = themeFor(group.name).color;
+    setTooltip({
+      label: group.name,
+      color,
+      left: rect.right + 10,
+      top: rect.top + rect.height / 2 - 10,
+    });
+  };
+
   const clearTip = () => setTooltip(null);
 
   const railButtonClassName = (active) => cn(
-    "relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors",
-    active ? activeClassName : "text-slate-300 hover:bg-white/10 hover:text-white",
+    "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
+    active ? "text-white" : "text-slate-400 hover:bg-white/10 hover:text-white",
   );
 
   const activeParentId = tabs?.activeParentId || "";
   const groupActive = (item) => activeParentId === item.href;
   const groupBadge = (groupItems) => groupItems.reduce((sum, item) => sum + Math.max(0, Number(badges[item.href] || 0)), 0);
 
+  const openGroupEntry = openGroup ? groups.find((entry) => entry.name === openGroup) : null;
+  const panelTop = Math.max(
+    0,
+    Math.min(openGroup ? groupButtonRefs.current.get(openGroup)?.offsetTop || 0 : 0, window.innerHeight - 460),
+  );
+
   return (
     <aside ref={railRef} className={cn("relative hidden text-white lg:block", sidebarClassName)} aria-label={title}>
-      <div className="sticky top-0 flex h-screen w-[76px] flex-col overflow-hidden border-r">
-        <div className="flex flex-col items-center gap-3 border-b border-white/10 px-2 py-4">
+      <div className="sticky top-0 relative flex h-screen w-[76px] flex-col overflow-hidden border-r border-white/10">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            background:
+              "radial-gradient(70% 28% at 50% 0%, rgba(255,255,255,0.16), transparent 72%), linear-gradient(180deg, rgba(255,255,255,0.05), transparent 28%)",
+          }}
+        />
+
+        <div className="relative flex flex-col items-center gap-3 border-b border-white/10 px-2 py-4">
           <button
             type="button"
             onMouseEnter={(event) => showTip(event, title)}
             onMouseLeave={clearTip}
             onClick={() => homeHref && tabs && tabs.navigate(homeHref)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-lg font-black text-white transition-colors hover:bg-white/20"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] transition-colors hover:bg-white/20"
           >
             M
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
+        <nav className="relative flex-1 space-y-1.5 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
           {showHomeLink && dashboard ? (
             <button
               type="button"
@@ -126,6 +178,7 @@ export const PanelSidebar = memo(function PanelSidebar({
 
           {groups.map((group) => {
             const icon = GROUP_ICONS[group.name] || group.items[0]?.icon || "menu";
+            const theme = themeFor(group.name);
             const active = group.items.some(groupActive);
             const badge = groupBadge(group.items);
 
@@ -133,10 +186,15 @@ export const PanelSidebar = memo(function PanelSidebar({
               <button
                 key={group.name}
                 type="button"
-                onMouseEnter={(event) => showTip(event, group.name)}
+                ref={(element) => {
+                  if (element) groupButtonRefs.current.set(group.name, element);
+                  else groupButtonRefs.current.delete(group.name);
+                }}
+                onMouseEnter={(event) => showGroupTip(event, group)}
                 onMouseLeave={clearTip}
                 onClick={() => setOpenGroup((current) => (current === group.name ? null : group.name))}
                 className={railButtonClassName(active)}
+                style={active ? { backgroundColor: theme.color, boxShadow: `0 8px 20px -4px ${rgba(theme.color, 0.6)}, inset 0 1px 0 rgba(255,255,255,0.3)` } : undefined}
                 aria-label={group.name}
                 aria-expanded={openGroup === group.name}
               >
@@ -148,12 +206,12 @@ export const PanelSidebar = memo(function PanelSidebar({
         </nav>
 
         {showMarketplaceLink ? (
-          <div className="border-t border-white/10 p-2">
+          <div className="relative border-t border-white/10 p-2">
             <Link
               to="/"
               onMouseEnter={(event) => showTip(event, "Kembali ke Marketplace")}
               onMouseLeave={clearTip}
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <span className="material-symbols-outlined text-[22px]">storefront</span>
             </Link>
@@ -161,49 +219,73 @@ export const PanelSidebar = memo(function PanelSidebar({
         ) : null}
       </div>
 
-      {openGroup ? (
-        <div ref={panelRef} className="absolute left-full top-0 z-40 h-screen">
+      {openGroupEntry ? (
+        <div
+          ref={panelRef}
+          onMouseLeave={clearTip}
+          className="absolute left-full z-40 ml-2"
+          style={{ top: panelTop }}
+        >
           {(() => {
-            const group = groups.find((entry) => entry.name === openGroup);
-            if (!group) return null;
+            const group = openGroupEntry;
             const icon = GROUP_ICONS[group.name] || group.items[0]?.icon || "menu";
+            const theme = themeFor(group.name);
+            const softBackground = rgba(theme.color, 0.13);
 
             return (
-              <div className="m-2 flex h-[calc(100vh-1rem)] w-72 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-900/5">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
-                      <span className="material-symbols-outlined text-[18px]">{icon}</span>
-                    </span>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Menu</p>
-                      <p className="text-sm font-extrabold text-slate-900">{group.name}</p>
-                    </div>
-                  </div>
-                  <button type="button" onClick={() => setOpenGroup(null)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700" aria-label="Tutup menu">
-                    <span className="material-symbols-outlined text-[18px]">close</span>
-                  </button>
+              <div
+                className="w-[340px] max-h-[calc(100vh-3rem)] overflow-y-auto rounded-2xl border bg-white p-2 shadow-2xl ring-1 ring-slate-900/5"
+                style={{
+                  borderColor: rgba(theme.color, 0.3),
+                  boxShadow: `0 24px 56px -12px ${rgba(theme.color, 0.28)}, 0 8px 24px -12px rgba(15, 23, 42, 0.45)`,
+                }}
+              >
+                <div className="flex items-center gap-2 px-2 pb-2 pt-1.5">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: softBackground }}>
+                    <span className="material-symbols-outlined text-[15px]" style={{ color: theme.color }}>{icon}</span>
+                  </span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: theme.color }}>{group.name}</p>
                 </div>
 
-                <div className="flex-1 space-y-1 overflow-y-auto p-2">
+                <div className="grid grid-cols-2 gap-1">
                   {group.items.map((item) => {
                     const active = activeParentId === item.href;
+                    const itemBadge = Math.max(0, Number(badges[item.href] || 0));
+                    const hovered = hoveredHref === item.href;
 
                     return (
                       <Link
                         key={item.href}
                         to={item.href}
                         onClick={(event) => openMenu(event, item)}
+                        onMouseEnter={() => setHoveredHref(item.href)}
+                        onMouseLeave={() => setHoveredHref(null)}
                         className={cn(
-                          "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors",
-                          active ? activeClassName : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                          "relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 py-3 text-center transition-shadow",
+                          active ? "text-white" : "text-slate-600",
                         )}
+                        style={
+                          active
+                            ? { backgroundColor: theme.color, boxShadow: `0 10px 26px -8px ${rgba(theme.color, 0.55)}` }
+                            : hovered
+                              ? { backgroundColor: rgba(theme.color, 0.09) }
+                              : undefined
+                        }
                         aria-current={active ? "page" : undefined}
                       >
-                        <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                        {Math.max(0, Number(badges[item.href] || 0)) > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black text-white">{Math.min(99, Number(badges[item.href] || 0))}</span> : null}
-                        <span className="material-symbols-outlined text-[16px] text-slate-300">chevron_right</span>
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                          style={active ? { backgroundColor: "rgba(255,255,255,0.22)" } : { backgroundColor: softBackground }}
+                        >
+                          <span
+                            className="material-symbols-outlined text-[18px]"
+                            style={{ color: active ? "#ffffff" : theme.color }}
+                          >
+                            {item.icon}
+                          </span>
+                        </span>
+                        <span className="w-full min-w-0 truncate text-[11px] font-bold leading-tight">{item.label}</span>
+                        {itemBadge > 0 ? <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, itemBadge)}</span> : null}
                       </Link>
                     );
                   })}
@@ -217,10 +299,23 @@ export const PanelSidebar = memo(function PanelSidebar({
       {tooltip ? (
         <span
           role="tooltip"
-          style={{ left: tooltip.left, top: tooltip.top }}
-          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-1 ring-white/10"
+          style={{ left: tooltip.left, top: tooltip.top, backgroundColor: tooltip.color || "#0f172a" }}
+          className={cn(
+            "pointer-events-none fixed z-50 rounded-md px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-1 ring-white/10",
+            tooltip.above ? "-translate-x-1/2 -translate-y-full" : "-translate-y-1/2",
+          )}
         >
-          <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 bg-slate-900" />
+          {tooltip.above ? (
+            <span
+              className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45"
+              style={{ backgroundColor: tooltip.color || "#0f172a" }}
+            />
+          ) : (
+            <span
+              className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45"
+              style={{ backgroundColor: tooltip.color || "#0f172a" }}
+            />
+          )}
           {tooltip.label}
         </span>
       ) : null}
