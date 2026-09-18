@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { cn } from "@/shared/utils/utils";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 
-function TabDropdown({ tabs, activeId, onActivate, onClose, label, accent = "slate" }) {
+function TabDropdown({ tabs, activeId, onActivate, onClose, onCloseAll, closeAllLabel = "Tutup Semua", label, accent = "slate" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -59,6 +59,21 @@ function TabDropdown({ tabs, activeId, onActivate, onClose, label, accent = "sla
               </div>
             ))}
           </div>
+          {onCloseAll && tabs.some((tab) => tab.closable) ? (
+            <div className="border-t border-slate-100 p-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseAll();
+                  setOpen(false);
+                }}
+                className="flex h-9 w-full items-center justify-center gap-2 bg-slate-800 px-3 text-xs font-extrabold text-white transition-colors hover:bg-slate-700"
+              >
+                <span className="material-symbols-outlined text-[16px]">close_fullscreen</span>
+                {closeAllLabel}
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -132,12 +147,12 @@ export const PanelTabBar = memo(function PanelTabBar() {
     <div className="sticky top-16 z-30 bg-slate-100">
       <div className="flex min-w-0 items-end gap-1 bg-slate-200 px-1 pt-1.5">
         <ScrollableTabs tabs={context.parentTabs} activeId={context.activeParentId} onActivate={context.activateParent} onClose={context.closeParent} variant="parent" />
-        <TabDropdown tabs={context.parentTabs} activeId={context.activeParentId} onActivate={context.activateParent} onClose={context.closeParent} label="Semua menu terbuka" accent="parent" />
+        <TabDropdown tabs={context.parentTabs} activeId={context.activeParentId} onActivate={context.activateParent} onClose={context.closeParent} onCloseAll={context.closeAllParents} closeAllLabel="Tutup Semua Menu" label="Semua menu terbuka" accent="parent" />
       </div>
       {context.tabs.length ? (
         <div className="flex min-w-0 items-center gap-1 bg-slate-50 px-1 py-1.5">
           <ScrollableTabs tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} variant="child" />
-          <TabDropdown tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} label="Semua halaman data" accent="child" />
+          <TabDropdown tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} onCloseAll={context.closeAllChildren} closeAllLabel="Tutup Semua Halaman" label="Semua halaman data" accent="child" />
         </div>
       ) : null}
     </div>

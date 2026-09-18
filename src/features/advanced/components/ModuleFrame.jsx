@@ -1,8 +1,6 @@
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 
 export function ModuleFrame({
-  title,
-  subtitle,
   query,
   onQueryChange,
   onRefresh,
@@ -22,15 +20,12 @@ export function ModuleFrame({
   onToggleColumn,
   onShowAllColumns,
   onResetColumns,
+  onApplyDefaultColumns,
   hasActiveFilters = false,
   onClearFilters,
 }) {
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden">
-      <header className="mb-2 border-b border-slate-200 bg-white pb-3">
-        <h1 className="text-lg font-extrabold text-slate-950">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
-      </header>
       <EntityToolbar
         query={query}
         onQueryChange={onQueryChange}
@@ -50,6 +45,7 @@ export function ModuleFrame({
         onToggleColumn={onToggleColumn}
         onShowAllColumns={onShowAllColumns}
         onResetColumns={onResetColumns}
+        onApplyDefaultColumns={onApplyDefaultColumns}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={onClearFilters}
       />

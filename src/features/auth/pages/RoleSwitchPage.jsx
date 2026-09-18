@@ -80,6 +80,21 @@ export default function RoleSwitchPage() {
       }
 
       try {
+        const confirmed = window.confirm(
+          targetRole === "seller"
+            ? "Anda akan beralih ke peran Seller. Lanjutkan?"
+            : `Anda akan beralih ke peran ${targetRole}. Lanjutkan?`,
+        );
+
+        if (!confirmed) {
+          if (window.opener) {
+            window.close();
+          } else {
+            navigate("/", { replace: true });
+          }
+          return;
+        }
+
         await switchRole(targetRole, {
           deviceName: `marketplace-web-${targetRole}`,
           storageScope: "window",

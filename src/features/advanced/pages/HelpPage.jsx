@@ -181,7 +181,7 @@ export default function HelpPage() {
           filters={<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid columns={columns} rows={rows} onRowClick={openDetail} emptyText={listQuery.isLoading ? "" : "Help belum tersedia."} actions={(row) => <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Detail</Button>} />
+          <DataGrid columns={columns} rows={rows} onRowClick={openDetail} emptyText={listQuery.isLoading ? "" : "Help belum tersedia."} />
           {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
         </ModuleFrame>
       ) : null}

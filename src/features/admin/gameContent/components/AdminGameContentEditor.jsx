@@ -28,7 +28,7 @@ function isPlainJsonString(value) {
   return value === "quiz" ? false : true;
 }
 
-export function AdminGameContentEditor({ open, entity, onClose, onSaved }) {
+export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(entity));
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
@@ -166,7 +166,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved }) {
           <div className="md:col-span-2">
             {values.gameType === "quiz" ? (
               <QuizPayloadEditor
-                questions={values.payload || []}
+                questions={Array.isArray(values.payload) ? values.payload : []}
                 onUpdate={updateQuestion}
                 onOptionChange={setQuizOption}
                 onAdd={addQuestion}
@@ -188,13 +188,22 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved }) {
 
           {message ? <p className="md:col-span-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
-          <button type="button" onClick={onClose} className="h-10 select-none border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:border-slate-300">
-            Batal
-          </button>
-          <button type="submit" disabled={mutation.isPending} className="h-10 select-none bg-teal-600 px-5 text-sm font-extrabold text-white hover:bg-teal-700 disabled:opacity-60">
-            {mutation.isPending ? "Menyimpan..." : "Simpan"}
-          </button>
+        <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-5 py-4">
+          <div>
+            {entity && onDelete ? (
+              <button type="button" onClick={onDelete} className="h-10 select-none border border-red-200 px-4 text-sm font-bold text-red-600 hover:bg-red-50">
+                Hapus
+              </button>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="h-10 select-none border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:border-slate-300">
+              Batal
+            </button>
+            <button type="submit" disabled={mutation.isPending} className="h-10 select-none bg-teal-600 px-5 text-sm font-extrabold text-white hover:bg-teal-700 disabled:opacity-60">
+              {mutation.isPending ? "Menyimpan..." : "Simpan"}
+            </button>
+          </div>
         </div>
       </form>
     </CrudDialog>

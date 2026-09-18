@@ -26,6 +26,7 @@ export const SearchableSelect = memo(function SearchableSelect({
   clearable = true,
   className,
   buttonClassName,
+  indicatorClassName,
   name,
   onCreate,
   createLabel,
@@ -110,8 +111,9 @@ export const SearchableSelect = memo(function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={cn("min-w-0 flex-1 truncate", selected ? "font-semibold text-slate-800" : "text-slate-400")}>
-          {selected?.label || placeholder}
+        <span className="min-w-0 flex-1 truncate">
+          {indicatorClassName && selected ? <span className={cn("mr-2 inline-block h-2 w-2 shrink-0 rounded-full", indicatorClassName)} aria-hidden="true" /> : null}
+          <span className={cn(selected ? "font-semibold text-slate-800" : "text-slate-400")}>{selected?.label || placeholder}</span>
         </span>
         {clearable && selected && !disabled ? (
           <span

@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getAdminMode, setAdminMode } from "@/features/admin/adminMode";
-import { AdminNotificationDrawer } from "@/features/admin/notifications/components/AdminNotificationDrawer";
+import { AdminNotificationPanel } from "@/features/admin/notifications/components/AdminNotificationPanel";
 import { AdminRealtimeNotificationProvider, useAdminRealtimeNotifications } from "@/features/admin/notifications/context/AdminRealtimeNotificationContext";
 import { PanelHeader } from "@/shared/layout/PanelHeader";
 import { PanelMobileNavigation } from "@/shared/layout/PanelMobileNavigation";
@@ -34,10 +34,10 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/stores", label: "Toko", icon: "storefront", group: "Manajemen" },
   { href: "/admin/missions", label: "Mission", icon: "military_tech", group: "Master Data" },
   { href: "/admin/game-content", label: "Game Content", icon: "stadia_controller", group: "Master Data" },
-  { href: "/admin/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Master Data" },
+  { href: "/admin/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Master Data", iconColor: "#06b6d4" },
   { href: "/admin/announcements", label: "Announcement", icon: "campaign", group: "Master Data" },
-  { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan" },
-  { href: "/admin/help", label: "Help", icon: "support_agent", group: "Bantuan" },
+  { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan", iconColor: "#3b82f6" },
+  { href: "/admin/help", label: "Help", icon: "support_agent", group: "Bantuan", iconColor: "#ec4899" },
   { href: "/admin/roles", label: "Role", icon: "admin_panel_settings", group: "Manajemen", hiddenInSidebar: true },
   { href: "/admin/store-context", label: "Monitoring Toko", icon: "monitor_heart", group: "Toko" },
 ];
@@ -45,10 +45,22 @@ export const ADMIN_NAV_ITEMS = [
 function AdminModeSwitchButton() {
   const mode = getAdminMode();
   const isSeller = mode === "seller";
+  const target = isSeller ? "monitor" : "seller";
+
+  const handleSwitch = () => {
+    const confirmed = window.confirm(
+      isSeller
+        ? "Beralih ke mode Monitoring Toko? Anda akan melihat perspektif monitoring."
+        : "Beralih ke mode Seller? Anda akan mengelola toko sebagai seller.",
+    );
+    if (!confirmed) return;
+    setAdminMode(target);
+  };
+
   return (
     <button
       type="button"
-      onClick={() => setAdminMode(isSeller ? "monitor" : "seller")}
+      onClick={handleSwitch}
       title={isSeller ? "Beralih ke Monitoring Toko" : "Beralih ke Panel Seller"}
       className="relative flex h-10 items-center gap-1.5 rounded-lg bg-white px-2.5 text-slate-600 hover:bg-slate-50"
       aria-label={isSeller ? "Beralih ke Monitoring Toko" : "Beralih ke Panel Seller"}
@@ -80,7 +92,10 @@ function AdminLayoutContent() {
               notificationClassName="hover:bg-teal-50 hover:text-teal-700"
               notificationCount={realtime.unreadCount}
               notificationConnected={realtime.connected}
-              onNotificationClick={() => realtime.setOpen(true)}
+              notificationPanel={({ close }) => <AdminNotificationPanel onClose={close} />}
+              onNotificationOpen={(next) => {
+                if (next) realtime.refresh();
+              }}
               mobileNavigation={<PanelMobileNavigation items={ADMIN_NAV_ITEMS} activeClassName="bg-teal-50 text-teal-700" badges={realtime.badges} />}
               modeHeader={<AdminModeSwitchButton />}
             />
@@ -88,7 +103,6 @@ function AdminLayoutContent() {
             <main className="min-w-0 max-w-full overflow-x-hidden px-3 py-3 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="w-full min-w-0 max-w-full" /></main>
           </div>
         </div>
-        <AdminNotificationDrawer />
       </div>
     </PanelTabsProvider>
   );

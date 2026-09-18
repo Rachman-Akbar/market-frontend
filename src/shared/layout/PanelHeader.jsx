@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { Popover } from "@/shared/components/ui/Popover";
 import { useSaveShortcut } from "@/shared/layout/useSaveShortcut";
 import { cn } from "@/shared/utils/utils";
 
@@ -44,6 +45,7 @@ function LogoutPage({ open, pending, onClose, onConfirm }) {
 function PanelHeaderComponent({
   eyebrow,
   title,
+  storeName,
   userName,
   roleLabel,
   searchPlaceholder,
@@ -57,7 +59,8 @@ function PanelHeaderComponent({
   mobileNavigation,
   notificationCount,
   notificationConnected,
-  onNotificationClick,
+  notificationPanel,
+  onNotificationOpen,
   modeHeader,
   backToMarketplace,
 }) {
@@ -77,6 +80,20 @@ function PanelHeaderComponent({
     setLogoutOpen(false);
     navigate(roleLabel?.toLowerCase().includes("admin") ? "/admin/login" : "/auth/login", { replace: true });
   };
+
+  const notificationButton = (state) => (
+    <button
+      type="button"
+      onClick={state?.toggle}
+      aria-expanded={notificationPanel ? state?.open : undefined}
+      className={cn("relative flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-600 transition", notificationClassName)}
+      aria-label="Notifikasi"
+    >
+      <span className={`material-symbols-outlined text-[20px] ${unreadCount ? "animate-pulse text-amber-600" : ""}`}>{unreadCount ? "notifications_active" : "notifications"}</span>
+      {unreadCount ? <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, unreadCount)}</span> : null}
+      {hasRealtimeNotification ? <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-white ${notificationConnected ? "bg-emerald-500" : "bg-amber-500"}`} /> : null}
+    </button>
+  );
 
   return (
     <>
@@ -101,26 +118,44 @@ function PanelHeaderComponent({
               <Link to={actionHref} className={cn("hidden rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-slate-700 transition sm:inline-flex", actionClassName)}>{actionLabel}</Link>
             ) : null}
             {modeHeader ? <>{modeHeader}</> : null}
-            <button type="button" onClick={() => onNotificationClick ? onNotificationClick() : center.setOpen(true)} className={cn("relative flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-600 transition", notificationClassName)} aria-label="Notifikasi">
-              <span className={`material-symbols-outlined text-[20px] ${unreadCount ? "animate-pulse text-amber-600" : ""}`}>{unreadCount ? "notifications_active" : "notifications"}</span>
-              {unreadCount ? <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, unreadCount)}</span> : null}
-              {hasRealtimeNotification ? <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-white ${notificationConnected ? "bg-emerald-500" : "bg-amber-500"}`} /> : null}
-            </button>
+            {notificationPanel ? (
+              <Popover trigger={(state) => notificationButton(state)} onOpenChange={onNotificationOpen}>
+                {notificationPanel}
+              </Popover>
+            ) : notificationButton()}
             {backToMarketplace ? (
-              <Link
-                to="/"
-                className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50"
-                aria-label="Kembali ke Marketplace"
+              <Popover
+                trigger={({ toggle, open }) => (
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    aria-expanded={open}
+                    className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50"
+                    aria-label="Buka menu kembali ke marketplace"
+                  >
+                    <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-white", avatarClassName)}>
+                      <span className="material-symbols-outlined text-[18px]">storefront</span>
+                    </div>
+                    <div className="hidden min-w-0 sm:block">
+                      <p className="max-w-[150px] truncate text-xs font-extrabold text-slate-900">{storeName || title || userName}</p>
+                      <p className="text-[10px] font-semibold text-slate-400">{userName}</p>
+                    </div>
+                  </button>
+                )}
               >
-                <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-white", avatarClassName)}>
-                  <span className="material-symbols-outlined text-[18px]">storefront</span>
-                </div>
-                <div className="hidden min-w-0 sm:block">
-                  <p className="max-w-[120px] truncate text-xs font-extrabold text-slate-900">Kembali ke Marketplace</p>
-                  <p className="text-[10px] font-semibold text-slate-400">{userName}</p>
-                </div>
-                <span className="material-symbols-outlined hidden text-[17px] text-slate-400 sm:block">arrow_forward</span>
-              </Link>
+                {({ close }) => (
+                  <div className="w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl">
+                    <Link
+                      to="/"
+                      onClick={close}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-extrabold text-slate-800 transition hover:bg-slate-50"
+                    >
+                      <span className="material-symbols-outlined text-[19px] text-emerald-600">storefront</span>
+                      <span className="min-w-0 flex-1 truncate">Kembali ke Marketplace</span>
+                    </Link>
+                  </div>
+                )}
+              </Popover>
             ) : (
               <button type="button" onClick={() => setLogoutOpen(true)} className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-left hover:bg-slate-50" aria-label="Buka logout">
                 <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white", avatarClassName)}>{initial}</div>

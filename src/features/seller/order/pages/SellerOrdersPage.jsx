@@ -1,4 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerPanelShell";
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
 import { getOrderManagementError, useSellerOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
@@ -7,6 +8,7 @@ import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { Pagination } from "@/shared/components/ui/Pagination";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
@@ -20,6 +22,8 @@ export default function SellerOrdersPage() {
   const [message, setMessage] = useState("");
   const [printRow, setPrintRow] = useState(null);
   const [completionRows, setCompletionRows] = useState([]);
+  const notifications = useNotificationCenter();
+  const navigate = useNavigate();
   const deferredQuery = useDeferredValue(query.trim());
   const ordersQuery = useSellerOrders({ page, per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(status ? { status } : {}) });
   const updateMutation = useUpdateOrderStatus();
@@ -55,14 +59,17 @@ export default function SellerOrdersPage() {
       completeOrders(selection.selectedRows);
       return;
     }
+    const task = notifications.startTask({ title: "Ubah Status Pesanan", message: `Memproses ${selection.selectedRows.length} pesanan ke status ${nextStatus}...` });
     try {
       for (const row of selection.selectedRows) {
         await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
       }
       selection.clear();
       setMessage(`Status pesanan terpilih diubah menjadi ${nextStatus}.`);
+      task.success(`${selection.selectedRows.length} pesanan diubah menjadi ${nextStatus}.`);
       ordersQuery.refetch();
     } catch (error) {
+      task.fail(getOrderManagementError(error));
       setMessage(getOrderManagementError(error));
     }
   };
@@ -95,6 +102,7 @@ export default function SellerOrdersPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
             filters={(
               <SearchableSelect
                 value={status}
@@ -122,6 +130,7 @@ export default function SellerOrdersPage() {
               portal="seller"
               pendingId={updateMutation.variables?.id}
               onPrint={setPrintRow}
+              onEdit={(row) => navigate(`/seller/orders/${row.id || row.subOrderNumber}`, { state: { row } })}
               visibleSet={columnVisibility.visibleSet}
               selectionEnabled={selection.enabled}
               selectedIds={selection.selectedIds}
@@ -133,12 +142,17 @@ export default function SellerOrdersPage() {
                   completeOrders([row]);
                   return;
                 }
+                const task = notifications.startTask({ title: "Ubah Status Pesanan", message: `Memproses pesanan ${row.orderNumber || `#${row.id}`} ke status ${nextStatus}...` });
                 updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber })
                   .then(() => {
+                    task.success(`Pesanan ${row.orderNumber || `#${row.id}`} diubah menjadi ${nextStatus}.`);
                     setMessage("Status pesanan berhasil diperbarui.");
                     ordersQuery.refetch();
                   })
-                  .catch((error) => setMessage(getOrderManagementError(error)));
+                  .catch((error) => {
+                    task.fail(getOrderManagementError(error));
+                    setMessage(getOrderManagementError(error));
+                  });
               }}
             />
           ) : null}
@@ -154,6 +168,8 @@ export default function SellerOrdersPage() {
         onCompleted={(count) => {
           setCompletionRows([]);
           selection.clear();
+          const task = notifications.startTask({ title: "Selesaikan Pesanan", message: `Mencatat pemasukan untuk ${count} pesanan...` });
+          task.success(count > 1 ? `${count} pesanan berhasil diselesaikan dengan pemasukan dicatat.` : "Pesanan berhasil diselesaikan dengan pemasukan dicatat.");
           setMessage(count > 1 ? `${count} pesanan berhasil diselesaikan dengan pemasukan dicatat.` : "Pesanan berhasil diselesaikan dengan pemasukan dicatat.");
           ordersQuery.refetch();
         }}

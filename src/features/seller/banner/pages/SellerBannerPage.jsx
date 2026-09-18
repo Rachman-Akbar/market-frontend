@@ -32,22 +32,24 @@ export default function SellerBannerPage() {
 
   const remove = async () => {
     if (!deleteTarget) return;
+    const task = notifications.startTask({ title: "Hapus Banner", message: `Menghapus banner "${deleteTarget.name}"...` });
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      notifications.push({ type: "success", title: "Banner", message: "Banner berhasil dihapus." });
+      task.success("Banner berhasil dihapus.");
     } catch (error) {
-      notifications.push({ type: "error", title: "Banner", message: getSellerBannerError(error) });
+      task.fail(getSellerBannerError(error));
     }
   };
 
   const toggleActive = (row, isActive) => {
+    const task = notifications.startTask({ title: "Ubah Status Banner", message: `Memproses banner "${row.name}"...` });
     quickUpdateMutation.mutate(
       { id: row.id, values: { ...row, isActive } },
       {
-        onSuccess: () => notifications.push({ type: "success", title: "Banner", message: `Banner berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.` }),
-        onError: (error) => notifications.push({ type: "error", title: "Banner", message: getSellerBannerError(error) }),
+        onSuccess: () => task.success(`Banner "${row.name}" berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`),
+        onError: (error) => task.fail(getSellerBannerError(error)),
       },
     );
   };
@@ -73,6 +75,7 @@ export default function SellerBannerPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
             hasActiveFilters={Boolean(query)}
             onClearFilters={() => setQuery("")}
           />
@@ -105,7 +108,8 @@ export default function SellerBannerPage() {
         onClose={editor.close}
         onSaved={() => {
           editor.markListDirty();
-          notifications.push({ type: "success", title: "Banner", message: editor.entity ? "Banner berhasil diperbarui." : "Banner berhasil ditambahkan." });
+          const task = notifications.startTask({ title: editor.entity ? "Perbarui Banner" : "Tambah Banner", message: "Menyimpan banner..." });
+          task.success(editor.entity ? "Banner berhasil diperbarui." : "Banner berhasil ditambahkan.");
           editor.completeSave();
         }}
       />

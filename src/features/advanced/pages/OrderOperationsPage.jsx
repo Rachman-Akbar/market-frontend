@@ -3,6 +3,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { getOrderManagementError, useAdminOrders, useSellerOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
+import { FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Pagination } from "@/shared/components/ui/Pagination";
 import { useTableSelection } from "@/shared/hooks";
@@ -21,6 +22,7 @@ export default function OrderOperationsPage() {
   const [type, setType] = useState("");
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
+  const [detailRow, setDetailRow] = useState(null);
   const deferredQuery = useDeferredValue(query.trim());
   const params = { page, per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(type ? { order_type: type } : {}), ...(status ? { status } : {}) };
   const adminQuery = useAdminOrders(params);
@@ -51,7 +53,8 @@ export default function OrderOperationsPage() {
   async function changeStatus(row, nextStatus) {
     try {
       await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
-      setMessage("Status pesanan berhasil diperbarui.");
+      setDetailRow(null);
+      setMessage(`Status pesanan ${row.orderNumber || row.id} berhasil diperbarui menjadi ${nextStatus}.`);
       listQuery.refetch();
     } catch (error) {
       setMessage(getOrderManagementError(error));
@@ -90,18 +93,38 @@ export default function OrderOperationsPage() {
           allSelected={selection.allSelected}
           onToggleRow={selection.toggleRow}
           onToggleAll={selection.toggleAll}
-          actions={(row) => (
-            <div className="flex flex-wrap justify-end gap-1">
-              {row.status === "pending" ? <Button size="sm" variant="outline" onClick={() => changeStatus(row, "processing")}>Proses</Button> : null}
-              {row.status === "processing" ? <Button size="sm" variant="outline" onClick={() => changeStatus(row, "shipped")}>Kirim</Button> : null}
-              {row.status === "shipped" ? <Button size="sm" variant="outline" onClick={() => changeStatus(row, "received")}>Diterima</Button> : null}
-              {row.status === "received" ? <Button size="sm" variant="outline" onClick={() => changeStatus(row, "completed")}>Selesai</Button> : null}
-              {["pending", "processing"].includes(row.status) ? <Button size="sm" variant="destructive" onClick={() => changeStatus(row, "cancelled")}>Batal</Button> : null}
-            </div>
-          )}
+          onRowClick={setDetailRow}
         />
         {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
       </ModuleFrame>
+      <FormModal
+        open={Boolean(detailRow)}
+        title={detailRow ? `Operasi Pesanan ${detailRow.orderNumber || detailRow.id}` : ""}
+        subtitle="Perbarui status pesanan melalui modal ini."
+        onClose={() => setDetailRow(null)}
+        onSubmit={(event) => { event.preventDefault(); setDetailRow(null); }}
+        submitLabel="Tutup"
+      >
+        {detailRow ? (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Toko</p><p className="font-semibold text-slate-800">{detailRow.storeName || "-"}</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Pelanggan</p><p className="font-semibold text-slate-800">{detailRow.customerName || "-"}</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Tipe</p><p className="font-semibold text-slate-800">{detailRow.orderType || "normal"}</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Pembayaran</p><p className="font-semibold text-slate-800">{detailRow.paymentStatus || "-"}</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Total</p><p className="font-bold text-slate-900">{money(detailRow.total)}</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Status</p><p className="font-black uppercase text-slate-700">{detailRow.status}</p></div>
+            </div>
+            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+              {detailRow.status === "pending" ? <Button type="button" variant="outline" onClick={() => changeStatus(detailRow, "processing")}>Proses</Button> : null}
+              {detailRow.status === "processing" ? <Button type="button" variant="outline" onClick={() => changeStatus(detailRow, "shipped")}>Kirim</Button> : null}
+              {detailRow.status === "shipped" ? <Button type="button" variant="outline" onClick={() => changeStatus(detailRow, "received")}>Diterima</Button> : null}
+              {detailRow.status === "received" ? <Button type="button" variant="outline" onClick={() => changeStatus(detailRow, "completed")}>Selesai</Button> : null}
+              {["pending", "processing"].includes(detailRow.status) ? <Button type="button" variant="destructive" onClick={() => changeStatus(detailRow, "cancelled")}>Batal</Button> : null}
+            </div>
+          </div>
+        ) : null}
+      </FormModal>
       <SpreadsheetOperationPanel workspace={spreadsheet} />
     </>
   );

@@ -8,7 +8,7 @@ import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
 import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
-import { formatTableValue } from "@/shared/utils/tableData";
+import { formatTableValue, resolveTableValue } from "@/shared/utils/tableData";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 
 export const PRODUCT_TABLE_COLUMNS = [
@@ -72,7 +72,7 @@ export const SellerProductTable = memo(function SellerProductTable({
   };
 
   const renderCell = (column, product) => {
-    if (column.rawKey) return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{formatTableValue(product.raw?.[column.rawKey])}</td>;
+    if (column.rawKey) return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{formatTableValue(resolveTableValue({ raw: product.raw }, column.rawKey))}</td>;
     if (column.key === "product") return <td key={column.key} className="px-4 py-3"><div className="flex items-center gap-3"><div className="h-11 w-11 shrink-0 overflow-hidden bg-slate-100">{product.thumbnail ? <img src={product.thumbnail} alt={product.name} className="h-full w-full object-cover" loading="lazy" /> : null}</div><div className="min-w-0"><p className="truncate font-extrabold text-slate-900">{toTitleCase(product.name)}</p><p className="mt-0.5 truncate text-xs text-slate-500">{product.sku || "SKU otomatis"}</p></div></div></td>;
     if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(product.storeName) || "-"}</td>;
     if (column.key === "mode") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{product.mode === "variant" ? `${product.variants.length} variant` : "Tanpa variant"}</td>;

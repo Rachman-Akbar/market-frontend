@@ -538,12 +538,11 @@ function ProductsTab({ notifications }) {
                 <th className="py-2 pr-3 font-semibold">Harga Modal</th>
                 <th className="py-2 pr-3 font-semibold">Harga Jual</th>
                 <th className="py-2 pr-3 font-semibold">Margin</th>
-                <th className="py-2 font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 align-top">
+                <tr key={p.id} onClick={() => openEdit(p)} className="cursor-pointer border-b border-slate-100 align-top">
                   <td className="py-2 pr-3">
                     <p className="font-semibold text-slate-900">{p.name}</p>
                     <p className="text-xs text-slate-400">{p.productType} • {p.providerProductCode}</p>
@@ -552,16 +551,6 @@ function ProductsTab({ notifications }) {
                   <td className="py-2 pr-3 text-slate-600">{formatRupiah(p.providerPrice)}</td>
                   <td className="py-2 pr-3 font-semibold text-slate-900">{formatRupiah(p.sellingPrice)}</td>
                   <td className="py-2 pr-3 text-slate-600">{formatRupiah(p.margin)}</td>
-                  <td className="py-2">
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => openEdit(p)} title="Edit" className="text-slate-500 hover:text-teal-700">
-                        <span className="material-symbols-outlined text-[18px]">edit</span>
-                      </button>
-                      <button type="button" onClick={() => setDeleteTarget(p)} title="Hapus" className="text-red-600 hover:text-red-800">
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -570,7 +559,7 @@ function ProductsTab({ notifications }) {
       )}
 
       {isOpen && (
-        <Modal title={editing ? "Edit Produk PPOB" : "Tambah Produk PPOB"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending}>
+        <Modal title={editing ? "Edit Produk PPOB" : "Tambah Produk PPOB"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending} onDelete={editing ? () => { setDeleteTarget(editing); setIsOpen(false); } : undefined}>
           <Field label="Nama Produk (wajib)">
             <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Telkomsel 10rb" />
           </Field>
@@ -706,19 +695,11 @@ function OperatorsTab({ notifications }) {
           <CardContent className="pt-6">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {rows.map((o) => (
-                <div key={o.id} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <div key={o.id} onClick={() => openEdit(o)} className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 hover:bg-slate-100">
                   <span className="material-symbols-outlined text-2xl text-slate-400">sim_card</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-slate-900">{o.name}</p>
                     <p className="text-xs text-slate-500">{CATEGORY_LABELS[o.category] || o.category}{o.operatorPrefix ? ` • ${o.operatorPrefix}` : ""}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => openEdit(o)} title="Edit" className="p-1 text-slate-500 hover:text-teal-700">
-                      <span className="material-symbols-outlined text-[18px]">edit</span>
-                    </button>
-                    <button type="button" onClick={() => setDeleteTarget(o)} title="Hapus" className="p-1 text-red-600 hover:text-red-800">
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
                   </div>
                 </div>
               ))}
@@ -728,7 +709,7 @@ function OperatorsTab({ notifications }) {
       )}
 
       {isOpen && (
-        <Modal title={editing ? "Edit Operator PPOB" : "Tambah Operator PPOB"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending}>
+        <Modal title={editing ? "Edit Operator PPOB" : "Tambah Operator PPOB"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending} onDelete={editing ? () => { setDeleteTarget(editing); setIsOpen(false); } : undefined}>
           <Field label="Nama Operator (wajib)">
             <Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value, slug: editing ? form.slug : slugify(e.target.value) })} placeholder="e.g. Telkomsel" />
           </Field>
@@ -881,12 +862,11 @@ function PricingTab({ notifications }) {
                 <th className="py-2 pr-3 font-semibold">Biaya Admin</th>
                 <th className="py-2 pr-3 font-semibold">Komisi</th>
                 <th className="py-2 pr-3 font-semibold">Prioritas</th>
-                <th className="py-2 font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100">
+                <tr key={r.id} onClick={() => openEdit(r)} className="cursor-pointer border-b border-slate-100">
                   <td className="py-2 pr-3 text-slate-600">{levelLabel(r)}</td>
                   <td className="py-2 pr-3 text-slate-600">
                     {CATEGORY_LABELS[r.category] || r.category || (r.operatorId ? `Operator #${r.operatorId}` : "-")}
@@ -895,16 +875,6 @@ function PricingTab({ notifications }) {
                   <td className="py-2 pr-3 text-slate-600">{formatRule(r.adminFeeType, r.adminFeeValue)}</td>
                   <td className="py-2 pr-3 text-slate-600">{formatRule(r.commissionType, r.commissionValue)}</td>
                   <td className="py-2 pr-3 text-slate-600">{r.priority}</td>
-                  <td className="py-2">
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => openEdit(r)} title="Edit" className="text-slate-500 hover:text-teal-700">
-                        <span className="material-symbols-outlined text-[18px]">edit</span>
-                      </button>
-                      <button type="button" onClick={() => setDeleteTarget(r)} title="Hapus" className="text-red-600 hover:text-red-800">
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -913,7 +883,7 @@ function PricingTab({ notifications }) {
       )}
 
       {isOpen && (
-        <Modal title={editing ? "Edit Aturan Harga" : "Tambah Aturan Harga"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending}>
+        <Modal title={editing ? "Edit Aturan Harga" : "Tambah Aturan Harga"} onClose={() => setIsOpen(false)} onSave={save} pending={editing ? updateMut.isPending : createMut.isPending} onDelete={editing ? () => { setDeleteTarget(editing); setIsOpen(false); } : undefined}>
           <Field label="Level">
             <SearchableSelect
               value={form.level}
@@ -1025,17 +995,24 @@ function Field({ label, children }) {
   );
 }
 
-function Modal({ title, onClose, onSave, pending, children }) {
+function Modal({ title, onClose, onSave, pending, children, onDelete }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-slate-900">{title}</h3>
         <div className="mt-4 space-y-3">{children}</div>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Batal</Button>
-          <Button onClick={onSave} disabled={pending} className="bg-teal-600 hover:bg-teal-700">
-            {pending ? "Menyimpan..." : "Simpan"}
-          </Button>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <div>
+            {onDelete ? (
+              <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={onDelete}>Hapus</Button>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>Batal</Button>
+            <Button onClick={onSave} disabled={pending} className="bg-teal-600 hover:bg-teal-700">
+              {pending ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

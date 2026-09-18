@@ -81,7 +81,20 @@ export default function AdminHomePage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         {mode ? (
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAdminMode(mode === "seller" ? "monitor" : "seller")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const target = mode === "seller" ? "monitor" : "seller";
+                const confirmed = window.confirm(
+                  target === "seller"
+                    ? "Beralih ke Panel Seller? Anda akan mengelola toko sebagai seller."
+                    : "Beralih ke Monitoring Toko? Anda akan melihat perspektif monitoring.",
+                );
+                if (!confirmed) return;
+                setAdminMode(target);
+              }}
+            >
               <span className="material-symbols-outlined text-base">swap_horiz</span>
               Ganti ke {mode === "seller" ? "Monitoring Toko" : "Panel Seller"}
             </Button>

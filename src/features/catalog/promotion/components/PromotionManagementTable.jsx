@@ -3,7 +3,7 @@ import { StatusBadge } from "@/shared/components/feedback/StatusBadge";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
 import { formatDateTime } from "@/core/utils/dateTime";
-import { formatTableValue } from "@/shared/utils/tableData";
+import { formatTableValue, resolveTableValue } from "@/shared/utils/tableData";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 
 export const PROMOTION_TABLE_COLUMNS = [
@@ -73,7 +73,7 @@ export const PromotionManagementTable = memo(function PromotionManagementTable({
                 {visible("active") ? <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}><InlineActiveSwitch checked={row.isActive} pending={pendingId === row.id} onChange={(checked) => onToggleActive?.(row, checked)} compact /></td> : null}
                 {visible("submittedAt") ? <td className="px-4 py-3 text-slate-500">{formatDateTime(row.submittedAt)}</td> : null}
                 {visible("approvedAt") ? <td className="px-4 py-3 text-slate-500">{formatDateTime(row.approvedAt)}</td> : null}
-                {rawColumns.map((column) => <td key={column.key} className="max-w-72 truncate px-4 py-3 text-slate-600">{formatTableValue(row.raw?.[column.rawKey])}</td>)}
+                {rawColumns.map((column) => <td key={column.key} className="max-w-72 truncate px-4 py-3 text-slate-600">{formatTableValue(resolveTableValue({ raw: row.raw }, column.rawKey))}</td>)}
               </tr>
             ))}
           </tbody>

@@ -16,6 +16,7 @@ import {
 } from "@/features/admin/finance/services/adminFinanceService";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
@@ -42,7 +43,7 @@ function Field({ label, children }) {
   );
 }
 
-function FeeConfigModal({ title, onClose, onSave, pending, initial, categories, form, setForm }) {
+function FeeConfigModal({ title, onClose, onSave, pending, initial, categories, form, setForm, onDelete }) {
   const categoryOptions = useMemo(
     () => categories.map((c) => ({ value: String(c.id), label: `${c.path || c.name}` })),
     [categories]
@@ -91,11 +92,18 @@ function FeeConfigModal({ title, onClose, onSave, pending, initial, categories, 
             />
           </Field>
         </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Batal</Button>
-          <Button onClick={onSave} disabled={pending} className="bg-teal-600 hover:bg-teal-700">
-            {pending ? "Menyimpan..." : "Simpan"}
-          </Button>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <div>
+            {initial && onDelete ? (
+              <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={onDelete}>Hapus</Button>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>Batal</Button>
+            <Button onClick={onSave} disabled={pending} className="bg-teal-600 hover:bg-teal-700">
+              {pending ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -167,6 +175,21 @@ export default function AdminFeeConfigPage() {
     }
   };
 
+  const toggleActive = (cfg) => {
+    updateMut.mutateAsync({
+      id: cfg.id,
+      values: {
+        name: cfg.name,
+        percentage: Number(cfg.percentage || 0),
+        fixedAmount: Number(cfg.fixedAmount || 0),
+        minFee: cfg.minFee != null ? Number(cfg.minFee) : null,
+        maxFee: cfg.maxFee != null ? Number(cfg.maxFee) : null,
+        description: cfg.description || null,
+        isActive: !cfg.isActive,
+      },
+    }).catch((e) => notifications.push({ type: "error", title: "Konfigurasi Fee", message: getFinanceError(e) }));
+  };
+
   const remove = async (cfg) => {
     try {
       await deleteMut.mutateAsync(cfg.id);
@@ -200,12 +223,11 @@ export default function AdminFeeConfigPage() {
                       <th className="py-2 pr-3 font-semibold">Cakupan</th>
                       <th className="py-2 pr-3 font-semibold">Fee</th>
                       <th className="py-2 pr-3 font-semibold">Status</th>
-                      <th className="py-2 font-semibold">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((cfg) => (
-                      <tr key={cfg.id} className="border-b border-slate-100 align-top">
+                      <tr key={cfg.id} onClick={() => openEdit(cfg)} className="cursor-pointer border-b border-slate-100 align-top">
                         <td className="py-2 pr-3">
                           <p className="font-semibold text-slate-900">{cfg.name}</p>
                           <p className="text-xs text-slate-400">{cfg.code}</p>
@@ -213,19 +235,7 @@ export default function AdminFeeConfigPage() {
                         <td className="py-2 pr-3 text-slate-600">{cfg.categoryName || "Global"}</td>
                         <td className="py-2 pr-3 text-slate-600">{describeFee(cfg)}</td>
                         <td className="py-2 pr-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cfg.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
-                            {cfg.isActive ? "Aktif" : "Non-aktif"}
-                          </span>
-                        </td>
-                        <td className="py-2">
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => openEdit(cfg)} title="Edit" className="text-slate-500 hover:text-teal-700">
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                            </button>
-                            <button type="button" onClick={() => setDeleteTarget(cfg)} title="Hapus" className="text-red-600 hover:text-red-800">
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          </div>
+                          <span className="inline-flex"><InlineActiveSwitch checked={cfg.isActive !== false} onChange={() => toggleActive(cfg)} pending={updateMut.isPending} compact /></span>
                         </td>
                       </tr>
                     ))}
@@ -246,6 +256,7 @@ export default function AdminFeeConfigPage() {
             categories={categories}
             form={form}
             setForm={setForm}
+            onDelete={editing ? () => { setDeleteTarget(editing); setIsOpen(false); } : undefined}
           />
         )}
 

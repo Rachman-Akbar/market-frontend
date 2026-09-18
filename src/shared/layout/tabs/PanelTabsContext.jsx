@@ -253,6 +253,41 @@ export function PanelTabsProvider({ children, items = [] }) {
     else if (activeParent) activateTab(`${activeParent.id}:list`);
   }, [activateTab, activeParent, activeTab, closeTab]);
 
+  const closeAllChildren = useCallback(() => {
+    if (!activeParent) return;
+    const parentId = activeParent.id;
+    if (activeParent.exact || activeParent.noChildTabs) return;
+    setChildrenByParent((current) => ({ ...current, [parentId]: [createListTab(activeParent)] }));
+    setActiveChildByParent((current) => ({ ...current, [parentId]: `${parentId}:list` }));
+  }, [activeParent]);
+
+  const closeAllParents = useCallback(() => {
+    const remaining = parentTabs.filter((tab) => !tab.closable);
+    const nextTabs = remaining.length ? remaining : [parentTabs[0]].filter(Boolean);
+    const nextIds = new Set(nextTabs.map((tab) => tab.id));
+    setParentTabs(nextTabs);
+    setChildrenByParent((current) => {
+      const next = {};
+      Object.keys(current).forEach((parentId) => {
+        if (nextIds.has(parentId)) next[parentId] = current[parentId];
+      });
+      return next;
+    });
+    setActiveChildByParent((current) => {
+      const next = {};
+      Object.keys(current).forEach((parentId) => {
+        if (nextIds.has(parentId)) next[parentId] = current[parentId];
+      });
+      return next;
+    });
+    setActiveParentId((current) => {
+      if (nextIds.has(current)) return current;
+      const fallback = nextTabs[0];
+      if (fallback) navigate(fallback.href);
+      return fallback?.id || "";
+    });
+  }, [navigate, parentTabs]);
+
   const openList = useCallback(() => {
     if (activeParent) activateTab(`${activeParent.id}:list`);
   }, [activateTab, activeParent]);
@@ -290,11 +325,13 @@ export function PanelTabsProvider({ children, items = [] }) {
     openOperationTab,
     closeTab,
     closeActiveTab,
+    closeAllChildren,
+    closeAllParents,
     openList,
     markListDirty,
     listRevision: Number(listRevisionByParent[activeParent?.id] || 0),
     navigate,
-  }), [activateParent, activateTab, activeParent, activeParentId, activeTab, activeTabId, closeActiveTab, closeParent, closeTab, items, listRevisionByParent, markListDirty, navigate, openCreateTab, openEditTab, openOperationTab, openList, openParent, parentTabs, tabs]);
+  }), [activateParent, activateTab, activeParent, activeParentId, activeTab, activeTabId, closeActiveTab, closeAllChildren, closeAllParents, closeParent, closeTab, items, listRevisionByParent, markListDirty, navigate, openCreateTab, openEditTab, openOperationTab, openList, openParent, parentTabs, tabs]);
 
   return <PanelTabsContext.Provider value={value}>{children}</PanelTabsContext.Provider>;
 }

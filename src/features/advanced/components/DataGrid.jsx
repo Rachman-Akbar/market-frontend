@@ -1,64 +1,175 @@
-import { useMemo } from "react";
-import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
+import { useMemo, useState } from "react";
+import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
+import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
 import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
+import { useColumnVisibility } from "@/shared/hooks/useColumnVisibility";
+import { formatTableValue, resolveTableValue } from "@/shared/utils/tableData";
 
-export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, actions, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey }) {
-  const layoutColumns = useMemo(
-    () => columns.map((column) => ({ ...column, width: column.width || 170, minWidth: column.minWidth || 96, maxWidth: column.maxWidth || 520 })),
-    [columns],
+function hasFilterValue(type, value) {
+  if (type === "range") return Boolean(value?.min !== "" || value?.max !== "");
+  return value !== "" && value !== null && value !== undefined;
+}
+
+function valueText(value) {
+  const formatted = formatTableValue(value);
+  return formatted !== "-" ? String(formatted).toLowerCase() : "";
+}
+
+export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey }) {
+  const visibleState = useColumnVisibility(columns, storageKey || `advanced.${columns.map((column) => column.key).join(".")}`);
+  const visibleColumns = useMemo(
+    () => columns.filter((column) => visibleState.visibleSet.has(column.key)),
+    [columns, visibleState.visibleSet],
   );
-  const tableKey = useMemo(() => storageKey || `advanced.${layoutColumns.map((column) => column.key).join(".")}`, [layoutColumns, storageKey]);
-  const layout = useTableColumnLayout({ storageKey: tableKey, columns: layoutColumns });
-  const tableWidth = layout.totalWidth + (selectionEnabled ? 44 : 0) + (actions ? 150 : 0);
+  const tableKey = useMemo(() => storageKey || `advanced.${columns.map((column) => column.key).join(".")}`, [columns, storageKey]);
+  const layoutColumns = useMemo(
+    () => visibleColumns.map((column) => ({ ...column, width: column.width || 170, minWidth: column.minWidth || 96, maxWidth: column.maxWidth || 520 })),
+    [visibleColumns],
+  );
+  const filterConfig = useMemo(() => {
+    const config = {};
+    layoutColumns.forEach((column) => {
+      config[column.key] = { type: column.filterType || "text", options: column.options || [] };
+    });
+    return config;
+  }, [layoutColumns]);
 
-  if (!rows.length) return <div className="border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{emptyText}</div>;
+  const selectOptions = useMemo(() => {
+    const options = {};
+    layoutColumns.forEach((column) => {
+      if ((column.filterType || "text") !== "select" || (column.options && column.options.length)) return;
+      const values = new Set();
+      rows.forEach((row) => {
+        const value = formatTableValue(resolveTableValue(row, column.key));
+        if (value !== "-") values.add(value);
+      });
+      options[column.key] = [...values].sort((left, right) => left.localeCompare(right, "id")).map((value) => ({ value, label: value }));
+    });
+    return options;
+  }, [layoutColumns, rows]);
+
+  const [columnFilters, setColumnFilters] = useState({});
+  const [sortBy, setSortBy] = useState("");
+  const [sortDirection, setSortDirection] = useState("asc");
+  const layout = useTableColumnLayout({ storageKey: tableKey, columns: layoutColumns });
+
+  const sortedRows = useMemo(() => {
+    let next = rows;
+    const activeFilters = Object.keys(columnFilters).filter((key) => hasFilterValue(filterConfig[key]?.type, columnFilters[key]));
+    if (activeFilters.length) {
+      next = next.filter((row) =>
+        activeFilters.every((key) => {
+          const value = resolveTableValue(row, key);
+          const type = filterConfig[key].type;
+          const filterValue = columnFilters[key];
+          if (type === "range") {
+            const num = Number(value);
+            return !(filterValue.min !== "" && !(num >= Number(filterValue.min))) && !(filterValue.max !== "" && !(num <= Number(filterValue.max)));
+          }
+          if (type === "select") {
+            return String(value ?? "") === String(filterValue ?? "") || String(formatTableValue(value ?? "")) === String(filterValue ?? "");
+          }
+          return valueText(value).includes(String(filterValue ?? "").toLowerCase());
+        }),
+      );
+    }
+    if (sortBy) {
+      const direction = sortDirection === "desc" ? -1 : 1;
+      next = [...next].sort((left, right) =>
+        String(resolveTableValue(left, sortBy) ?? "").localeCompare(String(resolveTableValue(right, sortBy) ?? ""), "id", { numeric: true, sensitivity: "base" }) * direction,
+      );
+    }
+    return next;
+  }, [columnFilters, filterConfig, rows, sortBy, sortDirection]);
+
+  const tableWidth = layout.totalWidth + (selectionEnabled ? 44 : 0);
+  const activeFilterCount = Object.keys(columnFilters).filter((key) => hasFilterValue(filterConfig[key]?.type, columnFilters[key])).length;
 
   return (
     <div className="w-full min-w-0 max-w-full">
-      <TableLayoutHint onReset={layout.resetLayout} />
-      <div className="w-full min-w-0 max-w-full max-h-[calc(100vh-285px)] overflow-auto border border-slate-200 bg-white">
-        <table className="table-fixed border-collapse text-left text-sm" style={{ width: Math.max(tableWidth, 760), minWidth: "100%" }}>
-          <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} trailingWidth={actions ? 150 : 0} />
-          <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
-            <tr>
-              {selectionEnabled ? (
-                <th className="w-11 border-b border-slate-200 px-3 py-2.5 text-center">
-                  <input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Pilih semua data" />
-                </th>
-              ) : null}
-              {layout.orderedColumns.map((column) => (
-                <InteractiveTableHeader
-                  key={column.key}
-                  columnKey={column.key}
-                  headerProps={layout.getHeaderProps(column.key)}
-                  style={layout.getColumnStyle(column.key)}
-                  onResizeStart={layout.startResize}
-                  onResetWidth={layout.resetWidth}
-                  dragging={layout.dragKey === column.key}
-                  dropTarget={layout.dropKey === column.key}
-                  className="border-b border-slate-200 py-2.5"
-                >
-                  {column.label}
-                </InteractiveTableHeader>
-              ))}
-              {actions ? <th className="sticky right-0 border-b border-slate-200 bg-slate-100 px-3 py-2.5 text-right font-extrabold">Aksi</th> : null}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rows.map((row) => (
-              <tr key={row.id} onClick={() => onRowClick?.(row)} className={onRowClick ? "cursor-pointer hover:bg-emerald-50/40" : "hover:bg-slate-50"}>
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
+        <TableLayoutHint onReset={layout.resetLayout} />
+        {columns.length > 1 ? (
+          <ColumnVisibilityMenu
+            columns={layoutColumns}
+            visibleKeys={visibleState.visibleKeys}
+            onToggle={visibleState.toggleColumn}
+            onShowAll={visibleState.showAll}
+            onReset={visibleState.reset}
+            onApplyDefault={visibleState.applyAsDefault}
+          />
+        ) : null}
+      </div>
+
+      {!sortedRows.length ? <div className="border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{rows.length && !activeFilterCount ? emptyText : activeFilterCount ? "Tidak ada data yang cocok dengan filter aktif." : emptyText}</div> : null}
+
+      {sortedRows.length ? (
+        <div className="w-full min-w-0 max-w-full max-h-[calc(100vh-285px)] overflow-auto border border-slate-200 bg-white">
+          <table className="table-fixed border-collapse text-left text-sm" style={{ width: Math.max(tableWidth, 760), minWidth: "100%" }}>
+            <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+              <tr>
                 {selectionEnabled ? (
-                  <td className="px-3 py-2.5 text-center" onClick={(event) => event.stopPropagation()}>
-                    <input type="checkbox" checked={selectedIds.has(String(row.id)) || selectedIds.has(Number(row.id))} onChange={() => onToggleRow?.(row.id)} aria-label={`Pilih data ${row.id}`} />
-                  </td>
+                  <th className="w-11 border-b border-slate-200 px-3 py-2.5 text-center">
+                    <input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Pilih semua data" />
+                  </th>
                 ) : null}
-                {layout.orderedColumns.map((column) => <td key={column.key} className="overflow-hidden px-3 py-2.5 align-top text-slate-700"><div className="truncate">{column.render ? column.render(row) : String(row[column.key] ?? "-")}</div></td>)}
-                {actions ? <td className="sticky right-0 whitespace-nowrap bg-white px-3 py-2.5 text-right" onClick={(event) => event.stopPropagation()}>{actions(row)}</td> : null}
+                {layout.orderedColumns.map((column) => (
+                  <TableHeaderFilter
+                    key={column.key}
+                    label={column.label}
+                    sortKey={column.key}
+                    sortBy={sortBy}
+                    sortDirection={sortDirection}
+                    onSortChange={(key, direction) => {
+                      setSortBy(key);
+                      setSortDirection(direction);
+                    }}
+                    filterType={filterConfig[column.key]?.type}
+                    filterValue={columnFilters[column.key]}
+                    onFilterChange={(value) =>
+                      setColumnFilters((current) => {
+                        const next = { ...current };
+                        if (hasFilterValue(filterConfig[column.key]?.type, value)) next[column.key] = value;
+                        else delete next[column.key];
+                        return next;
+                      })
+                    }
+                    options={selectOptions[column.key] || filterConfig[column.key]?.options || []}
+                    headerProps={layout.getHeaderProps(column.key)}
+                    columnKey={column.key}
+                    columnStyle={layout.getColumnStyle(column.key)}
+                    onResizeStart={layout.startResize}
+                    onResetWidth={layout.resetWidth}
+                    dragging={layout.dragKey === column.key}
+                    dropTarget={layout.dropKey === column.key}
+                    className="border-b border-slate-200 py-2.5"
+                  />
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sortedRows.map((row) => (
+                <tr key={row.id} onClick={() => onRowClick?.(row)} className={onRowClick ? "cursor-pointer hover:bg-emerald-50/40" : "hover:bg-slate-50"}>
+                  {selectionEnabled ? (
+                    <td className="px-3 py-2.5 text-center" onClick={(event) => event.stopPropagation()}>
+                      <input type="checkbox" checked={selectedIds.has(String(row.id)) || selectedIds.has(Number(row.id))} onChange={() => onToggleRow?.(row.id)} aria-label={`Pilih data ${row.id}`} />
+                    </td>
+                  ) : null}
+                  {layout.orderedColumns.map((column) => <td key={column.key} className="overflow-hidden px-3 py-2.5 align-top text-slate-700"><div className="truncate">{column.render ? column.render(row) : formatTableValue(resolveTableValue(row, column.key))}</div></td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      <div className="min-h-2">
+        {activeFilterCount ? (
+          <button type="button" onClick={() => setColumnFilters({})} className="mt-2 inline-flex h-8 items-center gap-1.5 bg-amber-50 px-2.5 text-xs font-extrabold text-amber-800 hover:bg-amber-100">
+            <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+            Hapus semua filter ({activeFilterCount})
+          </button>
+        ) : null}
       </div>
     </div>
   );

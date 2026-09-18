@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/utils/utils";
 import { usePanelTabs } from "@/shared/layout/tabs";
@@ -47,6 +47,7 @@ export const PanelSidebar = memo(function PanelSidebar({
   showHomeLink = true,
   showMarketplaceLink = true,
   badges = {},
+  activeClassName = "bg-slate-500 text-white",
 }) {
   const tabs = usePanelTabs();
   const location = useLocation();
@@ -62,7 +63,7 @@ export const PanelSidebar = memo(function PanelSidebar({
     const grouped = new Map();
 
     items
-      .filter((item) => !item.hiddenInSidebar)
+      .filter((item) => !item.hiddenInSidebar && !item.bottom)
       .forEach((item) => {
         const groupName = item.group || "Menu";
         if (!grouped.has(groupName)) grouped.set(groupName, []);
@@ -71,6 +72,8 @@ export const PanelSidebar = memo(function PanelSidebar({
 
     return Array.from(grouped, ([name, groupItems]) => ({ name, items: groupItems }));
   }, [items]);
+
+  const pinnedItems = useMemo(() => items.filter((item) => !item.hiddenInSidebar && item.bottom), [items]);
 
   useEffect(() => {
     setOpenGroup(null);
@@ -104,9 +107,11 @@ export const PanelSidebar = memo(function PanelSidebar({
     setOpenGroup(null);
   };
 
-  const showTip = (event, label) => {
+  const clampTooltipTop = (value) => Math.max(16, Math.min(window.innerHeight - 24, value));
+
+  const showTip = (event, label, color) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    setTooltip({ label, left: rect.right + 10, top: rect.top + rect.height / 2 });
+    setTooltip({ label, color, left: rect.right + 10, top: clampTooltipTop(rect.top + rect.height / 2) });
   };
 
   const showGroupTip = (event, group) => {
@@ -116,7 +121,7 @@ export const PanelSidebar = memo(function PanelSidebar({
       label: group.name,
       color,
       left: rect.right + 10,
-      top: rect.top + rect.height / 2 - 10,
+      top: clampTooltipTop(rect.top + rect.height / 2),
     });
   };
 
@@ -132,10 +137,13 @@ export const PanelSidebar = memo(function PanelSidebar({
   const groupBadge = (groupItems) => groupItems.reduce((sum, item) => sum + Math.max(0, Number(badges[item.href] || 0)), 0);
 
   const openGroupEntry = openGroup ? groups.find((entry) => entry.name === openGroup) : null;
-  const panelTop = Math.max(
-    0,
-    Math.min(openGroup ? groupButtonRefs.current.get(openGroup)?.offsetTop || 0 : 0, window.innerHeight - 460),
-  );
+  const panelTop = (() => {
+    if (!openGroup || !railRef.current) return 0;
+    const button = groupButtonRefs.current.get(openGroup);
+    if (!button) return 0;
+    const relativeTop = button.getBoundingClientRect().top - railRef.current.getBoundingClientRect().top;
+    return Math.max(0, Math.min(relativeTop, window.innerHeight - 460));
+  })();
 
   return (
     <aside ref={railRef} className={cn("relative hidden text-white lg:block", sidebarClassName)} aria-label={title}>
@@ -149,17 +157,7 @@ export const PanelSidebar = memo(function PanelSidebar({
           }}
         />
 
-        <div className="relative flex flex-col items-center gap-3 border-b border-white/10 px-2 py-4">
-          <button
-            type="button"
-            onMouseEnter={(event) => showTip(event, title)}
-            onMouseLeave={clearTip}
-            onClick={() => homeHref && tabs && tabs.navigate(homeHref)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] transition-colors hover:bg-white/20"
-          >
-            M
-          </button>
-        </div>
+        <div aria-hidden className="h-[77px] shrink-0 border-b border-white/10" />
 
         <nav className="relative flex-1 space-y-1.5 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
           {showHomeLink && dashboard ? (
@@ -205,6 +203,33 @@ export const PanelSidebar = memo(function PanelSidebar({
           })}
         </nav>
 
+        {pinnedItems.length ? (
+          <div className="relative border-t border-white/10 px-3 py-3">
+            <div className="space-y-1.5">
+              {pinnedItems.map((item) => (
+                <Fragment key={item.href}>
+                  {item.dividerBefore ? <div className="mx-2 my-2 h-px bg-white/10" /> : null}
+                  <button
+                    type="button"
+                    onMouseEnter={(event) => showTip(event, item.label, item.iconColor)}
+                    onMouseLeave={clearTip}
+                    onClick={(event) => openMenu(event, item)}
+                    className={cn(
+                      "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
+                      activeParentId === item.href ? activeClassName : item.iconColor ? "hover:bg-white/10" : "text-slate-400 hover:bg-white/10 hover:text-white",
+                    )}
+                    aria-label={item.label}
+                    aria-current={activeParentId === item.href ? "page" : undefined}
+                  >
+                    <span className="material-symbols-outlined text-[22px]" style={activeParentId === item.href ? undefined : item.iconColor ? { color: item.iconColor } : undefined}>{item.icon}</span>
+                    {groupBadge([item]) > 0 ? <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, groupBadge([item]))}</span> : null}
+                  </button>
+                </Fragment>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {showMarketplaceLink ? (
           <div className="relative border-t border-white/10 p-2">
             <Link
@@ -223,7 +248,7 @@ export const PanelSidebar = memo(function PanelSidebar({
         <div
           ref={panelRef}
           onMouseLeave={clearTip}
-          className="absolute left-full z-40 ml-2"
+          className="absolute left-full ml-2 z-[70]"
           style={{ top: panelTop }}
         >
           {(() => {
@@ -301,7 +326,7 @@ export const PanelSidebar = memo(function PanelSidebar({
           role="tooltip"
           style={{ left: tooltip.left, top: tooltip.top, backgroundColor: tooltip.color || "#0f172a" }}
           className={cn(
-            "pointer-events-none fixed z-50 rounded-md px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-1 ring-white/10",
+            "pointer-events-none fixed z-[80] rounded-md px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-1 ring-white/10",
             tooltip.above ? "-translate-x-1/2 -translate-y-full" : "-translate-y-1/2",
           )}
         >

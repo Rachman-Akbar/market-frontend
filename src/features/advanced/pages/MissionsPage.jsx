@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { advancedError, useDeleteMission, useMissions, useMissionEventTypes, useSaveMission } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
@@ -6,6 +6,7 @@ import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { Pagination } from "@/shared/components/ui/Pagination";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
@@ -43,11 +44,28 @@ export default function MissionsPage() {
     setForm(row ? { voucher_id: row.voucher_id ? String(row.voucher_id) : "", name: row.name || "", code: row.code || "", description: row.description || "", event_type: row.event_type || "order_completed", target_value: Number(row.target_value || 1), starts_at: row.starts_at ? new Date(row.starts_at).toISOString().slice(0, 16) : initialForm().starts_at, ends_at: row.ends_at ? new Date(row.ends_at).toISOString().slice(0, 16) : initialForm().ends_at, is_active: row.is_active !== false } : initialForm());
   }, [editor.entity, editor.open]);
 
+  const toggleActive = useCallback((row) => {
+    saveMutation.mutateAsync({
+      id: row.id,
+      values: {
+        voucher_id: row.voucher_id ? Number(row.voucher_id) : null,
+        name: row.name || "",
+        code: row.code || "",
+        description: row.description || "",
+        event_type: row.event_type || "order_completed",
+        target_value: Number(row.target_value || 1),
+        starts_at: new Date(row.starts_at || Date.now()).toISOString(),
+        ends_at: new Date(row.ends_at || Date.now()).toISOString(),
+        is_active: !row.is_active,
+      },
+    }).catch((error) => setMessage(advancedError(error)));
+  }, [saveMutation]);
+
   const columns = useMemo(() => admin ? [
-    { key: "name", label: "Nama" }, { key: "code", label: "Kode" }, { key: "event_type", label: "Event" }, { key: "target_value", label: "Target" }, { key: "voucher", label: "Hadiah", render: (row) => row.voucher?.code || "-" }, { key: "starts_at", label: "Mulai", render: (row) => formatDate(row.starts_at) }, { key: "ends_at", label: "Selesai", render: (row) => formatDate(row.ends_at) }, { key: "is_active", label: "Status", render: (row) => row.is_active ? "Aktif" : "Nonaktif" },
+    { key: "name", label: "Nama" }, { key: "code", label: "Kode" }, { key: "event_type", label: "Event" }, { key: "target_value", label: "Target" }, { key: "voucher", label: "Hadiah", render: (row) => row.voucher?.code || "-" }, { key: "starts_at", label: "Mulai", render: (row) => formatDate(row.starts_at) }, { key: "ends_at", label: "Selesai", render: (row) => formatDate(row.ends_at) }, { key: "is_active", label: "Status", render: (row) => <InlineActiveSwitch checked={row.is_active !== false} pending={saveMutation.isPending} onChange={() => toggleActive(row)} compact /> },
   ] : [
     { key: "name", label: "Misi" }, { key: "description", label: "Deskripsi" }, { key: "progress_value", label: "Progress", render: (row) => `${row.progress_value || 0} / ${row.target_value || 0}` }, { key: "status", label: "Status" }, { key: "voucher", label: "Hadiah", render: (row) => row.voucher?.code || "-" }, { key: "ends_at", label: "Berakhir", render: (row) => formatDate(row.ends_at) },
-  ], [admin]);
+  ], [admin, saveMutation, toggleActive]);
 
   async function submit(event) {
     event.preventDefault();
@@ -76,9 +94,9 @@ export default function MissionsPage() {
 
   return (
     <>
-      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><>{message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}<DataGrid columns={columns} rows={rows} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} actions={admin ? (row) => <div className="flex justify-end gap-1"><Button size="sm" variant="outline" onClick={() => editor.edit(row)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => setDeleteTarget(row)}>Hapus</Button></div> : undefined} />{admin && rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}</></ModuleFrame> : null}
+      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><>{message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}<DataGrid columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} />{admin && rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}</></ModuleFrame> : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Misi" message={`Misi “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
-      <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending}>
+      <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending} dangerAction={admin && editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nama" required><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required /></Field><Field label="Kode"><Input value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} /></Field></div>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-24 border border-slate-300 p-3 text-sm" /></Field>

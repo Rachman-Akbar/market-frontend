@@ -1,4 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
 import { getOrderManagementError, useAdminOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
@@ -8,6 +9,7 @@ import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { Pagination } from "@/shared/components/ui/Pagination";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 
@@ -16,6 +18,8 @@ export default function AdminOrdersPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
+  const notifications = useNotificationCenter();
+  const navigate = useNavigate();
   const deferredQuery = useDeferredValue(query.trim());
   const ordersQuery = useAdminOrders({ page, per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}), ...(status ? { status } : {}) });
   const updateMutation = useUpdateOrderStatus();
@@ -41,15 +45,18 @@ export default function AdminOrdersPage() {
 
   const bulkStatus = async (nextStatus) => {
     if (!selection.selectedRows.length) return;
+    const task = notifications.startTask({ title: "Ubah Status Pesanan", message: `Memproses ${selection.selectedRows.length} pesanan ke status ${nextStatus}...` });
     try {
       for (const row of selection.selectedRows) {
         await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
       }
       selection.clear();
       setMessage(`Status pesanan terpilih diubah menjadi ${nextStatus}.`);
+      task.success(`${selection.selectedRows.length} pesanan diubah menjadi ${nextStatus}.`);
       ordersQuery.refetch();
     } catch (error) {
       setMessage(getOrderManagementError(error));
+      task.fail(getOrderManagementError(error));
     }
   };
 
@@ -81,6 +88,7 @@ export default function AdminOrdersPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
             filters={(
               <SearchableSelect
                 value={status}
@@ -113,13 +121,17 @@ export default function AdminOrdersPage() {
               allSelected={selection.allSelected}
               onToggleRow={selection.toggleRow}
               onToggleAll={selection.toggleAll}
+              onEdit={(row) => navigate(`/admin/orders/${row.id || row.subOrderNumber}`, { state: { row } })}
               onStatusChange={async (row, nextStatus) => {
+                const task = notifications.startTask({ title: "Ubah Status Pesanan", message: `Memproses pesanan ${row.orderNumber || `#${row.id}`} ke status ${nextStatus}...` });
                 try {
                   await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
+                  task.success(`Pesanan ${row.orderNumber || `#${row.id}`} diubah menjadi ${nextStatus}.`);
                   setMessage("Status pesanan berhasil diperbarui.");
                   ordersQuery.refetch();
                 } catch (error) {
                   setMessage(getOrderManagementError(error));
+                  task.fail(getOrderManagementError(error));
                 }
               }}
             />

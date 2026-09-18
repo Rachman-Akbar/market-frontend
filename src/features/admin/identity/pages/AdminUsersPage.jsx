@@ -95,6 +95,7 @@ export default function AdminUsersPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
           />
 
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}

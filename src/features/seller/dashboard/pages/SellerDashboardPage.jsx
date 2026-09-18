@@ -1,6 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/shared/components/ui/Button";
 import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerPanelShell";
 import { SellerMetricCard } from "@/features/seller/dashboard/components/SellerMetricCard";
 import { SellerOrderTable } from "@/features/seller/dashboard/components/SellerOrderTable";
@@ -77,12 +75,6 @@ export default function SellerDashboardPage() {
     <SellerPanelShell
       title="Dashboard Toko"
       subtitle="Ringkasan penjualan, pesanan, rating, dan insight konversi untuk operasional seller."
-      actions={
-        <>
-          <Link to="/seller/products"><Button variant="outline">Kelola Produk</Button></Link>
-          <Link to="/seller/banners"><Button className="bg-emerald-600 hover:bg-emerald-700">Kelola Banner</Button></Link>
-        </>
-      }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {data.metrics.map((item) => <SellerMetricCard key={item.key} item={item} />)}

@@ -36,6 +36,7 @@ const SellerPromotionPage = lazy(() => import("@/features/seller/promotion/pages
 const SellerStorePage = lazy(() => import("@/features/seller/store/pages/SellerStorePage"));
 const SellerStorePreviewPage = lazy(() => import("@/features/seller/store/pages/SellerStorePreviewPage"));
 const SellerOrdersPage = lazy(() => import("@/features/seller/order/pages/SellerOrdersPage"));
+const SellerOrderDetailPage = lazy(() => import("@/features/seller/order/pages/OrderDetailPage"));
 const SchedulePage = lazy(() => import("@/features/seller/planner/pages/SchedulePage"));
 const AdminHomePage = lazy(() => import("@/features/admin/dashboard/pages/AdminHomePage"));
 const AdminProductsPage = lazy(() => import("@/features/admin/product/pages/AdminProductsPage"));
@@ -165,6 +166,7 @@ function renderSellerRoutes() {
           <Route path="/seller/vouchers" element={<SellerVoucherPage />} />
           <Route path="/seller/promotions" element={<SellerPromotionPage />} />
           <Route path="/seller/orders" element={<SellerOrdersPage />} />
+          <Route path="/seller/orders/:id" element={<SellerOrderDetailPage />} />
           <Route path="/seller/customers" element={<CustomersPage />} />
           <Route path="/seller/order-operations" element={<OrderOperationsPage />} />
           <Route path="/seller/planner" element={<SchedulePage />} />
@@ -194,6 +196,7 @@ function renderAdminRoutes() {
         <Route path="/admin/vouchers" element={<AdminVoucherPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionPage />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
+        <Route path="/admin/orders/:id" element={<SellerOrderDetailPage />} />
         <Route path="/admin/ppob" element={<AdminPpobPage />} />
         <Route path="/admin/customers" element={<CustomersPage />} />
         <Route path="/admin/order-operations" element={<OrderOperationsPage />} />

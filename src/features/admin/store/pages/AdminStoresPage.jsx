@@ -81,6 +81,7 @@ export default function AdminStoresPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
             filters={<SearchableSelect value={status} onChange={(nextValue) => { setStatus(nextValue); setPage(1); }} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "suspended", label: "Suspended" }]} placeholder="Semua status" className="w-44" buttonClassName="h-10" />}
           />
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}

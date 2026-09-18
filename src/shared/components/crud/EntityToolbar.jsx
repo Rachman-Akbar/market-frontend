@@ -21,6 +21,7 @@ export const EntityToolbar = memo(function EntityToolbar({
   onToggleColumn,
   onShowAllColumns,
   onResetColumns,
+  onApplyDefaultColumns,
   hasActiveFilters = false,
   onClearFilters,
 }) {
@@ -66,9 +67,6 @@ export const EntityToolbar = memo(function EntityToolbar({
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           ) : null}
-          <button type="submit" className="flex h-8 w-8 items-center justify-center text-slate-600 hover:text-emerald-700" aria-label="Cari">
-            <span className="material-symbols-outlined text-[19px]">arrow_forward</span>
-          </button>
         </div>
       </form>
 
@@ -80,13 +78,18 @@ export const EntityToolbar = memo(function EntityToolbar({
             Clear Filter
           </button>
         ) : null}
-        {onToggleSelection ? (
-          <button type="button" onClick={onToggleSelection} className={`inline-flex h-10 w-10 items-center justify-center transition-colors ${selectionEnabled ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`} aria-label={selectionEnabled ? "Matikan pemilihan data" : "Aktifkan pemilihan data"} title={selectionEnabled ? "Matikan pemilihan data" : "Pilih data"}>
-            <span className="material-symbols-outlined text-[19px]">check_box</span>
-          </button>
-        ) : null}
+        <ColumnVisibilityMenu
+          columns={columns}
+          visibleKeys={visibleColumns}
+          onToggle={onToggleColumn}
+          onShowAll={onShowAllColumns}
+          onReset={onResetColumns}
+          onApplyDefault={onApplyDefaultColumns}
+          selectionEnabled={selectionEnabled}
+          selectedCount={selectedCount}
+          onToggleSelection={onToggleSelection}
+        />
         <BulkActionsMenu selectedCount={selectedCount} actions={bulkActions} />
-        <ColumnVisibilityMenu columns={columns} visibleKeys={visibleColumns} onToggle={onToggleColumn} onShowAll={onShowAllColumns} onReset={onResetColumns} />
         <button
           type="button"
           onClick={handleRefresh}

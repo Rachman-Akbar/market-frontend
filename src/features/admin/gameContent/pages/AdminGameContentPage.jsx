@@ -12,6 +12,7 @@ import {
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 
 export default function AdminGameContentPage() {
@@ -110,42 +111,19 @@ export default function AdminGameContentPage() {
                 <th className="px-4 py-3">Item</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Diperbarui</th>
-                <th className="px-4 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <tr key={row.id} onClick={() => openEdit(row)} className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">#{row.id}</td>
                   <td className="px-4 py-3 font-bold text-slate-800">{row.title}</td>
                   <td className="px-4 py-3 text-slate-500">{row.difficulty || "—"}</td>
                   <td className="px-4 py-3 text-slate-500">{row.itemsCount} item</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => toggleActive(row, !row.isActive)}
-                      disabled={updateMutation.isPending}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold transition-colors disabled:opacity-60 ${
-                        row.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${row.isActive ? "bg-emerald-500" : "bg-slate-400"}`} />
-                      {row.isActive ? "Aktif" : "Nonaktif"}
-                    </button>
+                    <span className="inline-flex"><InlineActiveSwitch checked={row.isActive !== false} pending={updateMutation.isPending} onChange={() => toggleActive(row, !row.isActive)} compact /></span>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1.5">
-                      <button type="button" onClick={() => openEdit(row)} className="inline-flex h-8 items-center gap-1.5 px-2.5 text-xs font-extrabold text-teal-700 hover:bg-teal-50">
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
-                        Edit
-                      </button>
-                      <button type="button" onClick={() => setDeleteTarget(row)} className="inline-flex h-8 items-center gap-1.5 px-2.5 text-xs font-extrabold text-red-600 hover:bg-red-50">
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
-                        Hapus
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -160,6 +138,7 @@ export default function AdminGameContentPage() {
           setEditorOpen(false);
           setEditing(null);
         }}
+        onDelete={editing ? () => { setDeleteTarget(editing); setEditorOpen(false); setEditing(null); } : undefined}
         onSaved={() => {
           notifications.push({ type: "success", title: "Game Content", message: editing ? "Konten berhasil diperbarui." : "Konten berhasil ditambahkan." });
           setEditorOpen(false);

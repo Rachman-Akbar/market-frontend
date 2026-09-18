@@ -59,24 +59,26 @@ export default function SellerProductsPage() {
   useEffect(() => setPage(1), [columnFilters, deferredQuery, sort]);
 
   const toggleActive = (product, isActive) => {
+    const task = notifications.startTask({ title: "Ubah Status Product", message: `Memproses product "${product.name}"...` });
     quickUpdateMutation.mutate(
       { id: product.id, values: { ...product, isActive } },
       {
-        onSuccess: () => notifications.push({ type: "success", title: "Product", message: `Product berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.` }),
-        onError: (error) => notifications.push({ type: "error", title: "Product", message: getSellerProductError(error) }),
+        onSuccess: () => task.success(`Product "${product.name}" berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`),
+        onError: (error) => task.fail(getSellerProductError(error)),
       },
     );
   };
 
   const remove = async () => {
     if (!deleteTarget) return;
+    const task = notifications.startTask({ title: "Hapus Product", message: `Menghapus product "${deleteTarget.name}"...` });
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      notifications.push({ type: "success", title: "Product", message: "Product berhasil dihapus." });
+      task.success(`Product "${deleteTarget.name}" berhasil dihapus.`);
     } catch (error) {
-      notifications.push({ type: "error", title: "Product", message: getSellerProductError(error) });
+      task.fail(getSellerProductError(error));
     }
   };
 
@@ -101,6 +103,7 @@ export default function SellerProductsPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
           />
@@ -162,7 +165,8 @@ export default function SellerProductsPage() {
         onDelete={(product) => { setDeleteTarget(product); editor.close(); }}
         onSaved={() => {
           editor.markListDirty();
-          notifications.push({ type: "success", title: "Product", message: editor.entity ? "Product berhasil diperbarui." : "Product berhasil ditambahkan." });
+          const task = notifications.startTask({ title: editor.entity ? "Perbarui Product" : "Tambah Product", message: `Menyimpan product "${editor.entity?.name || ""}"...` });
+          task.success(editor.entity ? "Product berhasil diperbarui." : "Product berhasil ditambahkan.");
           editor.completeSave();
         }}
       />

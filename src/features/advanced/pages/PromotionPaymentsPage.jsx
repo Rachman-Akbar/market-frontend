@@ -4,7 +4,6 @@ import { advancedError, useCreatePromotionPayment, usePromotionPayments, useRevi
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
-import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { Pagination } from "@/shared/components/ui/Pagination";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
@@ -134,7 +133,7 @@ export default function PromotionPaymentsPage() {
           filters={<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid columns={columns} rows={rows} emptyText={listQuery.isLoading ? "" : "Pembayaran promosi belum tersedia."} actions={admin ? (row) => row.status === "pending" ? <div className="flex justify-end gap-1"><Button size="sm" onClick={() => openReview(row, "approve")}>Setujui</Button><Button size="sm" variant="destructive" onClick={() => openReview(row, "reject")}>Tolak</Button></div> : <span className="text-xs font-bold text-slate-500">Sudah ditinjau</span> : undefined} />
+          <DataGrid columns={columns} rows={rows} onRowClick={(row) => admin && row.status === "pending" ? openReview(row, "approve") : undefined} emptyText={listQuery.isLoading ? "" : "Pembayaran promosi belum tersedia."} />
           {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
         </ModuleFrame>
       ) : null}
@@ -147,6 +146,7 @@ export default function PromotionPaymentsPage() {
         onSubmit={submitReview}
         busy={reviewMutation.isPending}
         submitLabel={activeReviewAction === "approve" ? "Setujui Pembayaran" : "Tolak Pembayaran"}
+        dangerAction={activeReviewAction === "approve" && activeReviewRow ? <button type="button" onClick={() => openReview(activeReviewRow, "reject")} className="h-8 select-none bg-red-50 px-4 text-xs font-extrabold text-red-600 hover:bg-red-100">Tolak {'\u00b7'} isi alasan</button> : undefined}
       >
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-3 border border-slate-200 bg-slate-50 p-4 text-sm">

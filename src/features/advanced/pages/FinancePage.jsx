@@ -8,7 +8,7 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { Pagination } from "@/shared/components/ui/Pagination";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
-import { useEntityEditor, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
+import { useEntityEditor, useRefreshOnListActivation, useTableSelection, useColumnVisibility } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
@@ -109,6 +109,32 @@ export default function FinancePage({ mode = "cashflow" }) {
     { key: "occurred_at", label: "Tanggal", render: (row) => row.occurred_at ? new Date(row.occurred_at).toLocaleDateString("id-ID") : "-" },
   ], []);
 
+  const tableColumns = useMemo(() => {
+    if (mode === "cashflow") return columns;
+    const bayarColumn = {
+      key: "bayar",
+      label: "Bayar",
+      render: (row) => {
+        const canPay = Number(row.outstanding_amount) > 0 && !["paid", "cancelled"].includes(String(row.status || "").toLowerCase());
+        return (
+          <button
+            type="button"
+            disabled={!canPay}
+            onClick={(event) => { event.stopPropagation(); recordPayment(row); }}
+            className="inline-flex h-8 items-center gap-1.5 bg-emerald-600 px-3 text-xs font-extrabold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            title={canPay ? "Catat pembayaran/cicilan" : "Transaksi sudah lunas"}
+          >
+            <span className="material-symbols-outlined text-[16px]">payments</span>
+            Bayar
+          </button>
+        );
+      },
+    };
+    return [...columns, bayarColumn];
+  }, [columns, mode]);
+
+  const columnVisibility = useColumnVisibility(tableColumns, `advanced.finance.${mode}`);
+
   async function submit(event) {
     event.preventDefault();
     try {
@@ -205,27 +231,28 @@ export default function FinancePage({ mode = "cashflow" }) {
           selectedCount={selection.selectedCount}
           onToggleSelection={selection.toggleEnabled}
           bulkActions={spreadsheet.actions}
+          columns={tableColumns}
+          visibleColumns={columnVisibility.visibleKeys}
+          onToggleColumn={columnVisibility.toggleColumn}
+          onShowAllColumns={columnVisibility.showAll}
+          onResetColumns={columnVisibility.reset}
+          onApplyDefaultColumns={columnVisibility.applyAsDefault}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{[["list", "List"], ["grafik", "Grafik"]].map(([id, label]) => <button key={id} type="button" onClick={() => setListTab(id)} className={`h-9 px-4 text-sm font-bold ${listTab === id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{label}</button>)}</div>
           {listTab === "grafik" ? <FinanceChartPanel mode={mode} /> : (
             <>
               <DataGrid
-                columns={columns}
+                columns={tableColumns}
                 rows={rows}
+                storageKey={`advanced.finance.${mode}`}
                 emptyText={listQuery.isLoading ? "" : `${typeLabel(type)} belum tersedia.`}
                 selectionEnabled={selection.enabled}
                 selectedIds={selection.selectedIds}
                 allSelected={selection.allSelected}
                 onToggleRow={selection.toggleRow}
                 onToggleAll={selection.toggleAll}
-                actions={(row) => (
-                  <div className="flex justify-end gap-1">
-                    {mode !== "cashflow" && Number(row.outstanding_amount) > 0 ? <Button size="sm" variant="outline" onClick={() => recordPayment(row)}>Bayar</Button> : null}
-                    <Button size="sm" variant="outline" onClick={() => editor.edit(row)}>Edit</Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(row)}>Hapus</Button>
-                  </div>
-                )}
+                onRowClick={editor.edit}
               />
               {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
             </>
@@ -263,11 +290,17 @@ export default function FinancePage({ mode = "cashflow" }) {
           <h3 className="mb-3 text-sm font-black text-slate-800">Riwayat Pembayaran</h3>
           <div className="space-y-2">
             {(Array.isArray(paymentHistoryQuery.data) ? paymentHistoryQuery.data : paymentHistoryQuery.data?.data || []).map((row) => (
-              <div key={row.id} className="grid gap-2 border border-slate-200 bg-slate-50 p-3 text-xs sm:grid-cols-4">
-                <span>{row.paid_at ? new Date(row.paid_at).toLocaleString("id-ID") : "-"}</span>
-                <strong>{money(row.amount)}</strong>
-                <span>{row.payment_method || "manual"}</span>
-                <span>Sisa {money(row.balance_after)}</span>
+              <div key={row.id} className="border border-slate-200 bg-slate-50 p-3 text-xs">
+                <div className="grid gap-2 sm:grid-cols-4">
+                  <span>{row.paid_at ? new Date(row.paid_at).toLocaleString("id-ID") : "-"}</span>
+                  <strong>{money(row.amount)}</strong>
+                  <span>{row.payment_method || "manual"}</span>
+                  <span>Sisa {money(row.balance_after)}</span>
+                </div>
+                <p className="mt-1 border-t border-slate-200 pt-1 text-slate-500">
+                  Bukti: <span className="font-semibold text-slate-700">{row.reference_number || "-"}</span>
+                  {row.notes ? <span> · {row.notes}</span> : null}
+                </p>
               </div>
             ))}
             {!paymentHistoryQuery.data?.length ? <p className="text-xs text-slate-500">Belum ada riwayat pembayaran.</p> : null}
@@ -282,6 +315,12 @@ export default function FinancePage({ mode = "cashflow" }) {
         onClose={editor.close}
         onSubmit={submit}
         busy={false}
+        dangerAction={editor.entity ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {mode !== "cashflow" && Number(editor.entity.outstanding_amount) > 0 ? <Button type="button" variant="outline" onClick={() => { const row = editor.entity; editor.close(); recordPayment(row); }}>Bayar</Button> : null}
+            <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button>
+          </div>
+        ) : undefined}
       >
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">

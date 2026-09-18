@@ -51,6 +51,7 @@ function bankSummary(details) {
 
 export default function AdminWithdrawalsPage() {
   const [status, setStatus] = useState("");
+  const [detailTarget, setDetailTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const notifications = useNotificationCenter();
@@ -133,12 +134,11 @@ export default function AdminWithdrawalsPage() {
                       <th className="py-2 pr-3 font-semibold">Metode</th>
                       <th className="py-2 pr-3 font-semibold">Status</th>
                       <th className="py-2 pr-3 font-semibold">Waktu</th>
-                      <th className="py-2 font-semibold">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((w) => (
-                      <tr key={w.id} className="border-b border-slate-100 align-top">
+                      <tr key={w.id} onClick={w.status === "pending" ? () => setDetailTarget(w) : undefined} className={`border-b border-slate-100 align-top ${w.status === "pending" ? "cursor-pointer" : ""}`}>
                         <td className="py-2 pr-3">
                           <p className="font-semibold text-slate-900">{w.withdrawalNumber}</p>
                           <p className="max-w-[220px] truncate text-xs text-slate-400">{bankSummary(w.bankDetails) || w.method}</p>
@@ -153,20 +153,6 @@ export default function AdminWithdrawalsPage() {
                           {w.rejectionReason && <p className="mt-1 max-w-[220px] text-xs text-red-600">{w.rejectionReason}</p>}
                         </td>
                         <td className="py-2 pr-3 text-slate-500">{w.createdAt ? new Date(w.createdAt).toLocaleString("id-ID") : "-"}</td>
-                        <td className="py-2">
-                          {w.status === "pending" ? (
-                            <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => approve(w)} className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800">
-                                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                              </button>
-                              <button type="button" onClick={() => openReject(w)} className="inline-flex items-center gap-1 text-red-600 hover:text-red-800">
-                                <span className="material-symbols-outlined text-[18px]">cancel</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -174,6 +160,31 @@ export default function AdminWithdrawalsPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {detailTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailTarget(null)}>
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-slate-900">Detail Penarikan</h3>
+              <p className="mt-1 text-sm text-slate-500">{detailTarget.withdrawalNumber} • {formatRupiah(detailTarget.amount)}</p>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-slate-500">Toko</span><span className="font-semibold text-slate-900">{detailTarget.storeName}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Metode</span><span className="font-semibold text-slate-900">{METHOD_LABELS[detailTarget.method] || detailTarget.method}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Rekening</span><span className="font-semibold text-slate-900">{bankSummary(detailTarget.bankDetails) || "-"}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Status</span><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[detailTarget.status] || "bg-slate-100 text-slate-600"}`}>{STATUS_LABELS[detailTarget.status] || detailTarget.status}</span></div>
+              </div>
+              {detailTarget.status === "pending" ? (
+                <div className="mt-5 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => { setDetailTarget(null); openReject(detailTarget); }}>Tolak</Button>
+                  <Button onClick={() => { approve(detailTarget); setDetailTarget(null); }} disabled={approveMut.isPending}>{approveMut.isPending ? "Memproses..." : "Setujui"}</Button>
+                </div>
+              ) : (
+                <div className="mt-5 flex justify-end">
+                  <Button variant="outline" onClick={() => setDetailTarget(null)}>Tutup</Button>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {rejectTarget && (

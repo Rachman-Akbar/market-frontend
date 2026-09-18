@@ -29,6 +29,27 @@ export function formatTableValue(value) {
   return String(value);
 }
 
+function toSnakeCase(key) {
+  return String(key ?? "").replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+function toCamelCase(key) {
+  return String(key ?? "").replace(/[-_]([a-zA-Z0-9])/g, (_, letter) => letter.toUpperCase());
+}
+
+export function resolveTableValue(row, columnKey) {
+  if (!row || typeof row !== "object") return undefined;
+  const scan = (source) => {
+    if (!source || typeof source !== "object") return undefined;
+    const find = (candidate) => {
+      const value = source[candidate];
+      return value !== undefined && value !== null && value !== "" ? value : undefined;
+    };
+    return find(columnKey) ?? find(toSnakeCase(columnKey)) ?? find(toCamelCase(columnKey));
+  };
+  return scan(row) ?? (row && typeof row === "object" ? scan(row.raw) : undefined);
+}
+
 export function buildRawColumns(rows = [], omittedKeys = []) {
   const omitted = new Set([...excludedKeys, ...omittedKeys]);
   const keys = new Set();

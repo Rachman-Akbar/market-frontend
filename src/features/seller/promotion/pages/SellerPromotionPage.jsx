@@ -34,22 +34,24 @@ export default function SellerPromotionPage() {
 
   const remove = async () => {
     if (!deleteTarget) return;
+    const task = notifications.startTask({ title: "Hapus Promosi", message: `Menghapus promosi "${deleteTarget.name}"...` });
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      notifications.push({ type: "success", title: "Promotion", message: "Promosi berhasil dihapus." });
+      task.success("Promosi berhasil dihapus.");
     } catch (error) {
-      notifications.push({ type: "error", title: "Promotion", message: getPromotionError(error) });
+      task.fail(getPromotionError(error));
     }
   };
 
   const toggleActive = (row, isActive) => {
+    const task = notifications.startTask({ title: "Ubah Status Promosi", message: `Memproses promosi "${row.name}"...` });
     quickUpdateMutation.mutate(
       { id: row.id, values: { ...row, isActive } },
       {
-        onSuccess: () => notifications.push({ type: "success", title: "Promotion", message: `Promosi berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.` }),
-        onError: (error) => notifications.push({ type: "error", title: "Promotion", message: getPromotionError(error) }),
+        onSuccess: () => task.success(`Promosi "${row.name}" berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`),
+        onError: (error) => task.fail(getPromotionError(error)),
       },
     );
   };
@@ -75,6 +77,7 @@ export default function SellerPromotionPage() {
             onToggleColumn={columnVisibility.toggleColumn}
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
+            onApplyDefaultColumns={columnVisibility.applyAsDefault}
             hasActiveFilters={Boolean(approvalStatus)}
             onClearFilters={() => setApprovalStatus("")}
             filters={<SearchableSelect value={approvalStatus} onChange={setApprovalStatus} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }]} placeholder="Semua approval" className="w-44" buttonClassName="h-10" />}
@@ -109,7 +112,8 @@ export default function SellerPromotionPage() {
         onClose={editor.close}
         onSaved={() => {
           editor.markListDirty();
-          notifications.push({ type: "success", title: "Promotion", message: "Promosi berhasil diajukan dan menunggu approval admin." });
+          const task = notifications.startTask({ title: editor.entity ? "Perbarui Promosi" : "Ajukan Promosi", message: editor.entity ? "Menyimpan perubahan promosi..." : "Mengajukan promosi ke admin..." });
+          task.success(editor.entity ? "Promosi berhasil diperbarui dan menunggu approval admin." : "Promosi berhasil diajukan dan menunggu approval admin.");
           editor.completeSave();
         }}
       />
