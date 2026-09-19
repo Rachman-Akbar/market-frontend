@@ -3,6 +3,7 @@ import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/cor
 import { normalizeSellerProduct, serializeSellerProduct } from "@/features/seller/product/services/sellerProductService";
 import { normalizeAdminStore } from "@/features/admin/store/services/adminStoreService";
 import { invalidateCatalogQueries } from "@/features/catalog/application/cache/catalogQueryClient";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminProductKeys = {
@@ -56,9 +57,10 @@ function refreshAdminProductQueries(queryClient) {
 }
 
 export function useAdminProducts(params = {}) {
-  return useQuery({
-    queryKey: adminProductKeys.list(params),
-    queryFn: () => getAdminProducts(params),
+  return useInfiniteList({
+    queryKey: ["admin", "products", "list"],
+    queryFn: (queryParams) => getAdminProducts(queryParams),
+    params,
     staleTime: 0,
   });
 }

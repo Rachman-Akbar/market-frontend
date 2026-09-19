@@ -5,6 +5,7 @@ import { getCategories } from "@/features/catalog/category/services/categoryServ
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { toBoolean } from "@/core/utils/boolean";
 import { invalidateCatalogQueries } from "@/features/catalog/application/cache/catalogQueryClient";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const sellerProductKeys = {
@@ -236,15 +237,16 @@ export function useSellerProducts(params = {}) {
   const storeId = Number(store?.id || 0);
   const scopedParams = { ...params, ...(storeId ? { store_id: storeId } : {}) };
 
-  return useQuery({
-    queryKey: sellerProductKeys.list(scopedParams),
-    queryFn: async () => {
-      const result = await getSellerProducts(scopedParams);
+  return useInfiniteList({
+    queryKey: ["seller", "products", "list"],
+    queryFn: async (queryParams) => {
+      const result = await getSellerProducts(queryParams);
       return {
         ...result,
         rows: storeId ? result.rows.filter((row) => row.storeId === storeId) : [],
       };
     },
+    params: scopedParams,
     enabled: Boolean(isAuthenticated && activeRole === "seller" && storeId),
     staleTime: 30_000,
   });

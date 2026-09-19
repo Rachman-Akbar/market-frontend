@@ -1,4 +1,22 @@
 import { useMemo } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Line,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+const AXIS_TICK = { fontSize: 11, fill: "#64748b", fontWeight: 700 };
+const TOOLTIP_STYLE = { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12, fontWeight: 600, color: "#0f172a" };
+const TOOLTIP_CURSOR = { fill: "rgba(148,163,184,0.14)" };
 
 export function legendDot(color) {
   return <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: color }} />;
@@ -30,8 +48,14 @@ export function SeriesBarList({ groups = [], series = [], format = (value) => St
       .slice(0, maxBars);
   }, [groups, series, maxBars]);
 
-  const max = useMemo(
-    () => Math.max(1, ...visible.flatMap((group) => series.map((item) => Number(group.values?.[item.key] || 0)))),
+  const data = useMemo(
+    () => visible.map((group) => {
+      const row = { label: group.label };
+      series.forEach((item) => {
+        row[item.key] = Math.max(0, Number(group.values?.[item.key] || 0));
+      });
+      return row;
+    }),
     [visible, series],
   );
 
@@ -40,27 +64,18 @@ export function SeriesBarList({ groups = [], series = [], format = (value) => St
   }
 
   return (
-    <div className="space-y-5">
-      {visible.map((group) => (
-        <div key={group.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="mb-2 truncate text-sm font-extrabold text-slate-800" title={group.label}>{group.label}</p>
-          <div className="space-y-1.5">
-            {series.map((item) => {
-              const value = Math.max(0, Number(group.values?.[item.key] || 0));
-              const width = value > 0 ? Math.max(6, (value / max) * 100) : 0;
-              return (
-                <div key={item.key} className="flex items-center gap-2">
-                  <span className="w-32 shrink-0 text-right text-[10px] font-bold uppercase tracking-wide text-slate-500">{item.label}</span>
-                  <div className="h-4 flex-1 overflow-hidden rounded bg-white ring-1 ring-inset ring-slate-200">
-                    <div className="h-full rounded transition-all" style={{ width: `${width}%`, backgroundColor: item.color }} />
-                  </div>
-                  <span className="w-24 shrink-0 text-right text-[11px] font-bold text-slate-800">{format(value)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+    <div style={{ width: "100%", height: Math.max(180, data.length * 68) }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }} barCategoryGap={12}>
+          <CartesianGrid horizontal={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
+          <YAxis type="category" dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} width={150} />
+          <Tooltip cursor={TOOLTIP_CURSOR} contentStyle={TOOLTIP_STYLE} formatter={(value) => format(value)} />
+          {series.map((item) => (
+            <Bar key={item.key} dataKey={item.key} name={item.label} fill={item.color} radius={[0, 4, 4, 0]} maxBarSize={18} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -77,8 +92,13 @@ export function DailyCashflowBars({ days = [], format = (value) => String(value)
     return parsed.slice(Math.max(0, parsed.length - maxDays));
   }, [days, maxDays]);
 
-  const max = useMemo(
-    () => Math.max(1, ...visible.flatMap((day) => [day.income, day.expense])),
+  const data = useMemo(
+    () => visible.map((day) => ({
+      date: String(day.date || "").slice(5),
+      fullDate: day.date,
+      income: day.income,
+      expense: day.expense,
+    })),
     [visible],
   );
 
@@ -87,18 +107,22 @@ export function DailyCashflowBars({ days = [], format = (value) => String(value)
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="flex h-56 min-w-max items-end gap-2 rounded-xl bg-slate-50 p-3">
-        {visible.map((day) => (
-          <div key={day.date} className="flex flex-1 flex-col items-center justify-end gap-1" title={`${day.date}\nMasuk ${format(day.income)}\nKeluar ${format(day.expense)}`}>
-            <div className="flex h-40 items-end gap-1">
-              <div className="w-3 rounded-t bg-emerald-500" style={{ height: `${day.income > 0 ? Math.max(6, (day.income / max) * 158) : 0}px` }} />
-              <div className="w-3 rounded-t bg-rose-400" style={{ height: `${day.expense > 0 ? Math.max(6, (day.expense / max) * 158) : 0}px` }} />
-            </div>
-            <span className="text-[9px] font-bold text-slate-400">{String(day.date).slice(5)}</span>
-          </div>
-        ))}
-      </div>
+    <div style={{ width: "100%", height: 256 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }} barGap={2}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={16} />
+          <YAxis tick={false} axisLine={false} tickLine={false} width={8} />
+          <Tooltip
+            cursor={TOOLTIP_CURSOR}
+            contentStyle={TOOLTIP_STYLE}
+            formatter={(value) => format(value)}
+            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+          />
+          <Bar dataKey="income" name="Pemasukan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
+          <Bar dataKey="expense" name="Pengeluaran" fill="#fb7185" radius={[4, 4, 0, 0]} maxBarSize={22} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -113,29 +137,29 @@ export function OrderRevenueBars({ points = [], format = (value) => String(value
     return parsed.slice(Math.max(0, parsed.length - maxDays));
   }, [points, maxDays]);
 
-  const maxOrders = Math.max(1, ...visible.map((point) => point.orders));
-  const maxRevenue = Math.max(1, ...visible.map((point) => point.revenue));
-
   if (!visible.length) {
     return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Belum ada data tren.</p>;
   }
 
   return (
     <div>
-      <SeriesLegend series={[{ key: "orders", label: "Order (skala sendiri)", color: "#818CF8" }, { key: "revenue", label: "Pendapatan (skala sendiri)", color: "#34D399" }]} />
-      <div className="mt-3 flex items-end gap-1 overflow-x-auto pb-2">
-        {visible.map((point) => (
-          <div key={point.date} className="flex min-w-[16px] flex-1 flex-col items-center justify-end gap-1" title={`${point.date}\n${point.orders} order\n${format(point.revenue)}`}>
-            <div className="flex items-end gap-[2px]">
-              <div className="w-[6px] rounded-t bg-indigo-400" style={{ height: `${Math.max(3, (point.orders / maxOrders) * 140)}px` }} />
-              <div className="w-[6px] rounded-t bg-emerald-500" style={{ height: `${Math.max(3, (point.revenue / maxRevenue) * 140)}px` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-1 flex justify-between text-xs text-slate-500">
-        <span>{visible[0]?.date}</span>
-        <span>{visible[visible.length - 1]?.date}</span>
+      <SeriesLegend series={[{ key: "orders", label: "Order", color: "#818CF8" }, { key: "revenue", label: "Pendapatan", color: "#34D399" }]} />
+      <div className="mt-3" style={{ width: "100%", height: 240 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={visible} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+            <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={24} />
+            <YAxis yAxisId="revenue" tick={false} axisLine={false} tickLine={false} width={8} />
+            <YAxis yAxisId="orders" orientation="right" tick={false} axisLine={false} tickLine={false} width={8} />
+            <Tooltip
+              cursor={TOOLTIP_CURSOR}
+              contentStyle={TOOLTIP_STYLE}
+              formatter={(value, name) => (name === "Pendapatan" ? format(value) : value)}
+            />
+            <Bar yAxisId="revenue" dataKey="revenue" name="Pendapatan" fill="#34D399" radius={[3, 3, 0, 0]} maxBarSize={14} />
+            <Line yAxisId="orders" type="monotone" dataKey="orders" name="Order" stroke="#818CF8" strokeWidth={2} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -162,55 +186,50 @@ export function DonutChart({ items = [], format = (value) => String(value), size
   const segments = useMemo(() => {
     const total = items.reduce((sum, item) => sum + Math.max(0, Number(item.value || 0)), 0);
     if (total <= 0) return [];
-    const radius = Math.max(1, (size - thickness) / 2);
-    const circumference = 2 * Math.PI * radius;
-    let cursor = 0;
     return items
       .filter((item) => Number(item.value || 0) > 0)
       .map((item, index) => {
         const value = Math.max(0, Number(item.value || 0));
-        const fraction = value / total;
-        const gap = items.length > 1 ? 2.5 : 0;
-        const segment = {
+        return {
           key: `${item.label}-${index}`,
           label: item.label || "Item",
           color: item.color || "#cbd5e1",
           value,
-          fraction,
-          dash: Math.max(0, fraction * circumference - gap),
-          offset: cursor,
+          fraction: value / total,
         };
-        cursor += fraction * circumference;
-        return segment;
       });
-  }, [items, size, thickness]);
+  }, [items]);
 
   if (!segments.length) {
     return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{emptyText}</p>;
   }
 
-  const radius = Math.max(1, (size - thickness) / 2);
-  const center = size / 2;
+  const innerRadius = Math.max(1, size / 2 - thickness);
+  const outerRadius = size / 2;
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-6">
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
-        <svg className="-rotate-90" width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={centerLabel || "Diagram lingkaran"}>
-          <circle cx={center} cy={center} r={radius} fill="none" stroke="#f1f5f9" strokeWidth={thickness} />
-          {segments.map((segment) => (
-            <circle
-              key={segment.key}
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke={segment.color}
-              strokeWidth={thickness}
-              strokeDasharray={`${segment.dash} ${2 * Math.PI * radius - segment.dash}`}
-              strokeDashoffset={-segment.offset}
-            />
-          ))}
-        </svg>
+      <div className="relative shrink-0" style={{ width: size, height: size }} role="img" aria-label={centerLabel || "Diagram lingkaran"}>
+        <PieChart width={size} height={size}>
+          <Pie
+            data={segments}
+            dataKey="value"
+            nameKey="label"
+            cx="50%"
+            cy="50%"
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
+            paddingAngle={segments.length > 1 ? 2 : 0}
+            startAngle={90}
+            endAngle={-270}
+            stroke="none"
+          >
+            {segments.map((segment) => (
+              <Cell key={segment.key} fill={segment.color} />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => format(value)} />
+        </PieChart>
         {centerLabel || centerValue ? (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
             {centerLabel ? <p className="max-w-[104px] truncate text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{centerLabel}</p> : null}

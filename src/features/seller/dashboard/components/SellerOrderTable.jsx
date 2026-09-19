@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
 import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
+import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
+import { useColumnVisibility } from "@/shared/hooks";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 
 const statusClass = {
@@ -21,6 +23,11 @@ export function SellerOrderTable({ rows = [] }) {
     { key: "status", label: "Status", width: 160 },
   ], []);
   const layout = useTableColumnLayout({ storageKey: "seller.dashboard.orders", columns });
+  const visibility = useColumnVisibility(columns, "seller.dashboard.orders");
+  const orderedVisibleColumns = useMemo(
+    () => layout.orderedColumns.filter((column) => visibility.visibleSet.has(column.key)),
+    [layout.orderedColumns, visibility.visibleSet],
+  );
 
   const renderCell = (column, row) => {
     if (column.key === "order") return <td key={column.key} className="px-5 py-4 font-extrabold text-slate-900">{row.id}</td>;
@@ -34,13 +41,23 @@ export function SellerOrderTable({ rows = [] }) {
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-5 py-4"><h2 className="text-base font-extrabold text-slate-950">Pesanan perlu perhatian</h2><p className="text-sm text-slate-500">Antrian order terbaru dari pembeli.</p></div>
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
+        <div><h2 className="text-base font-extrabold text-slate-950">Pesanan perlu perhatian</h2><p className="text-sm text-slate-500">Antrian order terbaru dari pembeli.</p></div>
+        <ColumnVisibilityMenu
+          columns={columns}
+          visibleKeys={visibility.visibleKeys}
+          onToggle={visibility.toggleColumn}
+          onShowAll={visibility.showAll}
+          onReset={visibility.reset}
+          onApplyDefault={visibility.applyAsDefault}
+        />
+      </div>
       <div className="px-4 pt-2"><TableLayoutHint onReset={layout.resetLayout} /></div>
       <div className="overflow-x-auto">
         <table className="table-fixed text-left text-sm" style={{ width: Math.max(layout.totalWidth, 900), minWidth: "100%" }}>
-          <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} />
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{layout.orderedColumns.map((column) => <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key} align={column.align}>{column.label}</InteractiveTableHeader>)}</tr></thead>
-          <tbody className="divide-y divide-slate-100">{rows.map((row) => <tr key={row.id} className="transition hover:bg-slate-50/80">{layout.orderedColumns.map((column) => renderCell(column, row))}</tr>)}</tbody>
+          <InteractiveColGroup columns={orderedVisibleColumns} getColumnStyle={layout.getColumnStyle} />
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{orderedVisibleColumns.map((column) => <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key} align={column.align}>{column.label}</InteractiveTableHeader>)}</tr></thead>
+          <tbody className="divide-y divide-slate-100">{rows.map((row) => <tr key={row.id} className="transition hover:bg-slate-50/80">{orderedVisibleColumns.map((column) => renderCell(column, row))}</tr>)}</tbody>
         </table>
       </div>
     </div>

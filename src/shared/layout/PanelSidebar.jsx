@@ -1,4 +1,5 @@
-import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/shared/utils/utils";
 import { usePanelTabs } from "@/shared/layout/tabs";
@@ -57,6 +58,7 @@ export const PanelSidebar = memo(function PanelSidebar({
   const railRef = useRef(null);
   const panelRef = useRef(null);
   const groupButtonRefs = useRef(new Map());
+  const tooltipAnchorRef = useRef(null);
 
   const dashboard = items.find((item) => item.href === homeHref);
   const groups = useMemo(() => {
@@ -107,25 +109,41 @@ export const PanelSidebar = memo(function PanelSidebar({
     setOpenGroup(null);
   };
 
-  const clampTooltipTop = (value) => Math.max(16, Math.min(window.innerHeight - 24, value));
+  const tooltipFromAnchor = useCallback((anchor, label, color) => {
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    setTooltip({ label, color, left: rect.right + 10, top: Math.max(16, Math.min(window.innerHeight - 24, rect.top + rect.height / 2)) });
+  }, []);
 
   const showTip = (event, label, color) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltip({ label, color, left: rect.right + 10, top: clampTooltipTop(rect.top + rect.height / 2) });
+    tooltipAnchorRef.current = event.currentTarget;
+    tooltipFromAnchor(event.currentTarget, label, color);
   };
 
   const showGroupTip = (event, group) => {
-    const rect = event.currentTarget.getBoundingClientRect();
     const color = themeFor(group.name).color;
-    setTooltip({
-      label: group.name,
-      color,
-      left: rect.right + 10,
-      top: clampTooltipTop(rect.top + rect.height / 2),
-    });
+    tooltipAnchorRef.current = event.currentTarget;
+    tooltipFromAnchor(event.currentTarget, group.name, color);
   };
 
-  const clearTip = () => setTooltip(null);
+  const clearTip = () => {
+    tooltipAnchorRef.current = null;
+    setTooltip(null);
+  };
+
+  useEffect(() => {
+    if (!tooltip) return undefined;
+    const reposition = () => {
+      const anchor = tooltipAnchorRef.current;
+      if (anchor) tooltipFromAnchor(anchor, tooltip.label, tooltip.color);
+    };
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    return () => {
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [tooltip, tooltipFromAnchor]);
 
   const railButtonClassName = (active) => cn(
     "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
@@ -321,29 +339,32 @@ export const PanelSidebar = memo(function PanelSidebar({
         </div>
       ) : null}
 
-      {tooltip ? (
-        <span
-          role="tooltip"
-          style={{ left: tooltip.left, top: tooltip.top, backgroundColor: tooltip.color || "#0f172a" }}
-          className={cn(
-            "pointer-events-none fixed z-[80] rounded-md px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-1 ring-white/10",
-            tooltip.above ? "-translate-x-1/2 -translate-y-full" : "-translate-y-1/2",
-          )}
-        >
-          {tooltip.above ? (
+      {tooltip
+        ? createPortal(
             <span
-              className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45"
-              style={{ backgroundColor: tooltip.color || "#0f172a" }}
-            />
-          ) : (
-            <span
-              className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45"
-              style={{ backgroundColor: tooltip.color || "#0f172a" }}
-            />
-          )}
-          {tooltip.label}
-        </span>
-      ) : null}
+              role="tooltip"
+              style={{ left: tooltip.left, top: tooltip.top, backgroundColor: tooltip.color || "#0f172a" }}
+              className={cn(
+                "pointer-events-none fixed z-[80] rounded-md px-2.5 py-1 text-xs font-bold text-white shadow-lg ring-1 ring-white/10",
+                tooltip.above ? "-translate-x-1/2 -translate-y-full" : "-translate-y-1/2",
+              )}
+            >
+              {tooltip.above ? (
+                <span
+                  className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45"
+                  style={{ backgroundColor: tooltip.color || "#0f172a" }}
+                />
+              ) : (
+                <span
+                  className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45"
+                  style={{ backgroundColor: tooltip.color || "#0f172a" }}
+                />
+              )}
+              {tooltip.label}
+            </span>,
+            document.body,
+          )
+        : null}
     </aside>
   );
 });

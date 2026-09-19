@@ -8,7 +8,6 @@ import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 
@@ -87,7 +86,6 @@ function ProductOrderPicker({ products, existingProducts = [], value, onChange, 
 export default function ShowcasePage() {
   const { activeRole, store } = useAuth();
   const admin = activeRole === "admin";
-  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState("");
@@ -95,16 +93,14 @@ export default function ShowcasePage() {
   const [productSearch, setProductSearch] = useState("");
   const deferredProductSearch = useDeferredValue(productSearch.trim());
   const editor = useEntityEditor({ createLabel: "Data Baru Etalase", getEditLabel: (row) => row.name });
-  const listQuery = useShowcases({ page, per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) });
+  const listQuery = useShowcases({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) });
   const productsQuery = useManageableProducts({ per_page: 100, ...(deferredProductSearch ? { search: deferredProductSearch } : {}), ...(admin && form.store_id ? { store_id: form.store_id } : {}) });
   const saveMutation = useSaveShowcase();
   const deleteMutation = useDeleteShowcase();
   const rows = listQuery.data?.rows || [];
   const products = productsQuery.data?.rows || [];
-  const meta = listQuery.data?.meta || {};
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
 
-  useEffect(() => setPage(1), [query]);
   useEffect(() => {
     if (!editor.open) return;
     const row = editor.entity;
@@ -171,8 +167,7 @@ export default function ShowcasePage() {
         <ModuleFrame title="Etalase Toko" subtitle="Kelompokkan produk toko ke beberapa etalase dan atur urutan tampilnya di storefront." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={editor.create} createLabel="Tambah Etalase">
           <div className="flex flex-wrap items-center justify-between gap-2 border border-slate-200 bg-white px-4 py-3"><div><p className="text-sm font-extrabold text-slate-800">Pengelompokan produk storefront</p><p className="mt-0.5 text-xs text-slate-500">Produk mengikuti urutan yang kamu susun di dalam masing-masing etalase.</p></div>{!admin ? <Link to="/seller/store-preview" className="inline-flex h-9 items-center gap-2 border border-emerald-200 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50"><span className="material-symbols-outlined text-[18px]">preview</span>Preview Toko</Link> : null}</div>
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid storageKey={`${activeRole}.showcases`} columns={columns} rows={rows} onRowClick={editor.edit} emptyText={listQuery.isLoading ? "" : "Etalase belum tersedia."} />
-          {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+          <DataGrid storageKey={`${activeRole}.showcases`} columns={columns} rows={rows} onRowClick={editor.edit} emptyText={listQuery.isLoading ? "" : "Etalase belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} />
         </ModuleFrame>
       ) : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Etalase" message={`Etalase “${deleteTarget?.name || ""}” akan dihapus. Produk tidak ikut terhapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />

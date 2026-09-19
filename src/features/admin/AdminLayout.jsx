@@ -18,7 +18,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/orders", label: "Pesanan", icon: "receipt_long", group: "Penjualan" },
   { href: "/admin/ppob", label: "PPOB & Top Up", icon: "phone_android", group: "Penjualan" },
   { href: "/admin/customers", label: "Pelanggan", icon: "person_search", group: "Penjualan" },
-  { href: "/admin/order-operations", label: "Order", icon: "shopping_bag", group: "Penjualan" },
+  { href: "/admin/order-operations", label: "Operasi Pesanan", icon: "shopping_bag", group: "Penjualan" },
   { href: "/admin/reviews", label: "Review", icon: "reviews", group: "Penjualan" },
   { href: "/admin/cashflow", label: "Pemasukan dan Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
   { href: "/admin/receivables-payables", label: "Hutang dan Piutang", icon: "payments", group: "Finance" },
@@ -80,7 +80,7 @@ function AdminLayoutContent() {
     <PanelTabsProvider items={ADMIN_NAV_ITEMS}>
       <div className="min-h-screen bg-slate-50">
         <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[76px_minmax(0,1fr)]">
-          <PanelSidebar items={ADMIN_NAV_ITEMS} homeHref="/admin" title="Admin Control" sidebarClassName="border-slate-800/20 bg-[#0f172a]" activeClassName="bg-teal-400 text-slate-950" badges={realtime.badges} />
+          <PanelSidebar items={ADMIN_NAV_ITEMS} homeHref="/admin" title="Admin Control" sidebarClassName="border-slate-800/20 bg-[#0f172a]" activeClassName="bg-teal-400 text-slate-950" showHomeLink={false} badges={realtime.badges} />
           <div className="min-w-0 max-w-full overflow-x-hidden">
             <PanelHeader
               eyebrow="Admin Panel"

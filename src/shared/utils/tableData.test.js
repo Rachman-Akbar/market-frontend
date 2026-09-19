@@ -3,7 +3,9 @@ import {
   buildRawColumns,
   formatTableValue,
   humanizeColumnKey,
+  matchesColumnFilter,
   mergeColumns,
+  sortRowsBy,
 } from "@/shared/utils/tableData";
 
 describe("tableData", () => {
@@ -106,6 +108,54 @@ describe("tableData", () => {
     it("returns base columns normalized with rawKey when there are no raw columns", () => {
       const base = [{ key: "name", label: "Nama" }];
       expect(mergeColumns(base, [])).toEqual([{ key: "name", label: "Nama", rawKey: "name" }]);
+    });
+  });
+
+  describe("matchesColumnFilter", () => {
+    it("keeps all rows when the filter is empty", () => {
+      expect(matchesColumnFilter("A", "", "text")).toBe(true);
+      expect(matchesColumnFilter(5, { min: "", max: "" }, "range")).toBe(true);
+    });
+
+    it("matches text filters case-insensitively as substring", () => {
+      expect(matchesColumnFilter("Sari Kelapa", "kelapa", "text")).toBe(true);
+      expect(matchesColumnFilter("Sari Kelapa", "minyak", "text")).toBe(false);
+    });
+
+    it("matches select filters exactly, ignoring case", () => {
+      expect(matchesColumnFilter("published", "Published", "select")).toBe(true);
+      expect(matchesColumnFilter("draft", "published", "select")).toBe(false);
+    });
+
+    it("matches boolean values against select values", () => {
+      expect(matchesColumnFilter(true, "active", "select")).toBe(true);
+      expect(matchesColumnFilter(false, "active", "select")).toBe(false);
+    });
+
+    it("filters numeric ranges", () => {
+      expect(matchesColumnFilter(45000, { min: "10000", max: "50000" }, "range")).toBe(true);
+      expect(matchesColumnFilter(8000, { min: "10000", max: "50000" }, "range")).toBe(false);
+      expect(matchesColumnFilter(60000, { min: "10000", max: "50000" }, "range")).toBe(false);
+    });
+  });
+
+  describe("sortRowsBy", () => {
+    const valueOf = (row, key) => row[key];
+
+    it("sorts numbers ascending and descending", () => {
+      const rows = [{ price: 3 }, { price: 1 }, { price: 2 }];
+      expect(sortRowsBy(rows, "price", "asc", valueOf).map((row) => row.price)).toEqual([1, 2, 3]);
+      expect(sortRowsBy(rows, "price", "desc", valueOf).map((row) => row.price)).toEqual([3, 2, 1]);
+    });
+
+    it("sorts text using Indonesian locale", () => {
+      const rows = [{ name: "B" }, { name: "a" }, { name: "C" }];
+      expect(sortRowsBy(rows, "name", "asc", valueOf).map((row) => row.name)).toEqual(["a", "B", "C"]);
+    });
+
+    it("returns rows unchanged when no sort key is given", () => {
+      const rows = [{ price: 2 }, { price: 1 }];
+      expect(sortRowsBy(rows, null, "asc", valueOf)).toBe(rows);
     });
   });
 });

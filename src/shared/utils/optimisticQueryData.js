@@ -13,6 +13,13 @@ export function updateEntityInQueryData(data, id, updater) {
     return data;
   }
 
+  if (Array.isArray(data.pages)) {
+    return {
+      ...data,
+      pages: data.pages.map((page) => updateEntityInQueryData(page, id, updater)),
+    };
+  }
+
   if (Array.isArray(data.rows)) {
     return {
       ...data,

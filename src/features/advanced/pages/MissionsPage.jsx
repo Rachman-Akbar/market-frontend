@@ -7,7 +7,6 @@ import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 
@@ -22,19 +21,17 @@ function formatDate(value) {
 export default function MissionsPage() {
   const { activeRole } = useAuth();
   const admin = activeRole === "admin";
-  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(initialForm());
   const [message, setMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const editor = useEntityEditor({ createLabel: "Data Baru Misi", getEditLabel: (row) => row.name });
-  const listQuery = useMissions({ page, per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) }, admin);
+  const listQuery = useMissions({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) }, admin);
   const eventTypesQuery = useMissionEventTypes();
   const eventTypes = eventTypesQuery.data || {};
   const saveMutation = useSaveMission();
   const deleteMutation = useDeleteMission();
   const rows = listQuery.data?.rows || [];
-  const meta = listQuery.data?.meta || {};
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
 
   useEffect(() => {
@@ -94,7 +91,7 @@ export default function MissionsPage() {
 
   return (
     <>
-      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><>{message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}<DataGrid columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} />{admin && rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}</></ModuleFrame> : null}
+      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><>{message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}<DataGrid columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} /></></ModuleFrame> : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Misi" message={`Misi “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
       <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending} dangerAction={admin && editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}

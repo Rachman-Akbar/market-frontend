@@ -10,17 +10,21 @@ export function getAssetBaseUrl() {
 function resolveLocalAbsoluteUrl(raw) {
   try {
     const parsed = new URL(raw);
+    const storageIndex = parsed.pathname.indexOf("/storage/");
     const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
-
-    if (!localHosts.has(parsed.hostname)) {
-      return raw;
-    }
+    const isLocalHost = localHosts.has(parsed.hostname);
 
     if (import.meta.env.DEV) {
+      if (!isLocalHost && storageIndex >= 0) {
+        return `${getAssetBaseUrl()}${parsed.pathname.slice(storageIndex)}${parsed.search}${parsed.hash}`;
+      }
+
       return raw;
     }
 
-    const storageIndex = parsed.pathname.indexOf("/storage/");
+    if (!isLocalHost) {
+      return raw;
+    }
 
     if (storageIndex >= 0) {
       return `${getAssetBaseUrl()}${parsed.pathname.slice(storageIndex)}${parsed.search}${parsed.hash}`;

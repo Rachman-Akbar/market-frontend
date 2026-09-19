@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapCollection } from "@/core/utils/apiClient";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { toBoolean } from "@/core/utils/boolean";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
 export const adminStoreKeys = {
@@ -74,9 +75,10 @@ export async function updateAdminStoreStatus(id, status, isActive, message) {
 }
 
 export function useAdminStores(params = {}) {
-  return useQuery({
-    queryKey: adminStoreKeys.list(params),
-    queryFn: () => getAdminStores(params),
+  return useInfiniteList({
+    queryKey: ["admin", "stores"],
+    queryFn: (queryParams) => getAdminStores(queryParams),
+    params,
     staleTime: 0,
   });
 }

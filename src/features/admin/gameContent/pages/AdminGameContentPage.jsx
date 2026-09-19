@@ -13,6 +13,7 @@ import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { useColumnVisibility } from "@/shared/hooks";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 
 export default function AdminGameContentPage() {
@@ -31,6 +32,17 @@ export default function AdminGameContentPage() {
   const deleteMutation = useDeleteAdminGameContent();
 
   const rows = listQuery.data || [];
+
+  const columns = [
+    { key: "id", label: "ID", render: (row) => <span className="font-mono text-xs text-slate-400">#{row.id}</span> },
+    { key: "title", label: "Judul", render: (row) => <span className="font-bold text-slate-800">{row.title}</span> },
+    { key: "difficulty", label: "Tingkat", render: (row) => <span className="text-slate-500">{row.difficulty || "—"}</span> },
+    { key: "items", label: "Item", render: (row) => <span className="text-slate-500">{row.itemsCount} item</span> },
+    { key: "status", label: "Status", render: (row) => <span className="inline-flex"><InlineActiveSwitch checked={row.isActive !== false} pending={updateMutation.isPending} onChange={() => toggleActive(row, !row.isActive)} compact /></span> },
+    { key: "updated", label: "Diperbarui", render: (row) => <span className="text-xs text-slate-400">{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span> },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.game-content");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   const openCreate = () => {
     setEditing(null);
@@ -96,6 +108,12 @@ export default function AdminGameContentPage() {
         }
         hasActiveFilters={Boolean(query)}
         onClearFilters={() => setQuery("")}
+        columns={columns}
+        visibleColumns={columnVisibility.visibleKeys}
+        onToggleColumn={columnVisibility.toggleColumn}
+        onShowAllColumns={columnVisibility.showAll}
+        onResetColumns={columnVisibility.reset}
+        onApplyDefaultColumns={columnVisibility.applyAsDefault}
       />
 
       <AsyncState loading={listQuery.isLoading} error={listQuery.error ? getAdminGameContentError(listQuery.error) : ""} empty={!listQuery.isLoading && !rows.length} emptyText={`Belum ada konten untuk game ${GAME_TYPE_META[gameType].label}.`} />
@@ -105,25 +123,13 @@ export default function AdminGameContentPage() {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">Judul</th>
-                <th className="px-4 py-3">Tingkat</th>
-                <th className="px-4 py-3">Item</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Diperbarui</th>
+                {visibleColumns.map((column) => <th key={column.key} className="px-4 py-3">{column.label}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} onClick={() => openEdit(row)} className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400">#{row.id}</td>
-                  <td className="px-4 py-3 font-bold text-slate-800">{row.title}</td>
-                  <td className="px-4 py-3 text-slate-500">{row.difficulty || "—"}</td>
-                  <td className="px-4 py-3 text-slate-500">{row.itemsCount} item</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex"><InlineActiveSwitch checked={row.isActive !== false} pending={updateMutation.isPending} onChange={() => toggleActive(row, !row.isActive)} compact /></span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-400">{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
+                  {visibleColumns.map((column) => <td key={column.key} className="px-4 py-3">{column.render(row)}</td>)}
                 </tr>
               ))}
             </tbody>

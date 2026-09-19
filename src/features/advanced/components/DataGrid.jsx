@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { useColumnVisibility } from "@/shared/hooks/useColumnVisibility";
@@ -16,7 +17,7 @@ function valueText(value) {
   return formatted !== "-" ? String(formatted).toLowerCase() : "";
 }
 
-export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey }) {
+export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey, hasNextPage = false, isFetchingNextPage = false, onLoadMore }) {
   const visibleState = useColumnVisibility(columns, storageKey || `advanced.${columns.map((column) => column.key).join(".")}`);
   const visibleColumns = useMemo(
     () => columns.filter((column) => visibleState.visibleSet.has(column.key)),
@@ -161,6 +162,9 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
               ))}
             </tbody>
           </table>
+          {hasNextPage || isFetchingNextPage ? (
+            <InfiniteScrollSentinel hasNextPage={hasNextPage} isFetchingNextPage={isFetchingNextPage} onLoadMore={onLoadMore} />
+          ) : null}
         </div>
       ) : null}
       <div className="min-h-2">

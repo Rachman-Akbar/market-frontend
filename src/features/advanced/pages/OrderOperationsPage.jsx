@@ -1,11 +1,10 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getOrderManagementError, useAdminOrders, useSellerOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { useTableSelection } from "@/shared/hooks";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
@@ -17,25 +16,21 @@ function money(value) {
 export default function OrderOperationsPage() {
   const { activeRole } = useAuth();
   const admin = activeRole === "admin";
-  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
   const [detailRow, setDetailRow] = useState(null);
   const deferredQuery = useDeferredValue(query.trim());
-  const params = { page, per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(type ? { order_type: type } : {}), ...(status ? { status } : {}) };
+  const params = { per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(type ? { order_type: type } : {}), ...(status ? { status } : {}) };
   const adminQuery = useAdminOrders(params);
   const sellerQuery = useSellerOrders(params);
   const listQuery = admin ? adminQuery : sellerQuery;
   const updateMutation = useUpdateOrderStatus();
   const rows = listQuery.data?.rows || [];
-  const meta = listQuery.data?.meta || {};
   const selection = useTableSelection(rows);
   const spreadsheetRowId = useCallback((row) => row?.orderId || row?.id, []);
   const spreadsheet = useSpreadsheetWorkspace({ module: "order", label: "Pesanan", selectedRows: selection.selectedRows, allowBulkDelete: admin, getRowId: spreadsheetRowId, onCompleted: () => { selection.clear(); listQuery.refetch(); } });
-
-  useEffect(() => setPage(1), [deferredQuery, type, status]);
 
   const columns = useMemo(() => [
     { key: "orderNumber", label: "Nomor Pesanan" },
@@ -94,8 +89,10 @@ export default function OrderOperationsPage() {
           onToggleRow={selection.toggleRow}
           onToggleAll={selection.toggleAll}
           onRowClick={setDetailRow}
+          hasNextPage={listQuery.hasNextPage}
+          isFetchingNextPage={listQuery.isFetchingNextPage}
+          onLoadMore={() => listQuery.fetchNextPage()}
         />
-        {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
       </ModuleFrame>
       <FormModal
         open={Boolean(detailRow)}

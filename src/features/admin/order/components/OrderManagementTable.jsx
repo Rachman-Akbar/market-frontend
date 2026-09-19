@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from "react";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { StatusBadge } from "@/shared/components/feedback/StatusBadge";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
@@ -23,13 +24,14 @@ export const ORDER_TABLE_COLUMNS = [
   { key: "number", label: "Nomor" },
   { key: "store", label: "Toko" },
   { key: "customer", label: "Customer" },
+  { key: "items", label: "Produk" },
   { key: "total", label: "Total" },
   { key: "payment", label: "Pembayaran" },
   { key: "tracking", label: "Resi", defaultVisible: false },
   { key: "status", label: "Status" },
 ];
 
-const widths = { number: 220, store: 210, customer: 200, total: 160, payment: 160, tracking: 200, status: 190 };
+const widths = { number: 220, store: 210, customer: 200, items: 280, total: 160, payment: 160, tracking: 200, status: 190 };
 
 const STATUS_BUTTON_STYLES = {
   pending: "border-amber-200 bg-amber-50 text-amber-800",
@@ -49,7 +51,7 @@ const STATUS_DOT_STYLES = {
   cancelled: "bg-red-500",
 };
 
-const FILTER_TYPES = { number: "text", store: "text", customer: "text", total: "range", payment: "select", tracking: "text", status: "select" };
+const FILTER_TYPES = { number: "text", store: "text", customer: "text", items: "text", total: "range", payment: "select", tracking: "text", status: "select" };
 
 function hasFilterValue(type, value) {
   if (type === "range") return Boolean(value?.min !== "" || value?.max !== "");
@@ -61,6 +63,7 @@ function columnValue(column, row) {
   if (column.key === "number") return row.subOrderNumber || row.orderNumber || `#${row.id}`;
   if (column.key === "store") return row.storeName;
   if (column.key === "customer") return row.customerName;
+  if (column.key === "items") return (row.items || []).map((item) => item.productName).join(" ");
   if (column.key === "total") return row.total;
   if (column.key === "payment") return row.paymentStatus;
   if (column.key === "tracking") return row.trackingNumber;
@@ -123,6 +126,12 @@ export const OrderManagementTable = memo(function OrderManagementTable({ rows, p
     if (column.key === "number") return <td key={column.key} className="px-4 py-3"><p className="truncate font-extrabold text-slate-900">{row.subOrderNumber || row.orderNumber || `#${row.id}`}</p><p className="mt-0.5 truncate text-xs text-slate-500">{row.createdAt ? new Date(row.createdAt).toLocaleString("id-ID") : "-"}</p></td>;
     if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(row.storeName) || "-"}</td>;
     if (column.key === "customer") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{toTitleCase(row.customerName) || "-"}</td>;
+    if (column.key === "items") {
+      const items = row.items || [];
+      if (!items.length) return <td key={column.key} className="px-4 py-3 text-slate-400">-</td>;
+      const [first, ...rest] = items;
+      return <td key={column.key} className="px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200">{first.thumbnail ? <img src={resolveMediaUrl(first.thumbnail)} alt={first.productName || "Produk"} className="h-full w-full object-cover" loading="lazy" /> : <span className="material-symbols-outlined text-[18px] text-slate-400">inventory_2</span>}</span><div className="min-w-0"><p className="truncate text-xs font-bold text-slate-800" title={first.productName}>{first.productName || "-"}</p><p className="truncate text-[11px] text-slate-500">{first.quantity}x{rest.length ? ` · +${rest.length} produk lain` : ""}</p></div></div></td>;
+    }
     if (column.key === "total") return <td key={column.key} className="px-4 py-3 font-extrabold text-slate-800">{formatPrice(row.total)}</td>;
     if (column.key === "payment") return <td key={column.key} className="px-4 py-3"><StatusBadge status={row.paymentStatus} /></td>;
     if (column.key === "tracking") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{row.trackingNumber || "-"}</td>;

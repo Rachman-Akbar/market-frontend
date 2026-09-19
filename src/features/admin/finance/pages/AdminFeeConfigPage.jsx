@@ -16,7 +16,9 @@ import {
 } from "@/features/admin/finance/services/adminFinanceService";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { useColumnVisibility } from "@/shared/hooks";
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
@@ -126,6 +128,15 @@ export default function AdminFeeConfigPage() {
   const rows = configsQuery.data || [];
   const categories = categoriesQuery.data || [];
 
+  const columns = [
+    { key: "name", label: "Nama", render: (cfg) => (<><p className="font-semibold text-slate-900">{cfg.name}</p><p className="text-xs text-slate-400">{cfg.code}</p></>) },
+    { key: "scope", label: "Cakupan", render: (cfg) => cfg.categoryName || "Global" },
+    { key: "fee", label: "Fee", render: (cfg) => describeFee(cfg) },
+    { key: "status", label: "Status", render: (cfg) => <span className="inline-flex"><InlineActiveSwitch checked={cfg.isActive !== false} onChange={() => toggleActive(cfg)} pending={updateMut.isPending} compact /></span> },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.fee-configs");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
+
   const openCreate = () => {
     setEditing(null);
     setForm({ percentage: 0, fixedAmount: 0, minFee: "", maxFee: "", description: "" });
@@ -204,7 +215,15 @@ export default function AdminFeeConfigPage() {
   return (
     <AdminShell title="Konfigurasi Fee" subtitle="Kelola biaya admin/fee marketplace per kategori atau global.">
       <div className="space-y-4">
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <ColumnVisibilityMenu
+            columns={columns}
+            visibleKeys={columnVisibility.visibleKeys}
+            onToggle={columnVisibility.toggleColumn}
+            onShowAll={columnVisibility.showAll}
+            onReset={columnVisibility.reset}
+            onApplyDefault={columnVisibility.applyAsDefault}
+          />
           <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700">
             <span className="material-symbols-outlined text-base">add</span> Tambah Konfigurasi Fee
           </Button>
@@ -219,24 +238,13 @@ export default function AdminFeeConfigPage() {
                 <table className="w-full min-w-[640px] text-left text-sm">
                   <thead className="border-b border-slate-200 text-slate-500">
                     <tr>
-                      <th className="py-2 pr-3 font-semibold">Nama</th>
-                      <th className="py-2 pr-3 font-semibold">Cakupan</th>
-                      <th className="py-2 pr-3 font-semibold">Fee</th>
-                      <th className="py-2 pr-3 font-semibold">Status</th>
+                      {visibleColumns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((cfg) => (
                       <tr key={cfg.id} onClick={() => openEdit(cfg)} className="cursor-pointer border-b border-slate-100 align-top">
-                        <td className="py-2 pr-3">
-                          <p className="font-semibold text-slate-900">{cfg.name}</p>
-                          <p className="text-xs text-slate-400">{cfg.code}</p>
-                        </td>
-                        <td className="py-2 pr-3 text-slate-600">{cfg.categoryName || "Global"}</td>
-                        <td className="py-2 pr-3 text-slate-600">{describeFee(cfg)}</td>
-                        <td className="py-2 pr-3">
-                          <span className="inline-flex"><InlineActiveSwitch checked={cfg.isActive !== false} onChange={() => toggleActive(cfg)} pending={updateMut.isPending} compact /></span>
-                        </td>
+                        {visibleColumns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(cfg)}</td>)}
                       </tr>
                     ))}
                   </tbody>

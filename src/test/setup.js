@@ -72,6 +72,20 @@ if (typeof window !== "undefined") {
     };
   }
 
+  if (!window.IntersectionObserver) {
+    window.IntersectionObserver = class IntersectionObserver {
+      constructor(callback) {
+        this.callback = callback;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    };
+  }
+
   if (typeof window.requestAnimationFrame !== "function") {
     window.requestAnimationFrame = (callback) => setTimeout(() => callback(Date.now()), 0);
     window.cancelAnimationFrame = (id) => clearTimeout(id);

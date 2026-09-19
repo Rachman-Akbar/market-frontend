@@ -1,13 +1,28 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapCollection } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 
 export const orderManagementKeys = {
   admin: (params = {}) => ["admin", "orders", params],
   seller: (storeId, params = {}) => ["seller", "orders", storeId, params],
 };
 
-function normalizeOrder(row = {}) {
+export function normalizeOrderItem(item = {}, index = 0) {
+  return {
+    id: Number(item.id || index),
+    productId: Number(item.product_id || item.productId || 0),
+    variantId: item.variant_id || item.variantId || null,
+    productName: item.product_name || item.productName || item.name || "",
+    sku: item.sku || "",
+    thumbnail: item.thumbnail || item.image_url || item.image || "",
+    quantity: Number(item.quantity || 0),
+    unitPrice: Number(item.unit_price ?? item.unitPrice ?? item.price ?? 0),
+    subtotal: Number(item.subtotal ?? 0),
+  };
+}
+
+export function normalizeOrder(row = {}) {
   return {
     id: Number(row.id || 0),
     orderId: Number(row.order_id || row.orderId || row.id || 0),
@@ -24,6 +39,7 @@ function normalizeOrder(row = {}) {
     status: row.status || "pending",
     paymentStatus: row.payment_status || row.paymentStatus || "pending",
     trackingNumber: row.tracking_number || row.trackingNumber || "",
+    items: Array.isArray(row.items) ? row.items.map(normalizeOrderItem) : [],
     createdAt: row.created_at || row.createdAt || null,
     raw: row,
   };
@@ -61,15 +77,20 @@ export async function updateOrderStatus(id, status, trackingNumber = "") {
 }
 
 export function useAdminOrders(params = {}) {
-  return useQuery({ queryKey: orderManagementKeys.admin(params), queryFn: () => getAdminOrders(params) });
+  return useInfiniteList({
+    queryKey: ["admin", "orders"],
+    queryFn: (queryParams) => getAdminOrders(queryParams),
+    params,
+  });
 }
 
 export function useSellerOrders(params = {}) {
   const { store, activeRole } = useAuth();
   const storeId = Number(store?.id || 0);
-  return useQuery({
-    queryKey: orderManagementKeys.seller(storeId, params),
-    queryFn: () => getSellerOrders(storeId, params),
+  return useInfiniteList({
+    queryKey: ["seller", "orders", storeId],
+    queryFn: (queryParams) => getSellerOrders(storeId, queryParams),
+    params,
     enabled: Boolean(activeRole === "seller" && storeId),
   });
 }

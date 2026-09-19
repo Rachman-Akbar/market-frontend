@@ -5,7 +5,6 @@ import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Input } from "@/shared/components/ui/Input";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 
@@ -20,7 +19,6 @@ function money(value) {
 export default function PromotionPaymentsPage() {
   const { activeRole } = useAuth();
   const admin = activeRole === "admin";
-  const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(initialForm());
@@ -31,11 +29,10 @@ export default function PromotionPaymentsPage() {
   const [reviewReason, setReviewReason] = useState("");
   const panelTabs = usePanelTabs();
   const editor = useEntityEditor({ createLabel: "Data Baru Pembayaran Promosi" });
-  const listQuery = usePromotionPayments({ page, per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(status ? { status } : {}) });
+  const listQuery = usePromotionPayments({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(status ? { status } : {}) });
   const createMutation = useCreatePromotionPayment();
   const reviewMutation = useReviewPromotionPayment();
   const rows = listQuery.data?.rows || [];
-  const meta = listQuery.data?.meta || {};
   const reviewOpen = panelTabs ? panelTabs.activeTab?.type === "promotion-payment-review" : localReviewOpen;
   const activeReviewRow = panelTabs?.activeTab?.entity || reviewRow;
   const activeReviewAction = panelTabs?.activeTab?.payload?.action || reviewAction;
@@ -130,11 +127,18 @@ export default function PromotionPaymentsPage() {
           refreshing={listQuery.isFetching}
           onCreate={admin ? undefined : editor.create}
           createLabel="Ajukan Pembayaran"
-          filters={<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
+          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid columns={columns} rows={rows} onRowClick={(row) => admin && row.status === "pending" ? openReview(row, "approve") : undefined} emptyText={listQuery.isLoading ? "" : "Pembayaran promosi belum tersedia."} />
-          {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+          <DataGrid
+            columns={columns}
+            rows={rows}
+            onRowClick={(row) => admin && row.status === "pending" ? openReview(row, "approve") : undefined}
+            emptyText={listQuery.isLoading ? "" : "Pembayaran promosi belum tersedia."}
+            hasNextPage={listQuery.hasNextPage}
+            isFetchingNextPage={listQuery.isFetchingNextPage}
+            onLoadMore={() => listQuery.fetchNextPage()}
+          />
         </ModuleFrame>
       ) : null}
 

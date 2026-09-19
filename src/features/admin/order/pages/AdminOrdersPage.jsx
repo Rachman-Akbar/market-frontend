@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
@@ -6,7 +6,7 @@ import { getOrderManagementError, useAdminOrders, useUpdateOrderStatus } from "@
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
-import { Pagination } from "@/shared/components/ui/Pagination";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
@@ -16,15 +16,13 @@ import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWork
 export default function AdminOrdersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
-  const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
   const notifications = useNotificationCenter();
   const navigate = useNavigate();
   const deferredQuery = useDeferredValue(query.trim());
-  const ordersQuery = useAdminOrders({ page, per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}), ...(status ? { status } : {}) });
+  const ordersQuery = useAdminOrders({ per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}), ...(status ? { status } : {}) });
   const updateMutation = useUpdateOrderStatus();
   const rows = ordersQuery.data?.rows || [];
-  const meta = ordersQuery.data?.meta || {};
   const columns = useMemo(() => mergeColumns(ORDER_TABLE_COLUMNS, buildRawColumns(rows, ["id", "order_id", "order_number", "sub_order_number", "store_id", "store_name", "grand_total", "total", "total_items_price", "shipping_cost", "status", "payment_status", "tracking_number"])), [rows]);
   const selection = useTableSelection(rows);
   const columnVisibility = useColumnVisibility(columns, "admin-orders");
@@ -40,8 +38,6 @@ export default function AdminOrdersPage() {
       ordersQuery.refetch();
     },
   });
-
-  useEffect(() => setPage(1), [deferredQuery, status]);
 
   const bulkStatus = async (nextStatus) => {
     if (!selection.selectedRows.length) return;
@@ -136,7 +132,7 @@ export default function AdminOrdersPage() {
               }}
             />
           ) : null}
-          {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+          <InfiniteScrollSentinel hasNextPage={ordersQuery.hasNextPage} isFetchingNextPage={ordersQuery.isFetchingNextPage} onLoadMore={() => ordersQuery.fetchNextPage()} />
         </>
       ) : null}
       <SpreadsheetOperationPanel workspace={spreadsheet} />

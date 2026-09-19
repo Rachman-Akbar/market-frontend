@@ -14,7 +14,6 @@ import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs";
 
@@ -40,20 +39,18 @@ export default function HelpPage() {
   const editor = useEntityEditor({ createLabel: "Data Baru Help" });
   const detailTab = tabs?.activeTab?.type === "help-detail" ? tabs.activeTab : null;
   const selectedId = detailTab?.entity?.id || null;
-  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [form, setForm] = useState(initialForm);
   const [reply, setReply] = useState("");
   const [message, setMessage] = useState("");
-  const listQuery = useTickets({ page, per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(status ? { status } : {}) });
+  const listQuery = useTickets({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(status ? { status } : {}) });
   const ticketQuery = useTicket(selectedId);
   const contextQuery = useTicketContext(!admin);
   const createMutation = useCreateTicket();
   const replyMutation = useReplyTicket();
   const statusMutation = useUpdateTicketStatus();
   const rows = listQuery.data?.rows || [];
-  const meta = listQuery.data?.meta || {};
   const ticket = ticketQuery.data || detailTab?.entity || null;
   const context = contextQuery.data || null;
   const contextUser = context?.user || user || null;
@@ -178,11 +175,18 @@ export default function HelpPage() {
           refreshing={listQuery.isFetching}
           onCreate={admin ? undefined : editor.create}
           createLabel="Buat Help"
-          filters={<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
+          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-          <DataGrid columns={columns} rows={rows} onRowClick={openDetail} emptyText={listQuery.isLoading ? "" : "Help belum tersedia."} />
-          {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+          <DataGrid
+            columns={columns}
+            rows={rows}
+            onRowClick={openDetail}
+            emptyText={listQuery.isLoading ? "" : "Help belum tersedia."}
+            hasNextPage={listQuery.hasNextPage}
+            isFetchingNextPage={listQuery.isFetchingNextPage}
+            onLoadMore={() => listQuery.fetchNextPage()}
+          />
         </ModuleFrame>
       ) : null}
 

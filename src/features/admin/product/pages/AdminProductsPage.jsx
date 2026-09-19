@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { useAdminCategoryList } from "@/features/admin/category/services/adminCategoryService";
 import { getAdminProductError, useAdminProducts, useAdminProductStores, useCreateAdminProduct, useDeleteAdminProduct, useUpdateAdminProduct } from "@/features/admin/product/services/adminProductService";
@@ -6,7 +6,7 @@ import { SellerProductEditor } from "@/features/seller/product/components/Seller
 import { PRODUCT_TABLE_COLUMNS, SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
 import { ConfirmDialog, EntityToolbar } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
-import { Pagination } from "@/shared/components/ui/Pagination";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
@@ -20,13 +20,11 @@ export default function AdminProductsPage() {
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
   const [sort, setSort] = useState({ by: "created_at", direction: "desc" });
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const deferredQuery = useDeferredValue(query.trim());
   const editor = useEntityEditor();
   const notifications = useNotificationCenter();
   const productsQuery = useAdminProducts({
-    page,
     per_page: PER_PAGE,
     sort_by: sort.by,
     sort_direction: sort.direction,
@@ -46,7 +44,6 @@ export default function AdminProductsPage() {
   const quickUpdateMutation = useUpdateAdminProduct();
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
   const rows = productsQuery.data?.rows || [];
-  const meta = productsQuery.data?.meta || {};
   const displayRows = useMemo(() => {
     const storesById = new Map((storesQuery.data || []).map((store) => [store.id, store.name]));
     return rows.map((row) => ({ ...row, storeName: storesById.get(row.storeId) || "" }));
@@ -56,8 +53,6 @@ export default function AdminProductsPage() {
   const selection = useTableSelection(displayRows);
   const spreadsheet = useSpreadsheetWorkspace({ module: "product", label: "Product", selectedRows: selection.selectedRows, onCompleted: () => { selection.clear(); productsQuery.refetch(); } });
   const hasActiveFilters = useMemo(() => JSON.stringify(columnFilters) !== JSON.stringify(EMPTY_COLUMN_FILTERS), [columnFilters]);
-
-  useEffect(() => setPage(1), [columnFilters, deferredQuery, sort]);
 
   const toggleActive = (product, isActive) => {
     quickUpdateMutation.mutate(
@@ -140,7 +135,7 @@ export default function AdminProductsPage() {
                 onColumnFilterChange={(key, value) => setColumnFilters((current) => ({ ...current, [key]: value }))}
                 storeOptions={[]}
               />
-              {displayRows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+              <InfiniteScrollSentinel hasNextPage={productsQuery.hasNextPage} isFetchingNextPage={productsQuery.isFetchingNextPage} onLoadMore={() => productsQuery.fetchNextPage()} />
             </>
           ) : null}
         </>

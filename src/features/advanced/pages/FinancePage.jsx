@@ -6,7 +6,6 @@ import FinanceChartPanel from "@/features/advanced/components/FinanceChartPanel"
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
-import { Pagination } from "@/shared/components/ui/Pagination";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation, useTableSelection, useColumnVisibility } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
@@ -46,7 +45,6 @@ export default function FinancePage({ mode = "cashflow" }) {
   const [listTab, setListTab] = useState("list");
   const [type, setType] = useState(allowedTypes[0]);
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
   const [form, setForm] = useState(() => initialForm(allowedTypes[0], mode));
   const [message, setMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -59,12 +57,11 @@ export default function FinancePage({ mode = "cashflow" }) {
   const panelTabs = usePanelTabs();
   const deferredQuery = useDeferredValue(query.trim());
   const editor = useEntityEditor({ createLabel: `Data Baru ${typeLabel(type)}`, getEditLabel: (row) => row.reference_number || row.title });
-  const listQuery = useFinance({ page, per_page: 20, type, ...(deferredQuery ? { search: deferredQuery } : {}) });
+  const listQuery = useFinance({ per_page: 20, type, ...(deferredQuery ? { search: deferredQuery } : {}) });
   const saveMutation = useSaveFinance();
   const paymentMutation = useRecordFinancePayment();
   const deleteMutation = useDeleteFinance();
   const rows = listQuery.data?.rows || [];
-  const meta = listQuery.data?.meta || {};
   const selection = useTableSelection(rows);
   const paymentOpen = panelTabs ? panelTabs.activeTab?.type === "finance-payment" : localPaymentOpen;
   const paymentHistoryQuery = useFinancePaymentHistory(paymentRow?.id, paymentOpen);
@@ -79,7 +76,6 @@ export default function FinancePage({ mode = "cashflow" }) {
   });
 
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
-  useEffect(() => setPage(1), [deferredQuery, type]);
   useEffect(() => {
     if (!editor.open) return;
     const row = editor.entity;
@@ -114,6 +110,7 @@ export default function FinancePage({ mode = "cashflow" }) {
     const bayarColumn = {
       key: "bayar",
       label: "Bayar",
+      locked: true,
       render: (row) => {
         const canPay = Number(row.outstanding_amount) > 0 && !["paid", "cancelled"].includes(String(row.status || "").toLowerCase());
         return (
@@ -253,8 +250,10 @@ export default function FinancePage({ mode = "cashflow" }) {
                 onToggleRow={selection.toggleRow}
                 onToggleAll={selection.toggleAll}
                 onRowClick={editor.edit}
+                hasNextPage={listQuery.hasNextPage}
+                isFetchingNextPage={listQuery.isFetchingNextPage}
+                onLoadMore={() => listQuery.fetchNextPage()}
               />
-              {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
             </>
           )}
         </ModuleFrame>

@@ -62,6 +62,45 @@ export function buildRawColumns(rows = [], omittedKeys = []) {
   return [...keys].map((key) => ({ key: `raw:${key}`, label: humanizeColumnKey(key), rawKey: key, defaultVisible: false }));
 }
 
+export function isColumnFilterEmpty(filterValue, filterType) {
+  if (filterType === "range") return !filterValue || (filterValue.min === "" && filterValue.max === "");
+  return filterValue === "" || filterValue === null || filterValue === undefined;
+}
+
+export function matchesColumnFilter(value, filterValue, filterType) {
+  if (isColumnFilterEmpty(filterValue, filterType)) return true;
+  if (filterType === "range") {
+    const number = Number(value);
+    if (Number.isNaN(number)) return false;
+    if (filterValue.min !== "" && number < Number(filterValue.min)) return false;
+    if (filterValue.max !== "" && number > Number(filterValue.max)) return false;
+    return true;
+  }
+  if (filterType === "select") {
+    const wanted = String(filterValue).toLowerCase();
+    if (typeof value === "boolean") return value === (wanted === "true" || wanted === "active" || wanted === "ya" || wanted === "1");
+    return String(value ?? "").toLowerCase() === wanted;
+  }
+  if (typeof value === "boolean") {
+    const wanted = String(filterValue).toLowerCase();
+    return value === (wanted === "true" || wanted === "active" || wanted === "ya" || wanted === "1");
+  }
+  return String(value ?? "").toLowerCase().includes(String(filterValue).toLowerCase());
+}
+
+export function sortRowsBy(rows = [], sortBy, sortDirection, valueOf) {
+  if (!sortBy || !rows.length) return rows;
+  const direction = sortDirection === "desc" ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const rawA = valueOf(a, sortBy);
+    const rawB = valueOf(b, sortBy);
+    const numA = Number(rawA);
+    const numB = Number(rawB);
+    if (Number.isFinite(numA) && Number.isFinite(numB) && numA !== numB) return (numA - numB) * direction;
+    return String(rawA ?? "").localeCompare(String(rawB ?? ""), "id") * direction;
+  });
+}
+
 export function mergeColumns(baseColumns = [], rawColumns = []) {
   const normalizedBase = baseColumns.map((column) => ({
     ...column,

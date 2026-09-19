@@ -11,6 +11,8 @@ import {
   useRejectAdminWithdrawal,
 } from "@/features/admin/finance/services/adminFinanceService";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
+import { useColumnVisibility } from "@/shared/hooks";
 
 function formatRupiah(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(value || 0));
@@ -62,6 +64,17 @@ export default function AdminWithdrawalsPage() {
 
   const rows = withdrawalsQuery.data?.rows || [];
   const pendingCount = withdrawalsQuery.data?.pendingCount ?? 0;
+
+  const columns = [
+    { key: "number", label: "No. Penarikan", render: (w) => (<><p className="font-semibold text-slate-900">{w.withdrawalNumber}</p><p className="max-w-[220px] truncate text-xs text-slate-400">{bankSummary(w.bankDetails) || w.method}</p></>) },
+    { key: "store", label: "Toko", render: (w) => w.storeName },
+    { key: "amount", label: "Jumlah", render: (w) => <span className="font-semibold text-slate-900">{formatRupiah(w.amount)}</span> },
+    { key: "method", label: "Metode", render: (w) => METHOD_LABELS[w.method] || w.method },
+    { key: "status", label: "Status", render: (w) => (<><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[w.status] || "bg-slate-100 text-slate-600"}`}>{STATUS_LABELS[w.status] || w.status}</span>{w.rejectionReason && <p className="mt-1 max-w-[220px] text-xs text-red-600">{w.rejectionReason}</p>}</>) },
+    { key: "created", label: "Waktu", render: (w) => w.createdAt ? new Date(w.createdAt).toLocaleString("id-ID") : "-" },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.withdrawals");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   const approve = async (w) => {
     if (!confirm(`Setujui penarikan ${w.withdrawalNumber} senilai ${formatRupiah(w.amount)}?`)) return;
@@ -117,6 +130,14 @@ export default function AdminWithdrawalsPage() {
               </button>
             ))}
           </div>
+          <ColumnVisibilityMenu
+            columns={columns}
+            visibleKeys={columnVisibility.visibleKeys}
+            onToggle={columnVisibility.toggleColumn}
+            onShowAll={columnVisibility.showAll}
+            onReset={columnVisibility.reset}
+            onApplyDefault={columnVisibility.applyAsDefault}
+          />
         </div>
 
         <AsyncState loading={false} error={withdrawalsQuery.error ? getFinanceError(withdrawalsQuery.error, "Gagal memuat penarikan.") : ""} empty={!withdrawalsQuery.isLoading && !rows.length} emptyText="Tidak ada penarikan." />
@@ -128,31 +149,13 @@ export default function AdminWithdrawalsPage() {
                 <table className="w-full min-w-[720px] text-left text-sm">
                   <thead className="border-b border-slate-200 text-slate-500">
                     <tr>
-                      <th className="py-2 pr-3 font-semibold">No. Penarikan</th>
-                      <th className="py-2 pr-3 font-semibold">Toko</th>
-                      <th className="py-2 pr-3 font-semibold">Jumlah</th>
-                      <th className="py-2 pr-3 font-semibold">Metode</th>
-                      <th className="py-2 pr-3 font-semibold">Status</th>
-                      <th className="py-2 pr-3 font-semibold">Waktu</th>
+                      {visibleColumns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((w) => (
                       <tr key={w.id} onClick={w.status === "pending" ? () => setDetailTarget(w) : undefined} className={`border-b border-slate-100 align-top ${w.status === "pending" ? "cursor-pointer" : ""}`}>
-                        <td className="py-2 pr-3">
-                          <p className="font-semibold text-slate-900">{w.withdrawalNumber}</p>
-                          <p className="max-w-[220px] truncate text-xs text-slate-400">{bankSummary(w.bankDetails) || w.method}</p>
-                        </td>
-                        <td className="py-2 pr-3 text-slate-600">{w.storeName}</td>
-                        <td className="py-2 pr-3 font-semibold text-slate-900">{formatRupiah(w.amount)}</td>
-                        <td className="py-2 pr-3 text-slate-600">{METHOD_LABELS[w.method] || w.method}</td>
-                        <td className="py-2 pr-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[w.status] || "bg-slate-100 text-slate-600"}`}>
-                            {STATUS_LABELS[w.status] || w.status}
-                          </span>
-                          {w.rejectionReason && <p className="mt-1 max-w-[220px] text-xs text-red-600">{w.rejectionReason}</p>}
-                        </td>
-                        <td className="py-2 pr-3 text-slate-500">{w.createdAt ? new Date(w.createdAt).toLocaleString("id-ID") : "-"}</td>
+                        {visibleColumns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(w)}</td>)}
                       </tr>
                     ))}
                   </tbody>

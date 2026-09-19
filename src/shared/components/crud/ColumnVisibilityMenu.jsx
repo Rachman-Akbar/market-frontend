@@ -7,7 +7,8 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
   const buttonRef = useRef(null);
   const [tooltip, setTooltip] = useState(false);
   const visibleSet = new Set(visibleKeys);
-  const hasColumns = columns.length > 0;
+  const selectableColumns = columns.filter((column) => !column.locked);
+  const hasColumns = selectableColumns.length > 0;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -84,7 +85,7 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
                 </div>
               </div>
               <div className="max-h-80 overflow-y-auto p-2">
-                {columns.map((column) => (
+                {selectableColumns.map((column) => (
                   <label key={column.key} className="flex cursor-pointer items-center gap-3 px-2 py-2 text-sm text-slate-700 hover:bg-slate-50">
                     <input
                       type="checkbox"

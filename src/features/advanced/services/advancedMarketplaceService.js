@@ -3,6 +3,7 @@ import { apiClient, getApiMessage } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getEcho, getEchoStatus, subscribeEchoStatus } from "@/core/realtime/echo";
 import { communicationRequest } from "@/features/communication/communicationApi";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 
 function collection(payload) {
   const source = payload?.data ?? payload ?? {};
@@ -101,7 +102,7 @@ export function useManageableProducts(params = {}) {
 }
 
 export function useReviews(params = {}) {
-  return useQuery({ queryKey: [...advancedKeys.reviews, params], queryFn: () => getList("/api/v1/order/reviews", params) });
+  return useInfiniteList({ queryKey: advancedKeys.reviews, queryFn: (queryParams) => getList("/api/v1/order/reviews", queryParams), params });
 }
 
 export function usePublicReviews(productId, params = {}) {
@@ -125,7 +126,7 @@ export function usePublicShowcases(storeId) {
 }
 
 export function useFinance(params = {}) {
-  return useQuery({ queryKey: [...advancedKeys.finance, params], queryFn: () => getList("/api/v1/seller/finance", params) });
+  return useInfiniteList({ queryKey: advancedKeys.finance, queryFn: (queryParams) => getList("/api/v1/seller/finance", queryParams), params });
 }
 
 export function useSaveFinance() {
@@ -235,15 +236,16 @@ export function useSaveProductCosting() {
 }
 
 export function useCustomers(params = {}, options = {}) {
-  return useQuery({
-    queryKey: [...advancedKeys.customers, params],
-    queryFn: () => getList("/api/v1/seller/customers", params),
+  return useInfiniteList({
+    queryKey: advancedKeys.customers,
+    queryFn: (queryParams) => getList("/api/v1/seller/customers", queryParams),
+    params,
     enabled: options.enabled !== false,
   });
 }
 
 export function useShowcases(params = {}) {
-  return useQuery({ queryKey: [...advancedKeys.showcases, params], queryFn: () => getList("/api/v1/seller/showcases", params) });
+  return useInfiniteList({ queryKey: advancedKeys.showcases, queryFn: (queryParams) => getList("/api/v1/seller/showcases", queryParams), params });
 }
 
 export function useSaveShowcase() {
@@ -255,7 +257,7 @@ export function useDeleteShowcase() {
 }
 
 export function useTickets(params = {}) {
-  return useQuery({ queryKey: [...advancedKeys.tickets, params], queryFn: () => getList("/api/v1/support/tickets", params) });
+  return useInfiniteList({ queryKey: advancedKeys.tickets, queryFn: (queryParams) => getList("/api/v1/support/tickets", queryParams), params });
 }
 
 export function useTicket(id, enabled = true) {
@@ -281,10 +283,11 @@ export function useUpdateTicketStatus() {
 export function useMissions(params = {}, admin = false) {
   const path = admin ? "/api/v1/engagement/missions" : "/api/v1/engagement/missions/me";
   const key = admin ? advancedKeys.missions : advancedKeys.userMissions;
-  return useQuery({
-    queryKey: [...key, params],
-    queryFn: async () => {
-      const response = await apiClient.get(path, { params });
+  return useInfiniteList({
+    queryKey: key,
+    params,
+    queryFn: async (queryParams) => {
+      const response = await apiClient.get(path, { params: queryParams });
       if (admin) return collection(response.data);
       const rows = response.data?.data || [];
       return { rows, meta: { current_page: 1, last_page: 1, total: rows.length } };
@@ -312,7 +315,7 @@ export function useDeleteMission() {
 }
 
 export function usePromotionPayments(params = {}) {
-  return useQuery({ queryKey: [...advancedKeys.promotionPayments, params], queryFn: () => getList("/api/v1/catalog/promotion-payments", params) });
+  return useInfiniteList({ queryKey: advancedKeys.promotionPayments, queryFn: (queryParams) => getList("/api/v1/catalog/promotion-payments", queryParams), params });
 }
 
 export function useCreatePromotionPayment() {

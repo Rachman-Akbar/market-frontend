@@ -9,6 +9,8 @@ import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { DonutChart } from "@/shared/components/charts/chartKit";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
+import { useColumnVisibility } from "@/shared/hooks";
 import {
   usePpobAdminDashboard,
   usePpobAdminFinance,
@@ -69,6 +71,46 @@ const TABS = [
   { key: "operators", label: "Operator", icon: "perm_identity" },
   { key: "pricing", label: "Aturan Harga", icon: "tune" },
 ];
+
+function PpobTable({ storageKey, columns, rows, rowKey = (row) => row.id, minWidth = "min-w-[640px]", onRowClick }) {
+  const visibility = useColumnVisibility(columns, storageKey);
+  const visibleColumns = columns.filter((column) => visibility.visibleSet.has(column.key));
+
+  return (
+    <>
+      <div className="flex justify-end">
+        <ColumnVisibilityMenu
+          columns={columns}
+          visibleKeys={visibility.visibleKeys}
+          onToggle={visibility.toggleColumn}
+          onShowAll={visibility.showAll}
+          onReset={visibility.reset}
+          onApplyDefault={visibility.applyAsDefault}
+        />
+      </div>
+      <div className="overflow-x-auto">
+        <table className={`w-full ${minWidth} text-left text-sm`}>
+          <thead className="border-b border-slate-200 text-slate-500">
+            <tr>
+              {visibleColumns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={rowKey(row)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={`border-b border-slate-100 align-top ${onRowClick ? "cursor-pointer hover:bg-slate-50" : ""}`}
+              >
+                {visibleColumns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(row)}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
 
 export default function AdminPpobPage() {
   const [tab, setTab] = useState("buy");
@@ -351,34 +393,19 @@ function DashboardTab() {
             <Card>
               <CardContent className="pt-6">
                 <h3 className="mb-3 text-base font-extrabold text-slate-950">Transaksi Terbaru</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="border-b border-slate-200 text-slate-500">
-                      <tr>
-                        <th className="py-2 pr-3 font-semibold">Produk</th>
-                        <th className="py-2 pr-3 font-semibold">Kategori</th>
-                        <th className="py-2 pr-3 font-semibold">Customer</th>
-                        <th className="py-2 pr-3 font-semibold">Total</th>
-                        <th className="py-2 pr-3 font-semibold">Status</th>
-                        <th className="py-2 font-semibold">Waktu</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.recent_transactions.map((tx) => (
-                        <tr key={tx.id} className="border-b border-slate-100">
-                          <td className="py-2 pr-3 font-semibold text-slate-900">{tx.product_name || "-"}</td>
-                          <td className="py-2 pr-3 text-slate-600">{CATEGORY_LABELS[tx.category] || tx.category}</td>
-                          <td className="py-2 pr-3 text-slate-600">{tx.customer_id}</td>
-                          <td className="py-2 pr-3 font-semibold text-slate-900">{formatRupiah(tx.total_amount)}</td>
-                          <td className="py-2 pr-3">
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[tx.status] || "bg-slate-100 text-slate-700"}`}>{tx.status}</span>
-                          </td>
-                          <td className="py-2 text-slate-500">{tx.created_at ? new Date(tx.created_at).toLocaleString("id-ID") : "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <PpobTable
+                  storageKey="admin.ppob.dashboard-recent"
+                  minWidth="min-w-[720px]"
+                  rows={data.recent_transactions}
+                  columns={[
+                    { key: "product", label: "Produk", render: (tx) => <span className="font-semibold text-slate-900">{tx.product_name || "-"}</span> },
+                    { key: "category", label: "Kategori", render: (tx) => CATEGORY_LABELS[tx.category] || tx.category },
+                    { key: "customer", label: "Customer", render: (tx) => tx.customer_id },
+                    { key: "total", label: "Total", render: (tx) => <span className="font-semibold text-slate-900">{formatRupiah(tx.total_amount)}</span> },
+                    { key: "status", label: "Status", render: (tx) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[tx.status] || "bg-slate-100 text-slate-700"}`}>{tx.status}</span> },
+                    { key: "time", label: "Waktu", render: (tx) => tx.created_at ? new Date(tx.created_at).toLocaleString("id-ID") : "-" },
+                  ]}
+                />
               </CardContent>
             </Card>
           )}
@@ -529,33 +556,18 @@ function ProductsTab({ notifications }) {
       <AsyncState loading={false} error={products.error ? getPpobAdminError(products.error) : ""} empty={!products.isLoading && !rows.length} emptyText="Tidak ada produk pada kategori ini." />
       {products.isLoading && !rows.length ? <SkeletonTable rows={5} cols={5} /> : null}
       {!products.isLoading && rows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
-              <tr>
-                <th className="py-2 pr-3 font-semibold">Produk</th>
-                <th className="py-2 pr-3 font-semibold">Kategori</th>
-                <th className="py-2 pr-3 font-semibold">Harga Modal</th>
-                <th className="py-2 pr-3 font-semibold">Harga Jual</th>
-                <th className="py-2 pr-3 font-semibold">Margin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr key={p.id} onClick={() => openEdit(p)} className="cursor-pointer border-b border-slate-100 align-top">
-                  <td className="py-2 pr-3">
-                    <p className="font-semibold text-slate-900">{p.name}</p>
-                    <p className="text-xs text-slate-400">{p.productType} • {p.providerProductCode}</p>
-                  </td>
-                  <td className="py-2 pr-3 text-slate-600">{CATEGORY_LABELS[p.category] || p.category}</td>
-                  <td className="py-2 pr-3 text-slate-600">{formatRupiah(p.providerPrice)}</td>
-                  <td className="py-2 pr-3 font-semibold text-slate-900">{formatRupiah(p.sellingPrice)}</td>
-                  <td className="py-2 pr-3 text-slate-600">{formatRupiah(p.margin)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PpobTable
+          storageKey="admin.ppob.products"
+          rows={rows}
+          onRowClick={openEdit}
+          columns={[
+            { key: "product", label: "Produk", render: (p) => (<><p className="font-semibold text-slate-900">{p.name}</p><p className="text-xs text-slate-400">{p.productType} • {p.providerProductCode}</p></>) },
+            { key: "category", label: "Kategori", render: (p) => CATEGORY_LABELS[p.category] || p.category },
+            { key: "providerPrice", label: "Harga Modal", render: (p) => formatRupiah(p.providerPrice) },
+            { key: "sellingPrice", label: "Harga Jual", render: (p) => <span className="font-semibold text-slate-900">{formatRupiah(p.sellingPrice)}</span> },
+            { key: "margin", label: "Margin", render: (p) => formatRupiah(p.margin) },
+          ]}
+        />
       )}
 
       {isOpen && (
@@ -852,34 +864,20 @@ function PricingTab({ notifications }) {
       <AsyncState loading={false} error={pricing.error ? getPpobAdminError(pricing.error) : ""} empty={!pricing.isLoading && !rows.length} emptyText="Belum ada aturan harga." />
       {pricing.isLoading && !rows.length ? <SkeletonTable rows={5} cols={6} /> : null}
       {!pricing.isLoading && rows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
-              <tr>
-                <th className="py-2 pr-3 font-semibold">Level</th>
-                <th className="py-2 pr-3 font-semibold">Cakupan</th>
-                <th className="py-2 pr-3 font-semibold">Margin</th>
-                <th className="py-2 pr-3 font-semibold">Biaya Admin</th>
-                <th className="py-2 pr-3 font-semibold">Komisi</th>
-                <th className="py-2 pr-3 font-semibold">Prioritas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} onClick={() => openEdit(r)} className="cursor-pointer border-b border-slate-100">
-                  <td className="py-2 pr-3 text-slate-600">{levelLabel(r)}</td>
-                  <td className="py-2 pr-3 text-slate-600">
-                    {CATEGORY_LABELS[r.category] || r.category || (r.operatorId ? `Operator #${r.operatorId}` : "-")}
-                  </td>
-                  <td className="py-2 pr-3 text-slate-600">{formatRule(r.marginType, r.marginValue)}</td>
-                  <td className="py-2 pr-3 text-slate-600">{formatRule(r.adminFeeType, r.adminFeeValue)}</td>
-                  <td className="py-2 pr-3 text-slate-600">{formatRule(r.commissionType, r.commissionValue)}</td>
-                  <td className="py-2 pr-3 text-slate-600">{r.priority}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PpobTable
+          storageKey="admin.ppob.pricing"
+          minWidth="min-w-[720px]"
+          rows={rows}
+          onRowClick={openEdit}
+          columns={[
+            { key: "level", label: "Level", render: (r) => levelLabel(r) },
+            { key: "scope", label: "Cakupan", render: (r) => CATEGORY_LABELS[r.category] || r.category || (r.operatorId ? `Operator #${r.operatorId}` : "-") },
+            { key: "margin", label: "Margin", render: (r) => formatRule(r.marginType, r.marginValue) },
+            { key: "adminFee", label: "Biaya Admin", render: (r) => formatRule(r.adminFeeType, r.adminFeeValue) },
+            { key: "commission", label: "Komisi", render: (r) => formatRule(r.commissionType, r.commissionValue) },
+            { key: "priority", label: "Prioritas", render: (r) => r.priority },
+          ]}
+        />
       )}
 
       {isOpen && (

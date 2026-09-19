@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/shared/components/feedback/StatusBadge";
+import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Menunggu" },
@@ -28,6 +29,7 @@ function itemsOf(row) {
       id: item.id ?? index,
       name: item.product_name || item.name || item.product?.name || `Item ${index + 1}`,
       sku: item.sku || "-",
+      thumbnail: resolveMediaUrl(item.thumbnail || item.image_url || item.image || ""),
       quantity: Number(item.quantity || 0),
       unitPrice: Number(item.unit_price ?? item.price ?? 0),
       subtotal: Number(item.subtotal ?? item.unit_price ?? item.price ?? 0) * (item.subtotal ? 1 : Number(item.quantity || 0)),
@@ -115,8 +117,15 @@ export default function OrderDetailPage() {
             {items.map((item) => (
               <tr key={item.id} className="border-b border-slate-200">
                 <td className="py-2 pr-2">
-                  <p className="font-bold">{item.name}</p>
-                  <p className="text-[10px] text-slate-400">SKU: {item.sku}</p>
+                  <div className="flex items-center gap-2">
+                    {item.thumbnail ? (
+                      <img src={item.thumbnail} alt={item.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" loading="lazy" />
+                    ) : null}
+                    <div>
+                      <p className="font-bold">{item.name}</p>
+                      <p className="text-[10px] text-slate-400">SKU: {item.sku}</p>
+                    </div>
+                  </div>
                 </td>
                 <td className="py-2 text-center">{item.quantity}</td>
                 <td className="py-2 text-right">{money(item.unitPrice)}</td>

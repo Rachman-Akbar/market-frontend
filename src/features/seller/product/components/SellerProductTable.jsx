@@ -61,7 +61,7 @@ export const SellerProductTable = memo(function SellerProductTable({
   });
 
   const renderHeader = (column) => {
-    if (column.rawKey) return <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key}>{column.label}</InteractiveTableHeader>;
+    if (column.key.startsWith("raw:")) return <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key}>{column.label}</InteractiveTableHeader>;
     if (column.key === "product") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Produk" sortKey="name" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="text" filterValue={columnFilters.product || ""} onFilterChange={changeFilter("product")} placeholder="Cari nama produk" />;
     if (column.key === "store") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Toko" sortKey="store_name" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="select" filterValue={columnFilters.store || ""} onFilterChange={changeFilter("store")} options={storeOptions} />;
     if (column.key === "mode") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Mode" sortKey="mode" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="select" filterValue={columnFilters.mode || ""} onFilterChange={changeFilter("mode")} options={[{ value: "simple", label: "Tanpa Variant" }, { value: "variant", label: "Dengan Variant" }]} />;
@@ -72,7 +72,7 @@ export const SellerProductTable = memo(function SellerProductTable({
   };
 
   const renderCell = (column, product) => {
-    if (column.rawKey) return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{formatTableValue(resolveTableValue({ raw: product.raw }, column.rawKey))}</td>;
+    if (column.key.startsWith("raw:")) return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{formatTableValue(resolveTableValue({ raw: product.raw }, column.rawKey))}</td>;
     if (column.key === "product") return <td key={column.key} className="px-4 py-3"><div className="flex items-center gap-3"><div className="h-11 w-11 shrink-0 overflow-hidden bg-slate-100">{product.thumbnail ? <img src={product.thumbnail} alt={product.name} className="h-full w-full object-cover" loading="lazy" /> : null}</div><div className="min-w-0"><p className="truncate font-extrabold text-slate-900">{toTitleCase(product.name)}</p><p className="mt-0.5 truncate text-xs text-slate-500">{product.sku || "SKU otomatis"}</p></div></div></td>;
     if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(product.storeName) || "-"}</td>;
     if (column.key === "mode") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{product.mode === "variant" ? `${product.variants.length} variant` : "Tanpa variant"}</td>;

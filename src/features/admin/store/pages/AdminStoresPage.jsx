@@ -7,7 +7,7 @@ import { getAdminStoreError, useAdminStores, useUpdateAdminStoreStatus } from "@
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
-import { Pagination } from "@/shared/components/ui/Pagination";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
@@ -18,20 +18,17 @@ export default function AdminStoresPage() {
   const [draftQuery, setDraftQuery] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
   const [moderation, setModeration] = useState({ open: false, action: "", stores: [] });
   const editor = useEntityEditor();
-  const storesQuery = useAdminStores({ page, per_page: PER_PAGE, ...(search ? { search } : {}), ...(status ? { status } : {}) });
+  const storesQuery = useAdminStores({ per_page: PER_PAGE, ...(search ? { search } : {}), ...(status ? { status } : {}) });
   const statusMutation = useUpdateAdminStoreStatus();
   const rows = storesQuery.data?.rows || [];
-  const meta = storesQuery.data?.meta || {};
   const columns = useMemo(() => mergeColumns(ADMIN_STORE_COLUMNS, buildRawColumns(rows, ["id", "user_id", "name", "slug", "description", "short_description", "phone", "email", "city", "province", "address", "status", "is_active", "logo", "banner_url", "created_at", "updated_at"])), [rows]);
   const selection = useTableSelection(rows);
   const columnVisibility = useColumnVisibility(columns, "admin-stores");
 
   const submitSearch = () => {
-    setPage(1);
     setSearch(draftQuery.trim());
   };
 
@@ -82,7 +79,7 @@ export default function AdminStoresPage() {
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
-            filters={<SearchableSelect value={status} onChange={(nextValue) => { setStatus(nextValue); setPage(1); }} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "suspended", label: "Suspended" }]} placeholder="Semua status" className="w-44" buttonClassName="h-10" />}
+            filters={<SearchableSelect value={status} onChange={(nextValue) => setStatus(nextValue)} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "suspended", label: "Suspended" }]} placeholder="Semua status" className="w-44" buttonClassName="h-10" />}
           />
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={storesQuery.isLoading} error={storesQuery.error ? getAdminStoreError(storesQuery.error) : ""} empty={!storesQuery.isLoading && !rows.length} emptyText="Toko belum tersedia." />
@@ -95,7 +92,7 @@ export default function AdminStoresPage() {
               },
             );
           }} /> : null}
-          {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+          <InfiniteScrollSentinel hasNextPage={storesQuery.hasNextPage} isFetchingNextPage={storesQuery.isFetchingNextPage} onLoadMore={() => storesQuery.fetchNextPage()} />
         </>
       ) : null}
       <StoreModerationDialog

@@ -1,11 +1,11 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerPanelShell";
 import { PRODUCT_TABLE_COLUMNS, SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
 import { SellerProductEditor } from "@/features/seller/product/components/SellerProductEditor";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
-import { Pagination } from "@/shared/components/ui/Pagination";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
@@ -22,13 +22,11 @@ export default function SellerProductsPage() {
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
   const [sort, setSort] = useState({ by: "created_at", direction: "desc" });
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const deferredQuery = useDeferredValue(query.trim());
   const editor = useEntityEditor();
   const notifications = useNotificationCenter();
   const productsQuery = useSellerProducts({
-    page,
     per_page: PER_PAGE,
     sort_by: sort.by,
     sort_direction: sort.direction,
@@ -46,7 +44,6 @@ export default function SellerProductsPage() {
   const quickUpdateMutation = useUpdateSellerProduct();
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
   const rows = productsQuery.data?.rows || [];
-  const meta = productsQuery.data?.meta || {};
   const columns = useMemo(() => mergeColumns(PRODUCT_TABLE_COLUMNS.filter((column) => column.key !== "store" && column.key !== "status"), buildRawColumns(rows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"])), [rows]);
   const columnVisibility = useColumnVisibility(columns, "seller-products");
   const selection = useTableSelection(rows);
@@ -55,8 +52,6 @@ export default function SellerProductsPage() {
   const spreadsheetActions = [...spreadsheet.actions, ...hppSpreadsheet.actions];
   const activeSpreadsheet = spreadsheet.activeOperation?.payload?.module === "product-costing" ? hppSpreadsheet : spreadsheet;
   const hasActiveFilters = useMemo(() => JSON.stringify(columnFilters) !== JSON.stringify(EMPTY_COLUMN_FILTERS), [columnFilters]);
-
-  useEffect(() => setPage(1), [columnFilters, deferredQuery, sort]);
 
   const toggleActive = (product, isActive) => {
     const task = notifications.startTask({ title: "Ubah Status Product", message: `Memproses product "${product.name}"...` });
@@ -150,7 +145,7 @@ export default function SellerProductsPage() {
                 columnFilters={columnFilters}
                 onColumnFilterChange={(key, value) => setColumnFilters((current) => ({ ...current, [key]: value }))}
               />
-              {rows.length ? <Pagination current={meta.current_page || page} total={meta.last_page || 1} onChange={setPage} /> : null}
+              <InfiniteScrollSentinel hasNextPage={productsQuery.hasNextPage} isFetchingNextPage={productsQuery.isFetchingNextPage} onLoadMore={() => productsQuery.fetchNextPage()} />
             </>
           ) : null}
         </>

@@ -15,7 +15,7 @@ export const SELLER_NAV_ITEMS = [
   { href: "/seller/promotion-payments", label: "Pembayaran Promosi", icon: "paid", group: "Penjualan", hiddenInSidebar: true },
   { href: "/seller/orders", label: "Pesanan", icon: "receipt_long", group: "Penjualan" },
   { href: "/seller/customers", label: "Pelanggan", icon: "person_search", group: "Penjualan" },
-  { href: "/seller/order-operations", label: "Order", icon: "shopping_bag", group: "Penjualan" },
+  { href: "/seller/order-operations", label: "Operasi Pesanan", icon: "shopping_bag", group: "Penjualan" },
   { href: "/seller/reviews", label: "Review", icon: "reviews", group: "Penjualan" },
   { href: "/seller/cashflow", label: "Pemasukan dan Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
   { href: "/seller/receivables-payables", label: "Hutang dan Piutang", icon: "payments", group: "Finance" },

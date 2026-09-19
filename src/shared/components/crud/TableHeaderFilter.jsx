@@ -33,6 +33,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
   onResetWidth,
   dragging = false,
   dropTarget = false,
+  align = "left",
 }) {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -234,7 +235,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
     <th
       {...headerProps}
       style={columnStyle}
-      className={cn("group relative select-none whitespace-nowrap px-4 py-3", dragging && "opacity-45", dropTarget && !dragging && "bg-emerald-50", className)}
+      className={cn("group relative select-none whitespace-nowrap px-4 py-3", align === "right" && "text-right", align === "center" && "text-center", dragging && "opacity-45", dropTarget && !dragging && "bg-emerald-50", className)}
       title="Tarik header untuk mengubah urutan kolom. Tarik garis kanan untuk mengubah lebar."
     >
       <button
@@ -243,6 +244,8 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
         onClick={() => setOpen((current) => !current)}
         className={cn(
           "flex w-full items-center gap-1.5 text-left font-extrabold transition-colors hover:text-emerald-700",
+          align === "right" && "justify-end",
+          align === "center" && "justify-center",
           (activeSort || activeFilter) && "text-emerald-700",
         )}
         aria-expanded={open}
