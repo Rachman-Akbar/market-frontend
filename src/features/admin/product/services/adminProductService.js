@@ -61,7 +61,7 @@ export function useAdminProducts(params = {}) {
     queryKey: ["admin", "products", "list"],
     queryFn: (queryParams) => getAdminProducts(queryParams),
     params,
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 
@@ -69,7 +69,7 @@ export function useAdminProductStores() {
   return useQuery({
     queryKey: adminProductKeys.stores,
     queryFn: getAdminProductStores,
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

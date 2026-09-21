@@ -14,6 +14,7 @@ import {
   getStoreContextError,
 } from "@/features/admin/storeContext/services/adminStoreContextService";
 import { OrderRevenueBars, StatCard } from "@/shared/components/charts/chartKit";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
 import { useColumnVisibility } from "@/shared/hooks";
 
@@ -141,33 +142,20 @@ function ContextStatCard({ label, value, icon, accent = "text-teal-700" }) {
   );
 }
 
-function ContextTable({ storageKey, columns, rows, rowKey }) {
-  const visibility = useColumnVisibility(columns, storageKey);
-  const visibleColumns = columns.filter((column) => visibility.visibleSet.has(column.key));
-
+function ContextTable({ columns, rows, rowKey }) {
   return (
     <>
-      <div className="flex justify-end">
-        <ColumnVisibilityMenu
-          columns={columns}
-          visibleKeys={visibility.visibleKeys}
-          onToggle={visibility.toggleColumn}
-          onShowAll={visibility.showAll}
-          onReset={visibility.reset}
-          onApplyDefault={visibility.applyAsDefault}
-        />
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="border-b border-slate-200 text-slate-500">
             <tr>
-              {visibleColumns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
+              {columns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={rowKey(row)} className="border-b border-slate-100">
-                {visibleColumns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(row)}</td>)}
+                {columns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(row)}</td>)}
               </tr>
             ))}
           </tbody>
@@ -250,73 +238,99 @@ function TrendTab({ storeId, period }) {
 
 function OrdersTab({ storeId }) {
   const [status, setStatus] = useState("");
-  const orders = useStoreContextOrders(storeId, { status: status || undefined, per_page: 30 });
-  const rows = orders.data?.rows || [];
-  const meta = orders.data?.meta || {};
+  const orders = useStoreContextOrders(storeId, { status: status || undefined });
+  const rows = orders.rows;
+  const meta = orders.meta;
+  const columns = [
+    { key: "id", label: "ID", render: (o) => <span className="font-semibold text-slate-900">#{o.id}</span> },
+    { key: "status", label: "Status", render: (o) => <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{o.status}</span> },
+    { key: "subtotal", label: "Subtotal", render: (o) => formatRupiah(o.total_items_price) },
+    { key: "shipping", label: "Ongkir", render: (o) => formatRupiah(o.shipping_cost) },
+    { key: "adminFee", label: "Biaya Admin", render: (o) => formatRupiah(o.admin_fee) },
+    { key: "created", label: "Dibuat", render: (o) => o.created_at ? new Date(o.created_at).toLocaleString("id-ID") : "-" },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.store-context.orders");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-extrabold text-slate-950">Pesanan Toko ({meta.total ?? rows.length})</h3>
-          <div className="w-44">
-            <SearchableSelect
-              value={status}
-              onChange={setStatus}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "processing", label: "Processing" },
-                { value: "completed", label: "Completed" },
-                { value: "cancelled", label: "Cancelled" },
-              ]}
-              placeholder="Semua status"
-              emptyText="—"
+          <div className="flex items-center gap-2">
+            <div className="w-44">
+              <SearchableSelect
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { value: "pending", label: "Pending" },
+                  { value: "processing", label: "Processing" },
+                  { value: "completed", label: "Completed" },
+                  { value: "cancelled", label: "Cancelled" },
+                ]}
+                placeholder="Semua status"
+                emptyText="—"
+              />
+            </div>
+            <ColumnVisibilityMenu
+              columns={columns}
+              visibleKeys={columnVisibility.visibleKeys}
+              onToggle={columnVisibility.toggleColumn}
+              onShowAll={columnVisibility.showAll}
+              onReset={columnVisibility.reset}
+              onApplyDefault={columnVisibility.applyAsDefault}
             />
           </div>
         </div>
         <AsyncState loading={orders.isLoading} error={orders.error ? getStoreContextError(orders.error) : ""} empty={!orders.isLoading && !rows.length} emptyText="Belum ada pesanan." />
         {!orders.isLoading && rows.length > 0 && (
           <ContextTable
-            storageKey="admin.store-context.orders"
             rows={rows}
             rowKey={(o) => o.id}
-            columns={[
-              { key: "id", label: "ID", render: (o) => <span className="font-semibold text-slate-900">#{o.id}</span> },
-              { key: "status", label: "Status", render: (o) => <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{o.status}</span> },
-              { key: "subtotal", label: "Subtotal", render: (o) => formatRupiah(o.total_items_price) },
-              { key: "shipping", label: "Ongkir", render: (o) => formatRupiah(o.shipping_cost) },
-              { key: "adminFee", label: "Biaya Admin", render: (o) => formatRupiah(o.admin_fee) },
-              { key: "created", label: "Dibuat", render: (o) => o.created_at ? new Date(o.created_at).toLocaleString("id-ID") : "-" },
-            ]}
+            columns={visibleColumns}
           />
         )}
+        <InfiniteScrollSentinel query={orders} />
       </CardContent>
     </Card>
   );
 }
 
 function ProductsTab({ storeId }) {
-  const products = useStoreContextProducts(storeId, { per_page: 30 });
-  const rows = products.data?.rows || [];
+  const products = useStoreContextProducts(storeId);
+  const rows = products.rows;
+  const columns = [
+    { key: "name", label: "Nama Produk", render: (p) => <span className="font-semibold text-slate-900">{p.name}</span> },
+    { key: "price", label: "Harga", render: (p) => formatRupiah(p.price) },
+    { key: "stock", label: "Stok", render: (p) => p.stock ?? "-" },
+    { key: "active", label: "Aktif", render: (p) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>{p.is_active ? "Aktif" : "Nonaktif"}</span> },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.store-context.products");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <h3 className="text-base font-extrabold text-slate-950">Produk Toko</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-extrabold text-slate-950">Produk Toko</h3>
+          <ColumnVisibilityMenu
+            columns={columns}
+            visibleKeys={columnVisibility.visibleKeys}
+            onToggle={columnVisibility.toggleColumn}
+            onShowAll={columnVisibility.showAll}
+            onReset={columnVisibility.reset}
+            onApplyDefault={columnVisibility.applyAsDefault}
+          />
+        </div>
         <AsyncState loading={products.isLoading} error={products.error ? getStoreContextError(products.error) : ""} empty={!products.isLoading && !rows.length} emptyText="Belum ada produk." />
         {!products.isLoading && rows.length > 0 && (
           <ContextTable
-            storageKey="admin.store-context.products"
             rows={rows}
             rowKey={(p) => p.id}
-            columns={[
-              { key: "name", label: "Nama Produk", render: (p) => <span className="font-semibold text-slate-900">{p.name}</span> },
-              { key: "price", label: "Harga", render: (p) => formatRupiah(p.price) },
-              { key: "stock", label: "Stok", render: (p) => p.stock ?? "-" },
-              { key: "active", label: "Aktif", render: (p) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>{p.is_active ? "Aktif" : "Nonaktif"}</span> },
-            ]}
+            columns={visibleColumns}
           />
         )}
+        <InfiniteScrollSentinel query={products} />
       </CardContent>
     </Card>
   );
@@ -324,42 +338,55 @@ function ProductsTab({ storeId }) {
 
 function SettlementsTab({ storeId }) {
   const [status, setStatus] = useState("");
-  const settlements = useStoreContextSettlements(storeId, { status: status || undefined, per_page: 30 });
-  const rows = settlements.data?.rows || [];
+  const settlements = useStoreContextSettlements(storeId, { status: status || undefined });
+  const rows = settlements.rows;
+  const columns = [
+    { key: "id", label: "ID", render: (s) => <span className="font-semibold text-slate-900">#{s.id}</span> },
+    { key: "gross", label: "Gross", render: (s) => formatRupiah(s.gross_amount) },
+    { key: "adminFee", label: "Biaya Admin", render: (s) => formatRupiah(s.admin_fee) },
+    { key: "net", label: "Net", render: (s) => formatRupiah(s.net_amount) },
+    { key: "status", label: "Status", render: (s) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.status === "settled" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{s.status}</span> },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.store-context.settlements");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-extrabold text-slate-950">Settlement Toko</h3>
-          <div className="w-44">
-            <SearchableSelect
-              value={status}
-              onChange={setStatus}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "settled", label: "Settled" },
-              ]}
-              placeholder="Semua status"
-              emptyText="—"
+          <div className="flex items-center gap-2">
+            <div className="w-44">
+              <SearchableSelect
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { value: "pending", label: "Pending" },
+                  { value: "settled", label: "Settled" },
+                ]}
+                placeholder="Semua status"
+                emptyText="—"
+              />
+            </div>
+            <ColumnVisibilityMenu
+              columns={columns}
+              visibleKeys={columnVisibility.visibleKeys}
+              onToggle={columnVisibility.toggleColumn}
+              onShowAll={columnVisibility.showAll}
+              onReset={columnVisibility.reset}
+              onApplyDefault={columnVisibility.applyAsDefault}
             />
           </div>
         </div>
         <AsyncState loading={settlements.isLoading} error={settlements.error ? getStoreContextError(settlements.error) : ""} empty={!settlements.isLoading && !rows.length} emptyText="Belum ada settlement." />
         {!settlements.isLoading && rows.length > 0 && (
           <ContextTable
-            storageKey="admin.store-context.settlements"
             rows={rows}
             rowKey={(s) => s.id}
-            columns={[
-              { key: "id", label: "ID", render: (s) => <span className="font-semibold text-slate-900">#{s.id}</span> },
-              { key: "gross", label: "Gross", render: (s) => formatRupiah(s.gross_amount) },
-              { key: "adminFee", label: "Biaya Admin", render: (s) => formatRupiah(s.admin_fee) },
-              { key: "net", label: "Net", render: (s) => formatRupiah(s.net_amount) },
-              { key: "status", label: "Status", render: (s) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.status === "settled" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{s.status}</span> },
-            ]}
+            columns={visibleColumns}
           />
         )}
+        <InfiniteScrollSentinel query={settlements} />
       </CardContent>
     </Card>
   );

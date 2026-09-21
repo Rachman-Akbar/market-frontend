@@ -1,11 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   ComposedChart,
   Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -13,6 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartFrame } from "./ChartFrame";
 
 const AXIS_TICK = { fontSize: 11, fill: "#64748b", fontWeight: 700 };
 const TOOLTIP_STYLE = { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12, fontWeight: 600, color: "#0f172a" };
@@ -35,11 +39,76 @@ export function SeriesLegend({ series }) {
   );
 }
 
+function useSeriesFocus() {
+  const [hidden, setHidden] = useState(() => new Set());
+  const [focus, setFocus] = useState(null);
+  const toggle = (key) => setHidden((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  });
+  return { hidden, focus, toggle, setFocus };
+}
+
+function focusOpacity(focus, key, dim = 0.18) {
+  return focus && focus !== key ? dim : 1;
+}
+
+export function InteractiveLegend({ series = [], hidden, focus, onToggle, onFocus }) {
+  const hiddenSet = hidden instanceof Set ? hidden : new Set(hidden || []);
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {series.map((item) => {
+        const isHidden = hiddenSet.has(item.key);
+        const isDim = !isHidden && focus && focus !== item.key;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={!isHidden}
+            title={`${item.label} — klik untuk ${isHidden ? "tampilkan" : "sembunyikan"}, arahkan untuk fokus`}
+            onClick={() => onToggle?.(item.key)}
+            onMouseEnter={() => onFocus?.(item.key)}
+            onMouseLeave={() => onFocus?.(null)}
+            onFocus={() => onFocus?.(item.key)}
+            onBlur={() => onFocus?.(null)}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold transition ${
+              isHidden
+                ? "border-slate-200 bg-slate-50 text-slate-400 line-through"
+                : isDim
+                  ? "border-slate-200 bg-white text-slate-400"
+                  : "border-teal-200 bg-teal-50 text-slate-700"
+            }`}
+          >
+            {legendDot(item.color)}
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function groupTotal(group, series) {
   return series.reduce((sum, item) => sum + Math.max(0, Number(group.values?.[item.key] || 0)), 0);
 }
 
-export function SeriesBarList({ groups = [], series = [], format = (value) => String(value), maxBars = 15, emptyText = "Belum ada data." }) {
+const SERIES_BAR_TYPES = ["horizontal", "column", "stacked", "line", "area"];
+
+export function SeriesBarList({
+  groups = [],
+  series = [],
+  format = (value) => String(value),
+  maxBars = 15,
+  emptyText = "Belum ada data.",
+  types = SERIES_BAR_TYPES,
+  defaultType = "horizontal",
+}) {
+  const [type, setType] = useState(defaultType);
+  const [fullscreen, setFullscreen] = useState(false);
+  const { hidden, focus, toggle, setFocus } = useSeriesFocus();
+
   const visible = useMemo(() => {
     if (!series.length) return [];
     return [...groups]
@@ -59,28 +128,152 @@ export function SeriesBarList({ groups = [], series = [], format = (value) => St
     [visible, series],
   );
 
-  if (!visible.length) {
-    return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{emptyText}</p>;
-  }
+  const activeSeries = series.filter((item) => !hidden.has(item.key));
+  const empty = !visible.length;
+  const horizontal = type === "horizontal";
+  const height = fullscreen
+    ? "100%"
+    : horizontal
+      ? Math.max(180, data.length * 68)
+      : 320;
 
-  return (
-    <div style={{ width: "100%", height: Math.max(180, data.length * 68) }}>
-      <ResponsiveContainer width="100%" height="100%">
+  const tooltip = <Tooltip cursor={TOOLTIP_CURSOR} contentStyle={TOOLTIP_STYLE} formatter={(value) => format(value)} />;
+  const categoryAxis = (
+    <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={56} />
+  );
+  const valueAxis = <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={64} />;
+  const legend = series.length ? (
+    <InteractiveLegend series={series} hidden={hidden} focus={focus} onToggle={toggle} onFocus={setFocus} />
+  ) : null;
+
+  let chart = null;
+  if (!empty) {
+    if (horizontal) {
+      chart = (
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }} barCategoryGap={12}>
           <CartesianGrid horizontal={false} stroke="#e2e8f0" strokeDasharray="3 3" />
           <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} width={150} />
-          <Tooltip cursor={TOOLTIP_CURSOR} contentStyle={TOOLTIP_STYLE} formatter={(value) => format(value)} />
-          {series.map((item) => (
-            <Bar key={item.key} dataKey={item.key} name={item.label} fill={item.color} radius={[0, 4, 4, 0]} maxBarSize={18} />
+          {tooltip}
+          {activeSeries.map((item) => (
+            <Bar
+              key={item.key}
+              dataKey={item.key}
+              name={item.label}
+              fill={item.color}
+              fillOpacity={focusOpacity(focus, item.key)}
+              radius={[0, 4, 4, 0]}
+              maxBarSize={18}
+            />
           ))}
         </BarChart>
-      </ResponsiveContainer>
-    </div>
+      );
+    } else if (type === "line") {
+      chart = (
+        <LineChart data={data} margin={{ top: 4, right: 12, bottom: 4, left: 4 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {categoryAxis}
+          {valueAxis}
+          {tooltip}
+          {activeSeries.map((item) => (
+            <Line
+              key={item.key}
+              type="monotone"
+              dataKey={item.key}
+              name={item.label}
+              stroke={item.color}
+              strokeWidth={2}
+              strokeOpacity={focusOpacity(focus, item.key)}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          ))}
+        </LineChart>
+      );
+    } else if (type === "area") {
+      chart = (
+        <AreaChart data={data} margin={{ top: 4, right: 12, bottom: 4, left: 4 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {categoryAxis}
+          {valueAxis}
+          {tooltip}
+          {activeSeries.map((item) => {
+            const dim = focus && focus !== item.key;
+            return (
+              <Area
+                key={item.key}
+                type="monotone"
+                dataKey={item.key}
+                name={item.label}
+                stroke={item.color}
+                strokeWidth={2}
+                strokeOpacity={dim ? 0.2 : 1}
+                fill={item.color}
+                fillOpacity={dim ? 0.04 : 0.16}
+              />
+            );
+          })}
+        </AreaChart>
+      );
+    } else {
+      const stacked = type === "stacked";
+      chart = (
+        <BarChart data={data} margin={{ top: 4, right: 12, bottom: 4, left: 4 }} barGap={2} barCategoryGap={16}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {categoryAxis}
+          {valueAxis}
+          {tooltip}
+          {activeSeries.map((item) => (
+            <Bar
+              key={item.key}
+              dataKey={item.key}
+              name={item.label}
+              fill={item.color}
+              fillOpacity={focusOpacity(focus, item.key)}
+              stackId={stacked ? "stack" : undefined}
+              radius={stacked ? [0, 0, 0, 0] : [4, 4, 0, 0]}
+              maxBarSize={28}
+            />
+          ))}
+        </BarChart>
+      );
+    }
+  }
+
+  return (
+    <ChartFrame
+      types={types}
+      type={type}
+      onTypeChange={setType}
+      fullscreen={fullscreen}
+      onToggleFullscreen={() => setFullscreen((value) => !value)}
+      empty={empty}
+      emptyText={emptyText}
+      legend={legend}
+    >
+      <div style={{ width: "100%", height }}>
+        <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
+      </div>
+    </ChartFrame>
   );
 }
 
-export function DailyCashflowBars({ days = [], format = (value) => String(value), maxDays = 14 }) {
+const CASHFLOW_SERIES = [
+  { key: "income", label: "Pemasukan", color: "#10b981" },
+  { key: "expense", label: "Pengeluaran", color: "#fb7185" },
+];
+
+export function DailyCashflowBars({
+  days = [],
+  format = (value) => String(value),
+  maxDays = 14,
+  types = ["line", "area", "column", "stacked"],
+  defaultType = "line",
+}) {
+  const [type, setType] = useState(defaultType);
+  const [fullscreen, setFullscreen] = useState(false);
+  const { hidden, focus, toggle, setFocus } = useSeriesFocus();
+
   const visible = useMemo(() => {
     const parsed = (days || [])
       .map((day) => ({
@@ -102,32 +295,132 @@ export function DailyCashflowBars({ days = [], format = (value) => String(value)
     [visible],
   );
 
-  if (!visible.length) {
-    return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Belum ada arus kas harian.</p>;
+  const activeSeries = CASHFLOW_SERIES.filter((item) => !hidden.has(item.key));
+  const empty = !visible.length;
+  const height = fullscreen ? "100%" : 256;
+
+  const tooltip = (
+    <Tooltip
+      cursor={TOOLTIP_CURSOR}
+      contentStyle={TOOLTIP_STYLE}
+      formatter={(value) => format(value)}
+      labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+    />
+  );
+  const xAxis = <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={16} />;
+  const hiddenValueAxis = <YAxis tick={false} axisLine={false} tickLine={false} width={8} />;
+  const legend = (
+    <InteractiveLegend series={CASHFLOW_SERIES} hidden={hidden} focus={focus} onToggle={toggle} onFocus={setFocus} />
+  );
+
+  let chart = null;
+  if (!empty) {
+    if (type === "line") {
+      chart = (
+        <LineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {xAxis}
+          {hiddenValueAxis}
+          {tooltip}
+          {activeSeries.map((item) => (
+            <Line
+              key={item.key}
+              type="monotone"
+              dataKey={item.key}
+              name={item.label}
+              stroke={item.color}
+              strokeWidth={2}
+              strokeOpacity={focusOpacity(focus, item.key)}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          ))}
+        </LineChart>
+      );
+    } else if (type === "area") {
+      chart = (
+        <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {xAxis}
+          {hiddenValueAxis}
+          {tooltip}
+          {activeSeries.map((item) => {
+            const dim = focus && focus !== item.key;
+            return (
+              <Area
+                key={item.key}
+                type="monotone"
+                dataKey={item.key}
+                name={item.label}
+                stroke={item.color}
+                strokeWidth={2}
+                strokeOpacity={dim ? 0.2 : 1}
+                fill={item.color}
+                fillOpacity={dim ? 0.04 : 0.16}
+              />
+            );
+          })}
+        </AreaChart>
+      );
+    } else {
+      const stacked = type === "stacked";
+      chart = (
+        <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }} barGap={2}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {xAxis}
+          {hiddenValueAxis}
+          {tooltip}
+          {activeSeries.map((item) => (
+            <Bar
+              key={item.key}
+              dataKey={item.key}
+              name={item.label}
+              fill={item.color}
+              fillOpacity={focusOpacity(focus, item.key)}
+              stackId={stacked ? "stack" : undefined}
+              radius={stacked ? [0, 0, 0, 0] : [4, 4, 0, 0]}
+              maxBarSize={22}
+            />
+          ))}
+        </BarChart>
+      );
+    }
   }
 
   return (
-    <div style={{ width: "100%", height: 256 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }} barGap={2}>
-          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
-          <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={16} />
-          <YAxis tick={false} axisLine={false} tickLine={false} width={8} />
-          <Tooltip
-            cursor={TOOLTIP_CURSOR}
-            contentStyle={TOOLTIP_STYLE}
-            formatter={(value) => format(value)}
-            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
-          />
-          <Bar dataKey="income" name="Pemasukan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
-          <Bar dataKey="expense" name="Pengeluaran" fill="#fb7185" radius={[4, 4, 0, 0]} maxBarSize={22} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <ChartFrame
+      types={types}
+      type={type}
+      onTypeChange={setType}
+      fullscreen={fullscreen}
+      onToggleFullscreen={() => setFullscreen((value) => !value)}
+      empty={empty}
+      emptyText="Belum ada arus kas harian."
+      legend={legend}
+    >
+      <div style={{ width: "100%", height }}>
+        <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
+      </div>
+    </ChartFrame>
   );
 }
 
-export function OrderRevenueBars({ points = [], format = (value) => String(value), maxDays = 45 }) {
+const TREND_SERIES = [
+  { key: "orders", label: "Order", color: "#818CF8" },
+  { key: "revenue", label: "Pendapatan", color: "#34D399" },
+];
+
+export function OrderRevenueBars({
+  points = [],
+  format = (value) => String(value),
+  maxDays = 45,
+  types = ["line", "area", "composed"],
+  defaultType = "line",
+}) {
+  const [type, setType] = useState(defaultType);
+  const [fullscreen, setFullscreen] = useState(false);
+  const { hidden, focus, toggle, setFocus } = useSeriesFocus();
+
   const visible = useMemo(() => {
     const parsed = (points || []).map((point) => ({
       ...point,
@@ -137,31 +430,150 @@ export function OrderRevenueBars({ points = [], format = (value) => String(value
     return parsed.slice(Math.max(0, parsed.length - maxDays));
   }, [points, maxDays]);
 
-  if (!visible.length) {
-    return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Belum ada data tren.</p>;
+  const showOrders = !hidden.has("orders");
+  const showRevenue = !hidden.has("revenue");
+  const empty = !visible.length;
+  const height = fullscreen ? "100%" : 240;
+
+  const tooltip = (
+    <Tooltip
+      cursor={TOOLTIP_CURSOR}
+      contentStyle={TOOLTIP_STYLE}
+      formatter={(value, name) => (name === "Pendapatan" ? format(value) : value)}
+    />
+  );
+  const xAxis = <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={24} />;
+  const revenueAxis = <YAxis yAxisId="revenue" tick={false} axisLine={false} tickLine={false} width={8} />;
+  const ordersAxis = <YAxis yAxisId="orders" orientation="right" tick={false} axisLine={false} tickLine={false} width={8} />;
+  const legend = (
+    <InteractiveLegend series={TREND_SERIES} hidden={hidden} focus={focus} onToggle={toggle} onFocus={setFocus} />
+  );
+
+  let chart = null;
+  if (!empty) {
+    if (type === "line") {
+      chart = (
+        <LineChart data={visible} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {xAxis}
+          {revenueAxis}
+          {ordersAxis}
+          {tooltip}
+          {showRevenue ? (
+            <Line
+              yAxisId="revenue"
+              type="monotone"
+              dataKey="revenue"
+              name="Pendapatan"
+              stroke="#34D399"
+              strokeWidth={2}
+              strokeOpacity={focusOpacity(focus, "revenue")}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          ) : null}
+          {showOrders ? (
+            <Line
+              yAxisId="orders"
+              type="monotone"
+              dataKey="orders"
+              name="Order"
+              stroke="#818CF8"
+              strokeWidth={2}
+              strokeOpacity={focusOpacity(focus, "orders")}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          ) : null}
+        </LineChart>
+      );
+    } else if (type === "area") {
+      chart = (
+        <AreaChart data={visible} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {xAxis}
+          {revenueAxis}
+          {ordersAxis}
+          {tooltip}
+          {showRevenue ? (
+            <Area
+              yAxisId="revenue"
+              type="monotone"
+              dataKey="revenue"
+              name="Pendapatan"
+              stroke="#34D399"
+              strokeWidth={2}
+              strokeOpacity={focus && focus !== "revenue" ? 0.2 : 1}
+              fill="#34D399"
+              fillOpacity={focus && focus !== "revenue" ? 0.04 : 0.16}
+            />
+          ) : null}
+          {showOrders ? (
+            <Area
+              yAxisId="orders"
+              type="monotone"
+              dataKey="orders"
+              name="Order"
+              stroke="#818CF8"
+              strokeWidth={2}
+              strokeOpacity={focus && focus !== "orders" ? 0.2 : 1}
+              fill="#818CF8"
+              fillOpacity={focus && focus !== "orders" ? 0.04 : 0.12}
+            />
+          ) : null}
+        </AreaChart>
+      );
+    } else {
+      chart = (
+        <ComposedChart data={visible} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          {xAxis}
+          {revenueAxis}
+          {ordersAxis}
+          {tooltip}
+          {showRevenue ? (
+            <Bar
+              yAxisId="revenue"
+              dataKey="revenue"
+              name="Pendapatan"
+              fill="#34D399"
+              fillOpacity={focusOpacity(focus, "revenue")}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={14}
+            />
+          ) : null}
+          {showOrders ? (
+            <Line
+              yAxisId="orders"
+              type="monotone"
+              dataKey="orders"
+              name="Order"
+              stroke="#818CF8"
+              strokeWidth={2}
+              strokeOpacity={focusOpacity(focus, "orders")}
+              dot={false}
+            />
+          ) : null}
+        </ComposedChart>
+      );
+    }
   }
 
   return (
-    <div>
-      <SeriesLegend series={[{ key: "orders", label: "Order", color: "#818CF8" }, { key: "revenue", label: "Pendapatan", color: "#34D399" }]} />
-      <div className="mt-3" style={{ width: "100%", height: 240 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={visible} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-            <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
-            <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={24} />
-            <YAxis yAxisId="revenue" tick={false} axisLine={false} tickLine={false} width={8} />
-            <YAxis yAxisId="orders" orientation="right" tick={false} axisLine={false} tickLine={false} width={8} />
-            <Tooltip
-              cursor={TOOLTIP_CURSOR}
-              contentStyle={TOOLTIP_STYLE}
-              formatter={(value, name) => (name === "Pendapatan" ? format(value) : value)}
-            />
-            <Bar yAxisId="revenue" dataKey="revenue" name="Pendapatan" fill="#34D399" radius={[3, 3, 0, 0]} maxBarSize={14} />
-            <Line yAxisId="orders" type="monotone" dataKey="orders" name="Order" stroke="#818CF8" strokeWidth={2} dot={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
+    <ChartFrame
+      types={types}
+      type={type}
+      onTypeChange={setType}
+      fullscreen={fullscreen}
+      onToggleFullscreen={() => setFullscreen((value) => !value)}
+      empty={empty}
+      emptyText="Belum ada data tren."
+      legend={legend}
+    >
+      <div style={{ width: "100%", height }}>
+        <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
       </div>
-    </div>
+    </ChartFrame>
   );
 }
 
@@ -182,7 +594,21 @@ export function StatCard({ label, value, tone = "slate", hint }) {
   );
 }
 
-export function DonutChart({ items = [], format = (value) => String(value), size = 168, thickness = 22, centerLabel = "", centerValue = "", emptyText = "Belum ada data." }) {
+export function DonutChart({
+  items = [],
+  format = (value) => String(value),
+  size = 168,
+  thickness = 22,
+  centerLabel = "",
+  centerValue = "",
+  emptyText = "Belum ada data.",
+  types = ["donut", "pie", "barList"],
+  defaultType = "donut",
+}) {
+  const [type, setType] = useState(defaultType);
+  const [fullscreen, setFullscreen] = useState(false);
+  const { hidden, focus, toggle, setFocus } = useSeriesFocus();
+
   const segments = useMemo(() => {
     const total = items.reduce((sum, item) => sum + Math.max(0, Number(item.value || 0)), 0);
     if (total <= 0) return [];
@@ -200,53 +626,116 @@ export function DonutChart({ items = [], format = (value) => String(value), size
       });
   }, [items]);
 
-  if (!segments.length) {
-    return <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{emptyText}</p>;
-  }
+  const visibleSegments = segments.filter((segment) => !hidden.has(segment.key));
+  const empty = !segments.length;
+  const pieSize = fullscreen ? Math.min(360, Math.max(size, Math.round(size * 1.8))) : size;
+  const actualThickness = type === "pie" ? 0 : thickness;
+  const innerRadius = Math.max(1, pieSize / 2 - actualThickness);
+  const outerRadius = pieSize / 2;
 
-  const innerRadius = Math.max(1, size / 2 - thickness);
-  const outerRadius = size / 2;
+  const segmentIsDim = (segment) => Boolean(focus && focus !== segment.key);
 
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-6">
-      <div className="relative shrink-0" style={{ width: size, height: size }} role="img" aria-label={centerLabel || "Diagram lingkaran"}>
-        <PieChart width={size} height={size}>
-          <Pie
-            data={segments}
-            dataKey="value"
-            nameKey="label"
-            cx="50%"
-            cy="50%"
-            innerRadius={innerRadius}
-            outerRadius={outerRadius}
-            paddingAngle={segments.length > 1 ? 2 : 0}
-            startAngle={90}
-            endAngle={-270}
-            stroke="none"
+  const pie = (
+    <div className="relative shrink-0" style={{ width: pieSize, height: pieSize }} role="img" aria-label={centerLabel || "Diagram lingkaran"}>
+      <PieChart width={pieSize} height={pieSize}>
+        <Pie
+          data={visibleSegments}
+          dataKey="value"
+          nameKey="label"
+          cx="50%"
+          cy="50%"
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
+          paddingAngle={visibleSegments.length > 1 ? 2 : 0}
+          startAngle={90}
+          endAngle={-270}
+          stroke="none"
+        >
+          {visibleSegments.map((segment) => (
+            <Cell key={segment.key} fill={segment.color} fillOpacity={segmentIsDim(segment) ? 0.2 : 1} />
+          ))}
+        </Pie>
+        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => format(value)} />
+      </PieChart>
+      {type === "donut" && (centerLabel || centerValue) ? (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          {centerLabel ? <p className="max-w-[104px] truncate text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{centerLabel}</p> : null}
+          {centerValue ? <p className="max-w-[104px] truncate text-base font-black text-slate-900">{centerValue}</p> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const segmentList = (
+    <div className="min-w-44 flex-1 space-y-1">
+      {segments.map((segment) => {
+        const isHidden = hidden.has(segment.key);
+        const isDim = !isHidden && focus && focus !== segment.key;
+        return (
+          <button
+            key={segment.key}
+            type="button"
+            aria-pressed={!isHidden}
+            title={`${segment.label} — klik untuk ${isHidden ? "tampilkan" : "sembunyikan"}, arahkan untuk fokus`}
+            onClick={() => toggle(segment.key)}
+            onMouseEnter={() => setFocus(segment.key)}
+            onMouseLeave={() => setFocus(null)}
+            onFocus={() => setFocus(segment.key)}
+            onBlur={() => setFocus(null)}
+            className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition ${
+              isHidden ? "opacity-40 line-through" : isDim ? "opacity-50" : "hover:bg-slate-50"
+            }`}
           >
-            {segments.map((segment) => (
-              <Cell key={segment.key} fill={segment.color} />
-            ))}
-          </Pie>
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => format(value)} />
-        </PieChart>
-        {centerLabel || centerValue ? (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-            {centerLabel ? <p className="max-w-[104px] truncate text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{centerLabel}</p> : null}
-            {centerValue ? <p className="max-w-[104px] truncate text-base font-black text-slate-900">{centerValue}</p> : null}
-          </div>
-        ) : null}
-      </div>
-      <div className="min-w-44 flex-1 space-y-2">
-        {segments.map((segment) => (
-          <div key={segment.key} className="flex items-center gap-2 text-xs">
             <span className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: segment.color }} />
             <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{segment.label}</span>
             <span className="shrink-0 font-extrabold text-slate-900">{format(segment.value)}</span>
             <span className="w-10 shrink-0 text-right font-semibold text-slate-400">{Math.round(segment.fraction * 100)}%</span>
-          </div>
-        ))}
-      </div>
+          </button>
+        );
+      })}
     </div>
+  );
+
+  const barList = (
+    <div className="w-full space-y-2.5">
+      {visibleSegments.map((segment) => (
+        <div key={segment.key} className="space-y-1">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="flex min-w-0 items-center gap-2 font-bold text-slate-700">
+              <span className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: segment.color }} />
+              <span className="truncate">{segment.label}</span>
+            </span>
+            <span className="shrink-0 font-extrabold text-slate-900">
+              {format(segment.value)}
+              <span className="ml-2 font-semibold text-slate-400">{Math.round(segment.fraction * 100)}%</span>
+            </span>
+          </div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full" style={{ width: `${Math.max(2, segment.fraction * 100)}%`, backgroundColor: segment.color }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <ChartFrame
+      types={types}
+      type={type}
+      onTypeChange={setType}
+      fullscreen={fullscreen}
+      onToggleFullscreen={() => setFullscreen((value) => !value)}
+      empty={empty}
+      emptyText={emptyText}
+    >
+      {type === "barList" ? (
+        visibleSegments.length ? barList : <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Semua seri disembunyikan.</p>
+      ) : (
+        <div className="flex flex-wrap items-center justify-center gap-6">
+          {pie}
+          {segmentList}
+        </div>
+      )}
+    </ChartFrame>
   );
 }

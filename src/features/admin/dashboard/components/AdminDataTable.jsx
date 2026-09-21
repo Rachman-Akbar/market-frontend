@@ -1,9 +1,6 @@
 import { useMemo } from "react";
 import { formatDate } from "@/core/utils/numberFormat";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
-import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
-import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
-import { useColumnVisibility } from "@/shared/hooks";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 
 const statusClass = {
@@ -24,11 +21,7 @@ export function AdminDataTable({ rows = [] }) {
     { key: "date", label: "Tanggal", width: 180 },
   ], []);
   const layout = useTableColumnLayout({ storageKey: "admin.dashboard.orders", columns });
-  const visibility = useColumnVisibility(columns, "admin.dashboard.orders");
-  const orderedVisibleColumns = useMemo(
-    () => layout.orderedColumns.filter((column) => visibility.visibleSet.has(column.key)),
-    [layout.orderedColumns, visibility.visibleSet],
-  );
+  const orderedColumns = layout.orderedColumns;
 
   const renderCell = (column, row) => {
     if (column.key === "invoice") return <td key={column.key} className="px-5 py-4 font-bold text-slate-900">{row.id}</td>;
@@ -42,25 +35,17 @@ export function AdminDataTable({ rows = [] }) {
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
-        <div><h2 className="text-base font-extrabold text-slate-950">Pesanan terbaru</h2><p className="text-sm text-slate-500">Monitoring order, channel, dan status pembayaran</p></div>
-        <ColumnVisibilityMenu
-          columns={columns}
-          visibleKeys={visibility.visibleKeys}
-          onToggle={visibility.toggleColumn}
-          onShowAll={visibility.showAll}
-          onReset={visibility.reset}
-          onApplyDefault={visibility.applyAsDefault}
-        />
+      <div className="border-b border-slate-100 px-5 py-4">
+        <h2 className="text-base font-extrabold text-slate-950">Pesanan terbaru</h2>
+        <p className="text-sm text-slate-500">Monitoring order, channel, dan status pembayaran</p>
       </div>
-      <div className="px-4 pt-2"><TableLayoutHint onReset={layout.resetLayout} /></div>
       <div className="overflow-x-auto">
         <table className="table-fixed text-left text-sm" style={{ width: Math.max(layout.totalWidth, 900), minWidth: "100%" }}>
-          <InteractiveColGroup columns={orderedVisibleColumns} getColumnStyle={layout.getColumnStyle} />
+          <InteractiveColGroup columns={orderedColumns} getColumnStyle={layout.getColumnStyle} />
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>{orderedVisibleColumns.map((column) => <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key} align={column.align}>{column.label}</InteractiveTableHeader>)}</tr>
+            <tr>{orderedColumns.map((column) => <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key} align={column.align}>{column.label}</InteractiveTableHeader>)}</tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">{rows.map((row) => <tr key={row.id} className="transition hover:bg-slate-50/80">{orderedVisibleColumns.map((column) => renderCell(column, row))}</tr>)}</tbody>
+          <tbody className="divide-y divide-slate-100">{rows.map((row) => <tr key={row.id} className="transition hover:bg-slate-50/80">{orderedColumns.map((column) => renderCell(column, row))}</tr>)}</tbody>
         </table>
       </div>
     </div>

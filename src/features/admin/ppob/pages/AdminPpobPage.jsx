@@ -72,27 +72,14 @@ const TABS = [
   { key: "pricing", label: "Aturan Harga", icon: "tune" },
 ];
 
-function PpobTable({ storageKey, columns, rows, rowKey = (row) => row.id, minWidth = "min-w-[640px]", onRowClick }) {
-  const visibility = useColumnVisibility(columns, storageKey);
-  const visibleColumns = columns.filter((column) => visibility.visibleSet.has(column.key));
-
+function PpobTable({ columns, rows, rowKey = (row) => row.id, minWidth = "min-w-[640px]", onRowClick }) {
   return (
     <>
-      <div className="flex justify-end">
-        <ColumnVisibilityMenu
-          columns={columns}
-          visibleKeys={visibility.visibleKeys}
-          onToggle={visibility.toggleColumn}
-          onShowAll={visibility.showAll}
-          onReset={visibility.reset}
-          onApplyDefault={visibility.applyAsDefault}
-        />
-      </div>
       <div className="overflow-x-auto">
         <table className={`w-full ${minWidth} text-left text-sm`}>
           <thead className="border-b border-slate-200 text-slate-500">
             <tr>
-              {visibleColumns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
+              {columns.map((column) => <th key={column.key} className="py-2 pr-3 font-semibold">{column.label}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -102,7 +89,7 @@ function PpobTable({ storageKey, columns, rows, rowKey = (row) => row.id, minWid
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={`border-b border-slate-100 align-top ${onRowClick ? "cursor-pointer hover:bg-slate-50" : ""}`}
               >
-                {visibleColumns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(row)}</td>)}
+                {columns.map((column) => <td key={column.key} className="py-2 pr-3 text-slate-600">{column.render(row)}</td>)}
               </tr>
             ))}
           </tbody>
@@ -141,6 +128,36 @@ export default function AdminPpobPage() {
       {tab === "operators" && <OperatorsTab notifications={notifications} />}
       {tab === "pricing" && <PricingTab notifications={notifications} />}
     </AdminShell>
+  );
+}
+
+function TransactionsTable({ rows }) {
+  const columns = [
+    { key: "product", label: "Produk", render: (tx) => <span className="font-semibold text-slate-900">{tx.product_name || "-"}</span> },
+    { key: "category", label: "Kategori", render: (tx) => CATEGORY_LABELS[tx.category] || tx.category },
+    { key: "customer", label: "Customer", render: (tx) => tx.customer_id },
+    { key: "total", label: "Total", render: (tx) => <span className="font-semibold text-slate-900">{formatRupiah(tx.total_amount)}</span> },
+    { key: "status", label: "Status", render: (tx) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[tx.status] || "bg-slate-100 text-slate-700"}`}>{tx.status}</span> },
+    { key: "time", label: "Waktu", render: (tx) => tx.created_at ? new Date(tx.created_at).toLocaleString("id-ID") : "-" },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.ppob.dashboard-recent");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
+
+  return (
+    <>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-base font-extrabold text-slate-950">Transaksi Terbaru</h3>
+        <ColumnVisibilityMenu
+          columns={columns}
+          visibleKeys={columnVisibility.visibleKeys}
+          onToggle={columnVisibility.toggleColumn}
+          onShowAll={columnVisibility.showAll}
+          onReset={columnVisibility.reset}
+          onApplyDefault={columnVisibility.applyAsDefault}
+        />
+      </div>
+      <PpobTable minWidth="min-w-[720px]" rows={rows} columns={visibleColumns} />
+    </>
   );
 }
 
@@ -392,20 +409,7 @@ function DashboardTab() {
           {(data.recent_transactions?.length || 0) > 0 && (
             <Card>
               <CardContent className="pt-6">
-                <h3 className="mb-3 text-base font-extrabold text-slate-950">Transaksi Terbaru</h3>
-                <PpobTable
-                  storageKey="admin.ppob.dashboard-recent"
-                  minWidth="min-w-[720px]"
-                  rows={data.recent_transactions}
-                  columns={[
-                    { key: "product", label: "Produk", render: (tx) => <span className="font-semibold text-slate-900">{tx.product_name || "-"}</span> },
-                    { key: "category", label: "Kategori", render: (tx) => CATEGORY_LABELS[tx.category] || tx.category },
-                    { key: "customer", label: "Customer", render: (tx) => tx.customer_id },
-                    { key: "total", label: "Total", render: (tx) => <span className="font-semibold text-slate-900">{formatRupiah(tx.total_amount)}</span> },
-                    { key: "status", label: "Status", render: (tx) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[tx.status] || "bg-slate-100 text-slate-700"}`}>{tx.status}</span> },
-                    { key: "time", label: "Waktu", render: (tx) => tx.created_at ? new Date(tx.created_at).toLocaleString("id-ID") : "-" },
-                  ]}
-                />
+                <TransactionsTable rows={data.recent_transactions} />
               </CardContent>
             </Card>
           )}
@@ -535,6 +539,15 @@ function ProductsTab({ notifications }) {
   };
 
   const rows = products.data?.rows || [];
+  const columns = [
+    { key: "product", label: "Produk", render: (p) => (<><p className="font-semibold text-slate-900">{p.name}</p><p className="text-xs text-slate-400">{p.productType} • {p.providerProductCode}</p></>) },
+    { key: "category", label: "Kategori", render: (p) => CATEGORY_LABELS[p.category] || p.category },
+    { key: "providerPrice", label: "Harga Modal", render: (p) => formatRupiah(p.providerPrice) },
+    { key: "sellingPrice", label: "Harga Jual", render: (p) => <span className="font-semibold text-slate-900">{formatRupiah(p.sellingPrice)}</span> },
+    { key: "margin", label: "Margin", render: (p) => formatRupiah(p.margin) },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.ppob.products");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   return (
     <div className="space-y-4">
@@ -548,25 +561,28 @@ function ProductsTab({ notifications }) {
             emptyText="—"
           />
         </div>
-        <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700">
-          <span className="material-symbols-outlined text-base">add</span> Tambah Produk
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ColumnVisibilityMenu
+            columns={columns}
+            visibleKeys={columnVisibility.visibleKeys}
+            onToggle={columnVisibility.toggleColumn}
+            onShowAll={columnVisibility.showAll}
+            onReset={columnVisibility.reset}
+            onApplyDefault={columnVisibility.applyAsDefault}
+          />
+          <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700">
+            <span className="material-symbols-outlined text-base">add</span> Tambah Produk
+          </Button>
+        </div>
       </div>
 
       <AsyncState loading={false} error={products.error ? getPpobAdminError(products.error) : ""} empty={!products.isLoading && !rows.length} emptyText="Tidak ada produk pada kategori ini." />
       {products.isLoading && !rows.length ? <SkeletonTable rows={5} cols={5} /> : null}
       {!products.isLoading && rows.length > 0 && (
         <PpobTable
-          storageKey="admin.ppob.products"
           rows={rows}
           onRowClick={openEdit}
-          columns={[
-            { key: "product", label: "Produk", render: (p) => (<><p className="font-semibold text-slate-900">{p.name}</p><p className="text-xs text-slate-400">{p.productType} • {p.providerProductCode}</p></>) },
-            { key: "category", label: "Kategori", render: (p) => CATEGORY_LABELS[p.category] || p.category },
-            { key: "providerPrice", label: "Harga Modal", render: (p) => formatRupiah(p.providerPrice) },
-            { key: "sellingPrice", label: "Harga Jual", render: (p) => <span className="font-semibold text-slate-900">{formatRupiah(p.sellingPrice)}</span> },
-            { key: "margin", label: "Margin", render: (p) => formatRupiah(p.margin) },
-          ]}
+          columns={visibleColumns}
         />
       )}
 
@@ -783,6 +799,16 @@ function PricingTab({ notifications }) {
   const operators = operatorsQuery.data?.rows || [];
 
   const rows = pricing.data?.rows || [];
+  const columns = [
+    { key: "level", label: "Level", render: (r) => levelLabel(r) },
+    { key: "scope", label: "Cakupan", render: (r) => CATEGORY_LABELS[r.category] || r.category || (r.operatorId ? `Operator #${r.operatorId}` : "-") },
+    { key: "margin", label: "Margin", render: (r) => formatRule(r.marginType, r.marginValue) },
+    { key: "adminFee", label: "Biaya Admin", render: (r) => formatRule(r.adminFeeType, r.adminFeeValue) },
+    { key: "commission", label: "Komisi", render: (r) => formatRule(r.commissionType, r.commissionValue) },
+    { key: "priority", label: "Prioritas", render: (r) => r.priority },
+  ];
+  const columnVisibility = useColumnVisibility(columns, "admin.ppob.pricing");
+  const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
 
   const openCreate = () => {
     setEditing(null);
@@ -856,7 +882,15 @@ function PricingTab({ notifications }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <ColumnVisibilityMenu
+          columns={columns}
+          visibleKeys={columnVisibility.visibleKeys}
+          onToggle={columnVisibility.toggleColumn}
+          onShowAll={columnVisibility.showAll}
+          onReset={columnVisibility.reset}
+          onApplyDefault={columnVisibility.applyAsDefault}
+        />
         <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700">
           <span className="material-symbols-outlined text-base">add</span> Tambah Aturan Harga
         </Button>
@@ -865,18 +899,10 @@ function PricingTab({ notifications }) {
       {pricing.isLoading && !rows.length ? <SkeletonTable rows={5} cols={6} /> : null}
       {!pricing.isLoading && rows.length > 0 && (
         <PpobTable
-          storageKey="admin.ppob.pricing"
           minWidth="min-w-[720px]"
           rows={rows}
           onRowClick={openEdit}
-          columns={[
-            { key: "level", label: "Level", render: (r) => levelLabel(r) },
-            { key: "scope", label: "Cakupan", render: (r) => CATEGORY_LABELS[r.category] || r.category || (r.operatorId ? `Operator #${r.operatorId}` : "-") },
-            { key: "margin", label: "Margin", render: (r) => formatRule(r.marginType, r.marginValue) },
-            { key: "adminFee", label: "Biaya Admin", render: (r) => formatRule(r.adminFeeType, r.adminFeeValue) },
-            { key: "commission", label: "Komisi", render: (r) => formatRule(r.commissionType, r.commissionValue) },
-            { key: "priority", label: "Prioritas", render: (r) => r.priority },
-          ]}
+          columns={visibleColumns}
         />
       )}
 

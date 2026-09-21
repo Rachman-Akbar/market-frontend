@@ -1,23 +1,20 @@
 import { useMemo, useState } from "react";
-import { useAuth } from "@/features/auth/context/AuthContext";
-import { advancedError, useDeleteReview, useReviews } from "@/features/advanced/services/advancedMarketplaceService";
+import { useReviews } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
-import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { ReviewDetailForm } from "@/features/advanced/pages/ReviewDetailPage";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
+import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 
 export default function ReviewsPage() {
-  const { activeRole } = useAuth();
-  const admin = activeRole === "admin";
   const [query, setQuery] = useState("");
   const [rating, setRating] = useState("");
-  const [message, setMessage] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const listQuery = useReviews({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(rating ? { rating } : {}) });
-  const deleteMutation = useDeleteReview();
   const spreadsheet = useSpreadsheetWorkspace({ module: "review", label: "Review & Rating", allowImport: false, allowBulkDelete: false });
   const rows = listQuery.data?.rows || [];
+  const editor = useEntityEditor({ getEditLabel: (row) => row.product_name || `Review #${row.id}` });
+  useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
   const columns = useMemo(() => [
     { key: "product_name", label: "Produk" },
     { key: "order_number", label: "Order" },
@@ -27,33 +24,23 @@ export default function ReviewsPage() {
     { key: "created_at", label: "Tanggal", render: (row) => row.created_at ? new Date(row.created_at).toLocaleString("id-ID") : "-" },
   ], []);
 
-  async function remove() {
-    if (!deleteTarget) return;
-    try {
-      await deleteMutation.mutateAsync(deleteTarget.id);
-      setDeleteTarget(null);
-      setMessage("Review berhasil dihapus.");
-    } catch (error) {
-      setMessage(advancedError(error));
-    }
-  }
-
   return (
     <>
-      <ModuleFrame title="Review dan Rating Produk" subtitle="Review berasal dari Buyer setelah transaksi selesai. Seller dapat mengekspor review untuk analisis, tetapi import review dinonaktifkan agar rating tetap berasal dari transaksi nyata." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} bulkActions={spreadsheet.actions} filters={<select value={rating} onChange={(event) => setRating(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua rating</option>{[5, 4, 3, 2, 1].map((item) => <option key={item} value={item}>{item} bintang</option>)}</select>}>
-        {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-        <DataGrid
-          columns={columns}
-          rows={rows}
-          onRowClick={admin ? (row) => setDeleteTarget(row) : undefined}
-          emptyText={listQuery.isLoading ? "" : "Review belum tersedia."}
-          hasNextPage={listQuery.hasNextPage}
-          isFetchingNextPage={listQuery.isFetchingNextPage}
-          onLoadMore={() => listQuery.fetchNextPage()}
-        />
-      </ModuleFrame>
+      {editor.open && editor.entity ? <ReviewDetailForm row={editor.entity} onClose={editor.close} onDeleted={() => editor.markListDirty()} /> : null}
+      {editor.isListActive ? (
+        <ModuleFrame title="Review dan Rating Produk" subtitle="Review berasal dari Buyer setelah transaksi selesai. Seller dapat mengekspor review untuk analisis, tetapi import review dinonaktifkan agar rating tetap berasal dari transaksi nyata." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} bulkActions={spreadsheet.actions} filters={<select value={rating} onChange={(event) => setRating(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua rating</option>{[5, 4, 3, 2, 1].map((item) => <option key={item} value={item}>{item} bintang</option>)}</select>}>
+          <DataGrid
+            columns={columns}
+            rows={rows}
+            onRowClick={editor.edit}
+            emptyText={listQuery.isLoading ? "" : "Review belum tersedia."}
+            hasNextPage={listQuery.hasNextPage}
+            isFetchingNextPage={listQuery.isFetchingNextPage}
+            onLoadMore={() => listQuery.fetchNextPage()}
+          />
+        </ModuleFrame>
+      ) : null}
       <SpreadsheetOperationPanel workspace={spreadsheet} />
-      <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Review" message={`Review untuk produk “${deleteTarget?.product_name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
     </>
   );
 }

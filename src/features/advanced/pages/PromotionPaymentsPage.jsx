@@ -127,7 +127,7 @@ export default function PromotionPaymentsPage() {
           refreshing={listQuery.isFetching}
           onCreate={admin ? undefined : editor.create}
           createLabel="Ajukan Pembayaran"
-          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
+          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <DataGrid

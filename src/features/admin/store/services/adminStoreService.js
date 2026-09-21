@@ -79,7 +79,7 @@ export function useAdminStores(params = {}) {
     queryKey: ["admin", "stores"],
     queryFn: (queryParams) => getAdminStores(queryParams),
     params,
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

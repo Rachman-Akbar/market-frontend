@@ -1,5 +1,4 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerPanelShell";
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
 import { getOrderManagementError, useSellerOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
@@ -14,19 +13,24 @@ import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOpera
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
 import OrderCompletionIncomeModal from "@/features/seller/order/components/OrderCompletionIncomeModal";
+import { ManualOrderForm } from "@/features/seller/order/components/ManualOrderForm";
+import { OrderDetailForm } from "@/features/seller/order/pages/OrderDetailPage";
+import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 
 export default function SellerOrdersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  const [type, setType] = useState("");
   const [message, setMessage] = useState("");
   const [printRow, setPrintRow] = useState(null);
   const [completionRows, setCompletionRows] = useState([]);
   const notifications = useNotificationCenter();
-  const navigate = useNavigate();
   const deferredQuery = useDeferredValue(query.trim());
-  const ordersQuery = useSellerOrders({ per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(status ? { status } : {}) });
+  const ordersQuery = useSellerOrders({ per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(status ? { status } : {}), ...(type ? { order_type: type } : {}) });
   const updateMutation = useUpdateOrderStatus();
   const rows = ordersQuery.data?.rows || [];
+  const editor = useEntityEditor({ getEditLabel: (row) => row.orderNumber || row.order_number || row.subOrderNumber || `Order #${row.id}` });
+  useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: ordersQuery.refetch });
   const columns = useMemo(() => mergeColumns(ORDER_TABLE_COLUMNS.filter((column) => column.key !== "store"), buildRawColumns(rows, ["id", "order_id", "order_number", "sub_order_number", "store_id", "store_name", "grand_total", "total", "total_items_price", "shipping_cost", "status", "payment_status", "tracking_number"])), [rows]);
   const selection = useTableSelection(rows);
   const columnVisibility = useColumnVisibility(columns, "seller-orders");
@@ -80,12 +84,32 @@ export default function SellerOrdersPage() {
 
   return (
     <SellerPanelShell>
-      {!spreadsheet.activeOperation ? (
+      {editor.open ? (
+        editor.entity ? (
+          <OrderDetailForm
+            row={editor.entity}
+            onDeleted={() => {
+              setMessage("Pesanan berhasil dihapus.");
+              editor.close();
+              ordersQuery.refetch();
+            }}
+          />
+        ) : (
+          <ManualOrderForm
+            onClose={editor.close}
+            onSaved={() => {
+              setMessage("Order manual berhasil dibuat.");
+              ordersQuery.refetch();
+            }}
+          />
+        )
+      ) : !spreadsheet.activeOperation ? (
         <>
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
-            hideCreate
+            createLabel="Tambah Order Manual"
+            onCreate={editor.create}
             onRefresh={() => ordersQuery.refetch()}
             refreshing={ordersQuery.isFetching}
             placeholder="Cari nomor order lalu tekan Enter"
@@ -100,21 +124,35 @@ export default function SellerOrdersPage() {
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
             filters={(
-              <SearchableSelect
-                value={status}
-                onChange={setStatus}
-                options={[
-                  { value: "pending", label: "Pending" },
-                  { value: "processing", label: "Processing" },
-                  { value: "shipped", label: "Shipped" },
-                  { value: "received", label: "Received" },
-                  { value: "completed", label: "Completed" },
-                  { value: "cancelled", label: "Cancelled" },
-                ]}
-                placeholder="Semua status"
-                className="w-44"
-                buttonClassName="h-10"
-              />
+              <>
+                <SearchableSelect
+                  value={type}
+                  onChange={setType}
+                  options={[
+                    { value: "normal", label: "Normal" },
+                    { value: "preorder", label: "Preorder" },
+                    { value: "booking", label: "Booking" },
+                  ]}
+                  placeholder="Semua tipe"
+                  className="w-40"
+                  buttonClassName="h-9"
+                />
+                <SearchableSelect
+                  value={status}
+                  onChange={setStatus}
+                  options={[
+                    { value: "pending", label: "Pending" },
+                    { value: "processing", label: "Processing" },
+                    { value: "shipped", label: "Shipped" },
+                    { value: "received", label: "Received" },
+                    { value: "completed", label: "Completed" },
+                    { value: "cancelled", label: "Cancelled" },
+                  ]}
+                  placeholder="Semua status"
+                  className="w-44"
+                  buttonClassName="h-9"
+                />
+              </>
             )}
           />
           {message ? <p className="mb-3 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
@@ -126,7 +164,7 @@ export default function SellerOrdersPage() {
               portal="seller"
               pendingId={updateMutation.variables?.id}
               onPrint={setPrintRow}
-              onEdit={(row) => navigate(`/seller/orders/${row.id || row.subOrderNumber}`, { state: { row } })}
+              onEdit={editor.edit}
               visibleSet={columnVisibility.visibleSet}
               selectionEnabled={selection.enabled}
               selectedIds={selection.selectedIds}

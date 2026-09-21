@@ -57,7 +57,7 @@ export function useAdminCatalogGroups() {
   return useQuery({
     queryKey: adminCatalogGroupKeys.all,
     queryFn: getAdminCatalogGroups,
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import {
   FormField,
@@ -93,7 +93,7 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
       size="max-w-3xl"
     >
       <form onSubmit={submit}>
-        <div className="space-y-4 p-6">
+        <div className="space-y-4 p-6 lg:pr-44">
           <FormField label="Nama role" error={errors.name} required>
             <input
               value={values.name}
@@ -148,11 +148,12 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {role && onDelete ? <button type="button" onClick={() => onDelete(role)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
           <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Role"</button>
         </div>
+        <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Role" }} disabled={mutation.isPending} onDelete={role && onDelete ? () => onDelete(role) : undefined} />
       </form>
     </CrudDialog>
   );

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { toBoolean } from "@/core/utils/boolean";
 
 export const adminGameContentKeys = {
@@ -7,6 +8,8 @@ export const adminGameContentKeys = {
   list: (params = {}) => ["admin", "game-content", params],
   types: ["admin", "game-content", "types"],
 };
+
+const GAME_CONTENT_LIST_STALE_MS = 30000;
 
 export const GAME_TYPE_META = {
   quiz: {
@@ -73,7 +76,9 @@ export function serializeAdminGameContent(values) {
 
 export async function getAdminGameContent(params = {}) {
   const response = await apiClient.get("/api/v1/admin/game-content", { params });
-  return unwrapCollection(response.data).map(normalizeAdminGameContent);
+  const payload = response.data;
+  const rows = unwrapCollection(payload).map(normalizeAdminGameContent);
+  return { rows, meta: payload?.meta || { current_page: 1, last_page: 1, total: rows.length } };
 }
 
 export async function getGameContentTypes() {
@@ -100,11 +105,12 @@ function refreshGameContentQueries(queryClient) {
 }
 
 export function useAdminGameContent(params = {}) {
-  return useQuery({
-    queryKey: adminGameContentKeys.list(params),
-    queryFn: () => getAdminGameContent(params),
-    staleTime: 0,
-    refetchOnMount: "always",
+  return useInfiniteList({
+    queryKey: adminGameContentKeys.all,
+    queryFn: getAdminGameContent,
+    params,
+    perPage: 20,
+    staleTime: GAME_CONTENT_LIST_STALE_MS,
   });
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { required, validateFields } from "@/core/utils/formValidation";
@@ -92,7 +92,7 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
   return (
     <CrudDialog open={open} onClose={onClose} title={user ? "Edit User" : "Tambah User"} subtitle="Kelola akun, role, verifikasi, active/non-active, dan banned admin." size="max-w-3xl">
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-6 md:grid-cols-2">
+        <div className="grid gap-4 p-6 md:grid-cols-2 lg:pr-44">
           <FormField label="Nama" error={errors.name} required>
             <input value={values.name} onChange={(event) => setField("name", event.target.value)} className={inputClassName} />
           </FormField>
@@ -147,11 +147,12 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
           )}
           {message ? <p className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {user && onDelete ? <button type="button" onClick={() => onDelete(user)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
           <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan User"</button>
         </div>
+        <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan User" }} disabled={mutation.isPending} onDelete={user && onDelete ? () => onDelete(user) : undefined} />
       </form>
     </CrudDialog>
   );

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapCollection } from "@/core/utils/apiClient";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { toBoolean } from "@/core/utils/boolean";
 
 export const storeContextKeys = {
@@ -7,10 +8,12 @@ export const storeContextKeys = {
   store: (id) => ["admin", "store-context", id],
   stats: (id, period) => ["admin", "store-context", id, "stats", period],
   orderTrend: (id, period) => ["admin", "store-context", id, "order-trend", period],
-  orders: (id, params = {}) => ["admin", "store-context", id, "orders", params],
-  products: (id, params = {}) => ["admin", "store-context", id, "products", params],
-  settlements: (id, params = {}) => ["admin", "store-context", id, "settlements", params],
+  orders: (id) => ["admin", "store-context", id, "orders"],
+  products: (id) => ["admin", "store-context", id, "products"],
+  settlements: (id) => ["admin", "store-context", id, "settlements"],
 };
+
+const STORE_CONTEXT_LIST_STALE_MS = 30000;
 
 function normalizePage(payload) {
   const source = payload?.data?.data ?? payload?.data ?? payload ?? {};
@@ -94,25 +97,34 @@ export function useStoreContextOrderTrend(storeId, period = "monthly") {
 }
 
 export function useStoreContextOrders(storeId, params = {}) {
-  return useQuery({
-    queryKey: storeContextKeys.orders(storeId, params),
-    queryFn: () => getStoreContextOrders(storeId, params),
+  return useInfiniteList({
+    queryKey: storeContextKeys.orders(storeId),
+    queryFn: (requestParams) => getStoreContextOrders(storeId, requestParams),
+    params,
+    perPage: 20,
+    staleTime: STORE_CONTEXT_LIST_STALE_MS,
     enabled: Boolean(storeId),
   });
 }
 
 export function useStoreContextProducts(storeId, params = {}) {
-  return useQuery({
-    queryKey: storeContextKeys.products(storeId, params),
-    queryFn: () => getStoreContextProducts(storeId, params),
+  return useInfiniteList({
+    queryKey: storeContextKeys.products(storeId),
+    queryFn: (requestParams) => getStoreContextProducts(storeId, requestParams),
+    params,
+    perPage: 20,
+    staleTime: STORE_CONTEXT_LIST_STALE_MS,
     enabled: Boolean(storeId),
   });
 }
 
 export function useStoreContextSettlements(storeId, params = {}) {
-  return useQuery({
-    queryKey: storeContextKeys.settlements(storeId, params),
-    queryFn: () => getStoreContextSettlements(storeId, params),
+  return useInfiniteList({
+    queryKey: storeContextKeys.settlements(storeId),
+    queryFn: (requestParams) => getStoreContextSettlements(storeId, requestParams),
+    params,
+    perPage: 20,
+    staleTime: STORE_CONTEXT_LIST_STALE_MS,
     enabled: Boolean(storeId),
   });
 }

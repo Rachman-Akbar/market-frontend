@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { SeriesBarList, SeriesLegend, StatCard } from "@/shared/components/charts/chartKit";
+import { SeriesBarList, StatCard } from "@/shared/components/charts/chartKit";
 
 function number(value) {
   return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -56,7 +56,6 @@ export default function StockChartTab({ variants = [] }) {
             <p className="text-sm font-extrabold text-slate-900">Bagan Perbandingan Stok per Produk</p>
             <p className="text-xs text-slate-500">Empat komponen stok dibandingkan tiap produk (jumlah dari seluruh varian).</p>
           </div>
-          <SeriesLegend series={SERIES} />
         </div>
         <SeriesBarList groups={groups} series={SERIES} format={number} maxBars={15} emptyText="Belum ada data stok produk." />
       </div>

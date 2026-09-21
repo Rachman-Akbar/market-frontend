@@ -11,6 +11,7 @@ import {
   useRejectAdminWithdrawal,
 } from "@/features/admin/finance/services/adminFinanceService";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
 import { useColumnVisibility } from "@/shared/hooks";
 
@@ -75,7 +76,6 @@ export default function AdminWithdrawalsPage() {
   ];
   const columnVisibility = useColumnVisibility(columns, "admin.withdrawals");
   const visibleColumns = columns.filter((column) => columnVisibility.visibleSet.has(column.key));
-
   const approve = async (w) => {
     if (!confirm(`Setujui penarikan ${w.withdrawalNumber} senilai ${formatRupiah(w.amount)}?`)) return;
     try {
@@ -160,6 +160,7 @@ export default function AdminWithdrawalsPage() {
                     ))}
                   </tbody>
                 </table>
+                <InfiniteScrollSentinel query={withdrawalsQuery} />
               </div>
             </CardContent>
           </Card>

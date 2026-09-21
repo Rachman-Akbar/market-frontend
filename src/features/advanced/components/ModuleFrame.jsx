@@ -1,6 +1,19 @@
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ToolbarTableColumnsProvider, useToolbarTableColumns } from "./ToolbarTableColumnsContext";
 
-export function ModuleFrame({
+function resolveColumnsProps(props, registration) {
+  const hasExplicitColumns = Boolean(props.columns?.length);
+  return {
+    columns: hasExplicitColumns ? props.columns : registration?.columns || [],
+    visibleColumns: hasExplicitColumns ? props.visibleColumns : registration?.visibleKeys || [],
+    onToggleColumn: hasExplicitColumns ? props.onToggleColumn : registration?.onToggle,
+    onShowAllColumns: hasExplicitColumns ? props.onShowAllColumns : registration?.onShowAll,
+    onResetColumns: hasExplicitColumns ? props.onResetColumns : registration?.onReset,
+    onApplyDefaultColumns: hasExplicitColumns ? props.onApplyDefaultColumns : registration?.onApplyDefault,
+  };
+}
+
+function ModuleFrameInner({
   query,
   onQueryChange,
   onRefresh,
@@ -24,6 +37,17 @@ export function ModuleFrame({
   hasActiveFilters = false,
   onClearFilters,
 }) {
+  const { registration } = useToolbarTableColumns();
+  const incomingProps = {
+    columns,
+    visibleColumns,
+    onToggleColumn,
+    onShowAllColumns,
+    onResetColumns,
+    onApplyDefaultColumns,
+  };
+  const resolved = resolveColumnsProps(incomingProps, registration);
+
   return (
     <section className="w-full min-w-0 max-w-full overflow-hidden">
       <EntityToolbar
@@ -40,16 +64,24 @@ export function ModuleFrame({
         selectedCount={selectedCount}
         onToggleSelection={onToggleSelection}
         bulkActions={bulkActions}
-        columns={columns}
-        visibleColumns={visibleColumns}
-        onToggleColumn={onToggleColumn}
-        onShowAllColumns={onShowAllColumns}
-        onResetColumns={onResetColumns}
-        onApplyDefaultColumns={onApplyDefaultColumns}
+        columns={resolved.columns}
+        visibleColumns={resolved.visibleColumns}
+        onToggleColumn={resolved.onToggleColumn}
+        onShowAllColumns={resolved.onShowAllColumns}
+        onResetColumns={resolved.onResetColumns}
+        onApplyDefaultColumns={resolved.onApplyDefaultColumns}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={onClearFilters}
       />
       <div className="space-y-3">{children}</div>
     </section>
+  );
+}
+
+export function ModuleFrame(props) {
+  return (
+    <ToolbarTableColumnsProvider>
+      <ModuleFrameInner {...props} />
+    </ToolbarTableColumnsProvider>
   );
 }

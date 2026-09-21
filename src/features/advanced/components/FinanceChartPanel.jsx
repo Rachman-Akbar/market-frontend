@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DailyCashflowBars, SeriesBarList, SeriesLegend, StatCard } from "@/shared/components/charts/chartKit";
+import { DailyCashflowBars, SeriesBarList, StatCard } from "@/shared/components/charts/chartKit";
 import { useFinanceDashboard } from "@/features/advanced/services/advancedMarketplaceService";
 
 function money(value) {
@@ -53,7 +53,6 @@ export default function FinanceChartPanel({ mode = "cashflow" }) {
                 <p className="text-sm font-extrabold text-slate-900">Arus Kas Harian</p>
                 <p className="text-xs text-slate-500">Perbandingan pemasukan vs pengeluaran setiap hari.</p>
               </div>
-              <SeriesLegend series={[{ key: "income", label: "Pemasukan", color: "#10b981" }, { key: "expense", label: "Pengeluaran", color: "#fb7185" }]} />
             </div>
             <DailyCashflowBars days={daily} format={money} />
           </div>
@@ -72,7 +71,6 @@ export default function FinanceChartPanel({ mode = "cashflow" }) {
                 <p className="text-sm font-extrabold text-slate-900">Bagan Perbandingan Hutang & Piutang</p>
                 <p className="text-xs text-slate-500">Total nominal dibandingkan dengan berapa yang sudah dibayar (cicilan) dan sisa tagihan.</p>
               </div>
-              <SeriesLegend series={payableSeries} />
             </div>
             <SeriesBarList groups={debtGroups} series={payableSeries} format={money} />
           </div>

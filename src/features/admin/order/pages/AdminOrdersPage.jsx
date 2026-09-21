@@ -1,5 +1,4 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
 import { getOrderManagementError, useAdminOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
@@ -12,17 +11,23 @@ import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
+import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
+import { OrderDetailForm } from "@/features/seller/order/pages/OrderDetailPage";
+import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 
 export default function AdminOrdersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  const [type, setType] = useState("");
   const [message, setMessage] = useState("");
+  const [printRow, setPrintRow] = useState(null);
   const notifications = useNotificationCenter();
-  const navigate = useNavigate();
   const deferredQuery = useDeferredValue(query.trim());
-  const ordersQuery = useAdminOrders({ per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}), ...(status ? { status } : {}) });
+  const ordersQuery = useAdminOrders({ per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}), ...(status ? { status } : {}), ...(type ? { order_type: type } : {}) });
   const updateMutation = useUpdateOrderStatus();
   const rows = ordersQuery.data?.rows || [];
+  const editor = useEntityEditor({ getEditLabel: (row) => row.orderNumber || row.order_number || row.subOrderNumber || `Order #${row.id}` });
+  useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: ordersQuery.refetch });
   const columns = useMemo(() => mergeColumns(ORDER_TABLE_COLUMNS, buildRawColumns(rows, ["id", "order_id", "order_number", "sub_order_number", "store_id", "store_name", "grand_total", "total", "total_items_price", "shipping_cost", "status", "payment_status", "tracking_number"])), [rows]);
   const selection = useTableSelection(rows);
   const columnVisibility = useColumnVisibility(columns, "admin-orders");
@@ -66,7 +71,9 @@ export default function AdminOrdersPage() {
 
   return (
     <AdminShell>
-      {!spreadsheet.activeOperation ? (
+      {editor.open && editor.entity ? (
+        <OrderDetailForm row={editor.entity} />
+      ) : !spreadsheet.activeOperation ? (
         <>
           <EntityToolbar
             query={query}
@@ -86,21 +93,35 @@ export default function AdminOrdersPage() {
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
             filters={(
-              <SearchableSelect
-                value={status}
-                onChange={setStatus}
-                options={[
-                  { value: "pending", label: "Pending" },
-                  { value: "processing", label: "Processing" },
-                  { value: "shipped", label: "Shipped" },
-                  { value: "received", label: "Received" },
-                  { value: "completed", label: "Completed" },
-                  { value: "cancelled", label: "Cancelled" },
-                ]}
-                placeholder="Semua status"
-                className="w-44"
-                buttonClassName="h-10"
-              />
+              <>
+                <SearchableSelect
+                  value={type}
+                  onChange={setType}
+                  options={[
+                    { value: "normal", label: "Normal" },
+                    { value: "preorder", label: "Preorder" },
+                    { value: "booking", label: "Booking" },
+                  ]}
+                  placeholder="Semua tipe"
+                  className="w-40"
+                  buttonClassName="h-9"
+                />
+                <SearchableSelect
+                  value={status}
+                  onChange={setStatus}
+                  options={[
+                    { value: "pending", label: "Pending" },
+                    { value: "processing", label: "Processing" },
+                    { value: "shipped", label: "Shipped" },
+                    { value: "received", label: "Received" },
+                    { value: "completed", label: "Completed" },
+                    { value: "cancelled", label: "Cancelled" },
+                  ]}
+                  placeholder="Semua status"
+                  className="w-44"
+                  buttonClassName="h-9"
+                />
+              </>
             )}
           />
           {message ? <p className="mb-3 border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
@@ -117,7 +138,8 @@ export default function AdminOrdersPage() {
               allSelected={selection.allSelected}
               onToggleRow={selection.toggleRow}
               onToggleAll={selection.toggleAll}
-              onEdit={(row) => navigate(`/admin/orders/${row.id || row.subOrderNumber}`, { state: { row } })}
+              onEdit={editor.edit}
+              onPrint={setPrintRow}
               onStatusChange={async (row, nextStatus) => {
                 const task = notifications.startTask({ title: "Ubah Status Pesanan", message: `Memproses pesanan ${row.orderNumber || `#${row.id}`} ke status ${nextStatus}...` });
                 try {
@@ -136,6 +158,7 @@ export default function AdminOrdersPage() {
         </>
       ) : null}
       <SpreadsheetOperationPanel workspace={spreadsheet} />
+      {printRow ? <OrderPrintSheet row={printRow} onClose={() => setPrintRow(null)} /> : null}
     </AdminShell>
   );
 }

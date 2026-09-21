@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -92,7 +92,7 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
       size="max-w-3xl"
     >
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-6 md:grid-cols-2">
+        <div className="grid gap-4 p-6 md:grid-cols-2 lg:pr-44">
           <div className="md:col-span-2 flex items-center justify-between bg-slate-50 px-4 py-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Cakupan voucher</p>
@@ -163,13 +163,14 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
           <div className="md:col-span-2"><ActiveToggle checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} /></div>
           {message ? <p className="md:col-span-2 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
           <button type="submit" disabled={mutation.isPending} className={`h-10 px-4 text-sm font-extrabold text-white disabled:opacity-60 ${portal === "admin" ? "bg-teal-600" : "bg-emerald-600"}`}>
             Simpan
           </button>
         </div>
+        <FormActionDock tone={portal === "admin" ? "teal" : "emerald"} save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

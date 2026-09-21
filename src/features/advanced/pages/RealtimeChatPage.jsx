@@ -20,6 +20,7 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
+import { cn } from "@/shared/utils/utils";
 
 function conversationTitle(row, currentUserId, activeRole) {
   const otherParticipant = (row?.participants || []).find((item) => String(item.id) !== String(currentUserId));
@@ -124,6 +125,8 @@ export default function RealtimeChatPage() {
   const startMutation = useStartConversation();
   const readMutation = useMarkConversationRead();
   const bottomRef = useRef(null);
+  const composerRef = useRef(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const conversations = listQuery.data?.rows || [];
   const customers = customersQuery.data?.rows || [];
   const active = detailQuery.data || conversations.find((row) => Number(row.id) === Number(selectedId)) || null;
@@ -201,6 +204,15 @@ export default function RealtimeChatPage() {
   }, [selectedId]);
 
   useEffect(() => {
+    if (!fullscreen) return undefined;
+    const handler = (event) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [fullscreen]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
@@ -220,6 +232,11 @@ export default function RealtimeChatPage() {
     const next = new URLSearchParams(searchParams);
     next.set("conversation", String(value));
     setSearchParams(next, { replace: true });
+  }
+
+  function focusComposer() {
+    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    composerRef.current?.focus();
   }
 
   function openStart() {
@@ -352,10 +369,10 @@ export default function RealtimeChatPage() {
   }
 
   return (
-    <section className="overflow-hidden border border-slate-200 bg-white">
+    <section className={cn("overflow-hidden bg-white", fullscreen ? "fixed inset-0 z-[90] flex flex-col" : "border border-slate-200")}>
       {notice ? <p className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{notice}</p> : null}
-      <div className="grid min-h-[620px] lg:grid-cols-[320px_1fr]">
-        <aside className="border-r border-slate-200">
+      <div className={cn("grid lg:grid-cols-[320px_1fr]", fullscreen ? "min-h-0 flex-1 grid-rows-1" : "min-h-[620px]")}>
+        <aside className={cn("border-r border-slate-200", fullscreen && "flex min-h-0 flex-col")}>
           <div className="border-b border-slate-200 bg-slate-50 p-3">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -366,7 +383,7 @@ export default function RealtimeChatPage() {
             </div>
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" className="h-9" />
           </div>
-          <div className="max-h-[550px] overflow-y-auto">
+          <div className={cn("overflow-y-auto", fullscreen ? "min-h-0 flex-1" : "max-h-[550px]")}>
             
             {!listQuery.isLoading && !conversations.length ? <p className="p-5 text-sm text-slate-500">Percakapan belum tersedia.</p> : null}
             {conversations.map((row) => (
@@ -383,9 +400,19 @@ export default function RealtimeChatPage() {
         <div className="flex min-w-0 flex-col">
           {active ? (
             <>
-              <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                <h2 className="font-extrabold text-slate-950">{conversationTitle(active, user?.id, activeRole)}</h2>
-                <p className="mt-1 text-xs text-slate-500">{conversationSubtitle(active, activeRole)}</p>
+              <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
+                <div className="min-w-0">
+                  <h2 className="truncate font-extrabold text-slate-950">{conversationTitle(active, user?.id, activeRole)}</h2>
+                  <p className="mt-1 truncate text-xs text-slate-500">{conversationSubtitle(active, activeRole)}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button type="button" onClick={focusComposer} title="Fokus ke kolom pesan" aria-label="Fokus ke kolom pesan" className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-700">
+                    <span className="material-symbols-outlined text-[19px]">center_focus_strong</span>
+                  </button>
+                  <button type="button" onClick={() => setFullscreen((current) => !current)} title={fullscreen ? "Keluar layar penuh" : "Layar penuh"} aria-label={fullscreen ? "Keluar layar penuh" : "Layar penuh"} className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-700">
+                    <span className="material-symbols-outlined text-[19px]">{fullscreen ? "fullscreen_exit" : "fullscreen"}</span>
+                  </button>
+                </div>
               </header>
               <div className="flex-1 space-y-3 overflow-y-auto bg-slate-100 p-5">
                 
@@ -415,7 +442,7 @@ export default function RealtimeChatPage() {
                 </div>
               ) : (
                 <form onSubmit={send} className="flex gap-2 border-t border-slate-200 bg-white p-4">
-                  <Input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Tulis pesan" required autoComplete="off" />
+                  <Input ref={composerRef} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Tulis pesan" required autoComplete="off" />
                   <Button type="submit" disabled={sendMutation.isPending || !message.trim()}>Kirim</Button>
                 </form>
               )}

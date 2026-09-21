@@ -65,9 +65,15 @@ export function useInfiniteList({
   const data = useMemo(() => {
     if (!query.data) return undefined;
     const pages = query.data.pages || [];
+    const firstPage = pages[0] || {};
+    const extra = {};
+    Object.keys(firstPage).forEach((key) => {
+      if (!["rows", "meta", "page"].includes(key)) extra[key] = firstPage[key];
+    });
     return {
       rows: dedupeRows(pages),
       meta: pages[pages.length - 1]?.meta || {},
+      ...extra,
     };
   }, [query.data]);
 

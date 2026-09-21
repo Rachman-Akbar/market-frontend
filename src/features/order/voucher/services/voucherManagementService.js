@@ -109,7 +109,7 @@ export function useManagedVouchers(portal, params = {}) {
   return useQuery({
     queryKey: [...voucherManagementKeys[portal], params],
     queryFn: () => getManagedVouchers(portal, params),
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

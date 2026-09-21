@@ -120,7 +120,7 @@ export function usePublicPromotions() {
 }
 
 export function useAdminPromotions(params = {}) {
-  return useQuery({ queryKey: [...promotionManagementKeys.admin, params], queryFn: () => getAdminPromotions(params), staleTime: 0, refetchOnMount: "always", });
+  return useQuery({ queryKey: [...promotionManagementKeys.admin, params], queryFn: () => getAdminPromotions(params), staleTime: 30000, refetchOnMount: "always", });
 }
 
 export function useSellerPromotions(params = {}) {
@@ -135,7 +135,7 @@ export function useSellerPromotions(params = {}) {
       return storeId ? rows.filter((row) => row.storeId === storeId) : [];
     },
     enabled: Boolean(activeRole === "seller" && storeId),
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

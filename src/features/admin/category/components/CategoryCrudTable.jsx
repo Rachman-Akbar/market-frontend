@@ -3,7 +3,6 @@ import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch"
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
-import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { useColumnFilterState } from "@/shared/hooks";
 import { formatTableValue } from "@/shared/utils/tableData";
@@ -134,7 +133,6 @@ export const CategoryCrudTable = memo(function CategoryCrudTable({ rows, groupsB
   return (
     <div className="bg-white ring-1 ring-slate-200">
       <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-2.5"><div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">{[1, 2, 3].map((level) => <span key={level} className="bg-white px-2 py-1 ring-1 ring-inset ring-slate-200">Level {level}: {tableRows.filter((row) => getLevel(row) === level).length}</span>)}</div><div className="flex items-center gap-1"><button type="button" onClick={() => setExpandedIds(new Set(parentRows.map((row) => row.id)))} className="px-2 py-1 text-xs font-bold text-teal-700 hover:bg-teal-50">Buka Semua</button><button type="button" onClick={() => setExpandedIds(new Set())} className="px-2 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100">Tutup Semua</button></div></div>
-      <TableLayoutHint onReset={layout.resetLayout} />
       {hasActiveFilters ? <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs"><span className="font-semibold text-slate-500">Filter aktif:</span><button type="button" onClick={resetFilters} className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300">Reset semua</button></div> : null}
       <div className="overflow-x-auto"><table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 900), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead><tbody className="divide-y divide-slate-100">{visibleRows.map((row) => <tr key={row.id} onClick={() => onEdit(row)} className="cursor-pointer hover:bg-slate-50" title="Klik untuk edit"><TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />{layout.orderedColumns.map((column) => renderCell(column, row))}</tr>)}</tbody></table></div>
     </div>

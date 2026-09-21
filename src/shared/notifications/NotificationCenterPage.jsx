@@ -63,13 +63,6 @@ export function NotificationCenterPanel({
             {tab.label}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-1">
-          <button type="button" onClick={() => center.clear(center.activeTab)} className="px-2 py-1.5 text-[11px] font-bold text-slate-500 hover:text-red-600">Bersihkan</button>
-          <button type="button" onClick={() => center.clear()} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-extrabold text-slate-600 hover:bg-red-50 hover:text-red-700" title="Hapus semua notifikasi (antrean dan info)">
-            <span className="material-symbols-outlined text-[14px]">delete_sweep</span>
-            Semua
-          </button>
-        </div>
       </div>
       <div className={cn("max-h-[min(60vh,26rem)] flex-1 overflow-y-auto", contentClassName)}>
         {rows.length ? rows.map((item) => <NotificationItem key={item.id} item={item} onRemove={center.remove} />) : (

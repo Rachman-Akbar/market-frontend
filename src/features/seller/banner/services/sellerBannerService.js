@@ -60,7 +60,7 @@ export function useSellerBanners() {
       return storeId ? rows.filter((row) => row.storeId === storeId) : [];
     },
     enabled: Boolean(activeRole === "seller" && storeId),
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

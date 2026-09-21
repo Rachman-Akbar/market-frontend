@@ -220,7 +220,7 @@ export default function FinancePage({ mode = "cashflow" }) {
           createLabel={`Tambah ${typeLabel(type)}`}
           placeholder={`Cari ${typeLabel(type).toLowerCase()}, referensi, pesanan, atau toko`}
           filters={(
-            <select value={type} onChange={(event) => { setType(event.target.value); selection.clear(); }} className="h-10 border border-slate-300 bg-white px-3 text-sm font-bold">
+            <select value={type} onChange={(event) => { setType(event.target.value); selection.clear(); }} className="h-9 border border-slate-300 bg-white px-3 text-sm font-bold">
               {allowedTypes.map((item) => <option key={item} value={item}>{typeLabel(item)}</option>)}
             </select>
           )}

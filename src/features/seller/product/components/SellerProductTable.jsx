@@ -6,7 +6,6 @@ import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
-import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { formatTableValue, resolveTableValue } from "@/shared/utils/tableData";
 import { toTitleCase } from "@/shared/utils/textFormatter";
@@ -84,7 +83,6 @@ export const SellerProductTable = memo(function SellerProductTable({
 
   return (
     <div className="bg-white ring-1 ring-slate-200">
-      <TableLayoutHint onReset={layout.resetLayout} />
       <div className="overflow-x-auto pb-1">
         <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 840), minWidth: "100%" }}>
           <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} />

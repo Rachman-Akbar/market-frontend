@@ -1,6 +1,7 @@
 export { ConfirmDialog } from "./ConfirmDialog";
 export { CrudDialog } from "./CrudDialog";
 export { EntityToolbar } from "./EntityToolbar";
+export { FormActionDock } from "./FormActionDock";
 export { ReasonDialog } from "./ReasonDialog";
 export { RowActions } from "./RowActions";
 export * from "./ColumnVisibilityMenu";

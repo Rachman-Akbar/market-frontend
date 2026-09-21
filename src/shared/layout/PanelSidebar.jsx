@@ -234,12 +234,21 @@ export const PanelSidebar = memo(function PanelSidebar({
                     onClick={(event) => openMenu(event, item)}
                     className={cn(
                       "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
-                      activeParentId === item.href ? activeClassName : item.iconColor ? "hover:bg-white/10" : "text-slate-400 hover:bg-white/10 hover:text-white",
+                      activeParentId === item.href
+                        ? item.iconColor
+                          ? "text-white"
+                          : activeClassName
+                        : "text-slate-400 hover:bg-white/10 hover:text-white",
                     )}
+                    style={
+                      activeParentId === item.href && item.iconColor
+                        ? { backgroundColor: item.iconColor, boxShadow: `0 8px 20px -4px ${rgba(item.iconColor, 0.6)}, inset 0 1px 0 rgba(255,255,255,0.3)` }
+                        : undefined
+                    }
                     aria-label={item.label}
                     aria-current={activeParentId === item.href ? "page" : undefined}
                   >
-                    <span className="material-symbols-outlined text-[22px]" style={activeParentId === item.href ? undefined : item.iconColor ? { color: item.iconColor } : undefined}>{item.icon}</span>
+                    <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
                     {groupBadge([item]) > 0 ? <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(99, groupBadge([item]))}</span> : null}
                   </button>
                 </Fragment>

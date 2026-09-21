@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import { required, validateFields } from "@/core/utils/formValidation";
@@ -130,7 +130,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
   return (
     <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Konten Game" : "Tambah Konten Game"} subtitle={hint} size="max-w-6xl" presentation="modal">
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-5 md:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid gap-4 p-5 md:grid-cols-[220px_minmax(0,1fr)] lg:pr-44">
           <FormField label="Jenis Game" error={errors.gameType} required>
             <select
               value={values.gameType}
@@ -188,7 +188,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
 
           {message ? <p className="md:col-span-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
           <div>
             {entity && onDelete ? (
               <button type="button" onClick={onDelete} className="h-10 select-none border border-red-200 px-4 text-sm font-bold text-red-600 hover:bg-red-50">
@@ -205,6 +205,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
             </button>
           </div>
         </div>
+        <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete() : undefined} />
       </form>
     </CrudDialog>
   );

@@ -18,7 +18,6 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/orders", label: "Pesanan", icon: "receipt_long", group: "Penjualan" },
   { href: "/admin/ppob", label: "PPOB & Top Up", icon: "phone_android", group: "Penjualan" },
   { href: "/admin/customers", label: "Pelanggan", icon: "person_search", group: "Penjualan" },
-  { href: "/admin/order-operations", label: "Operasi Pesanan", icon: "shopping_bag", group: "Penjualan" },
   { href: "/admin/reviews", label: "Review", icon: "reviews", group: "Penjualan" },
   { href: "/admin/cashflow", label: "Pemasukan dan Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
   { href: "/admin/receivables-payables", label: "Hutang dan Piutang", icon: "payments", group: "Finance" },

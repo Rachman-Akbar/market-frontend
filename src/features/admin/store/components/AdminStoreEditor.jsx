@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
@@ -59,7 +59,7 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
   return (
     <CrudDialog open={open} onClose={onClose} title="Edit Toko" subtitle="Status moderasi dikelola Admin, sedangkan Active/Non-Active adalah kondisi operasional toko." size="max-w-4xl">
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-5 md:grid-cols-2">
+        <div className="grid gap-4 p-5 md:grid-cols-2 lg:pr-44">
           <FormField label="Nama toko" error={errors.name} required><input value={values.name} onChange={(event) => setField("name", event.target.value)} className={inputClassName} /></FormField>
           <FormField label="Status moderasi">
             <SearchableSelect value={values.status} onChange={(nextValue) => setField("status", nextValue)} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "suspended", label: "Suspended" }]} clearable={false} />
@@ -78,10 +78,11 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
           </div>
           {message ? <p className="md:col-span-2 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-5 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Perubahan"</button>
         </div>
+        <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Perubahan" }} disabled={mutation.isPending} />
       </form>
     </CrudDialog>
   );

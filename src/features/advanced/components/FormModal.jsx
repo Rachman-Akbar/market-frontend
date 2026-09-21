@@ -1,7 +1,7 @@
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { Button } from "@/shared/components/ui/Button";
 
-export function FormModal({ open, title, subtitle, children, onClose, onSubmit, busy, submitLabel = "Simpan", dangerAction }) {
+export function FormModal({ open, title, subtitle, children, onClose, onSubmit, busy, submitLabel = "Simpan", dangerAction, tone = "emerald", saveIcon = "save", extraActions = [] }) {
   return (
     <CrudDialog presentation="page" open={open} title={title} subtitle={subtitle} onClose={onClose}>
       <form onSubmit={onSubmit} className="border border-slate-200 bg-white">
@@ -14,14 +14,15 @@ export function FormModal({ open, title, subtitle, children, onClose, onSubmit, 
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
-        <div className="grid gap-4 p-5 sm:p-6">{children}</div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4">
+        <div className="grid gap-4 p-5 sm:p-6 lg:pr-44">{children}</div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:hidden">
           <div>{dangerAction}</div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
             <Button type="submit" disabled={busy}>{submitLabel}</Button>
           </div>
         </div>
+        <FormActionDock tone={tone} save={{ icon: saveIcon, label: submitLabel }} disabled={busy} onDelete={dangerAction ? () => dangerAction.props.onClick?.() : undefined} extraActions={extraActions} />
       </form>
     </CrudDialog>
   );

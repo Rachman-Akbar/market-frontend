@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { toBoolean } from "@/core/utils/boolean";
 
 export const adminFinanceKeys = {
   feeConfigs: ["admin", "finance", "fee-configs"],
-  withdrawals: (params = {}) => ["admin", "finance", "withdrawals", params],
+  withdrawals: ["admin", "finance", "withdrawals"],
 };
+
+const ADMIN_WITHDRAWALS_STALE_MS = 30000;
 
 export function normalizeFeeConfig(row = {}) {
   return {
@@ -87,6 +90,7 @@ export function useAdminFeeConfigs() {
   return useQuery({
     queryKey: adminFinanceKeys.feeConfigs,
     queryFn: getAdminFeeConfigs,
+    staleTime: 30000,
   });
 }
 
@@ -120,9 +124,21 @@ export async function getAdminWithdrawals(params = {}) {
   const response = await apiClient.get("/api/v1/finance/admin/withdrawals", { params });
   const payload = response.data?.data ?? response.data;
   const rows = unwrapCollection({ ...response.data, data: payload });
+  const paginator = response.data?.data;
+  const preservedMeta = response.data?.meta || paginator?.meta;
+  const meta =
+    preservedMeta ||
+    (paginator && typeof paginator === "object" && !Array.isArray(paginator)
+      ? {
+          current_page: Number(paginator.current_page || 1),
+          last_page: Number(paginator.last_page || 1),
+          per_page: Number(paginator.per_page || rows.length || 20),
+          total: Number(paginator.total ?? rows.length),
+        }
+      : { current_page: 1, last_page: 1, per_page: rows.length || 20, total: rows.length });
   return {
     rows: rows.map(normalizeWithdrawal),
-    meta: response.data?.meta || payload?.meta || { current_page: 1, last_page: 1, total: rows.length },
+    meta,
     pendingCount: Number(response.data?.pending_count ?? 0),
   };
 }
@@ -138,9 +154,12 @@ export async function rejectAdminWithdrawal(id, reason) {
 }
 
 export function useAdminWithdrawals(params = {}) {
-  return useQuery({
-    queryKey: adminFinanceKeys.withdrawals(params),
-    queryFn: () => getAdminWithdrawals(params),
+  return useInfiniteList({
+    queryKey: adminFinanceKeys.withdrawals,
+    queryFn: getAdminWithdrawals,
+    params,
+    perPage: 20,
+    staleTime: ADMIN_WITHDRAWALS_STALE_MS,
   });
 }
 

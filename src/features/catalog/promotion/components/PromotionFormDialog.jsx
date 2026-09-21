@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog } from "@/shared/components/crud/CrudDialog";
+import { CrudDialog, FormActionDock } from "@/shared/components/crud";
 import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -162,7 +162,7 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
   return (
     <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Promosi" : "Tambah Promosi"} subtitle={isSeller ? "Setiap pengajuan seller otomatis berstatus pending sampai disetujui admin." : "Promosi baru tetap pending dan harus melalui approval sebelum tampil di homepage."} size="max-w-3xl">
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-6 md:grid-cols-2">
+        <div className="grid gap-4 p-6 md:grid-cols-2 lg:pr-44">
           <FormField label="Nama promosi" error={errors.name} required><input value={values.name} onChange={(event) => setField("name", event.target.value)} className={inputClassName} /></FormField>
           {isSeller ? <FormField label="Pembayaran promosi" error={errors.promotionPaymentId} required><SearchableSelect value={values.promotionPaymentId} onChange={(nextValue) => setField("promotionPaymentId", nextValue)} options={paymentOptions.map((row) => ({ value: row.id, label: `${row.payment_number} - ${row.package_name} - Rp${Number(row.amount || 0).toLocaleString("id-ID")}` }))} placeholder="Pilih pembayaran approved" searchPlaceholder="Cari nomor pembayaran" /></FormField> : null}
           <FormField label="Urutan"><input type="number" min="0" value={values.sortOrder} onChange={(event) => setField("sortOrder", event.target.value)} className={inputClassName} /></FormField>
@@ -178,7 +178,8 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
           {values.imageUrl ? <picture className="md:col-span-2"><source media="(max-width: 640px)" srcSet={values.mobileImageUrl || values.imageUrl} /><img src={values.imageUrl} alt="Preview promosi" className="aspect-[4/1] w-full rounded-2xl bg-slate-100 object-cover" /></picture> : null}
           {message ? <p className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className={`h-10 px-4 text-sm font-extrabold text-white disabled:opacity-60 ${isSeller ? "bg-emerald-600" : "bg-teal-600"}`}>{isSeller ? "Ajukan Promosi" : "Simpan Promosi"}</button></div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className={`h-10 px-4 text-sm font-extrabold text-white disabled:opacity-60 ${isSeller ? "bg-emerald-600" : "bg-teal-600"}`}>{isSeller ? "Ajukan Promosi" : "Simpan Promosi"}</button></div>
+        <FormActionDock tone={isSeller ? "emerald" : "teal"} save={{ icon: isSeller ? "send" : "save", label: isSeller ? "Ajukan Promosi" : "Simpan Promosi" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

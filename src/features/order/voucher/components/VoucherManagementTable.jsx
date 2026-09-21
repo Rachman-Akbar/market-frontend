@@ -3,7 +3,6 @@ import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch"
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
-import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { useColumnFilterState } from "@/shared/hooks";
 import { formatDateTime } from "@/core/utils/dateTime";
@@ -109,7 +108,6 @@ export const VoucherManagementTable = memo(function VoucherManagementTable({
 
   return (
     <div className="overflow-hidden bg-white ring-1 ring-slate-200">
-      <TableLayoutHint onReset={layout.resetLayout} />
       {hasActiveFilters ? <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs"><span className="font-semibold text-slate-500">Filter aktif:</span><button type="button" onClick={resetFilters} className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300">Reset semua</button></div> : null}
       <div className="overflow-x-auto">
         <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 1000), minWidth: "100%" }}>

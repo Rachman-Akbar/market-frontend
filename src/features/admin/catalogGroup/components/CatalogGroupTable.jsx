@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
-import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 
 export function CatalogGroupTable({ rows = [] }) {
@@ -26,7 +25,6 @@ export function CatalogGroupTable({ rows = [] }) {
   return (
     <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white">
       <div className="border-b border-slate-100 px-5 py-4"><h2 className="text-base font-extrabold text-slate-950">Detail catalog group</h2><p className="text-sm text-slate-500">Kontrol sort order, owner, dan sinkronisasi group katalog.</p></div>
-      <div className="px-4 pt-2"><TableLayoutHint onReset={layout.resetLayout} /></div>
       <div className="overflow-x-auto">
         <table className="table-fixed text-left text-sm" style={{ width: Math.max(layout.totalWidth, 760), minWidth: "100%" }}>
           <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} />

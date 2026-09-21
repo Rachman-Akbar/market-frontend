@@ -13,6 +13,7 @@ import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility } from "@/shared/hooks";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 
@@ -31,7 +32,7 @@ export default function AdminGameContentPage() {
   const updateMutation = useUpdateAdminGameContent();
   const deleteMutation = useDeleteAdminGameContent();
 
-  const rows = listQuery.data || [];
+  const rows = listQuery.rows;
 
   const columns = [
     { key: "id", label: "ID", render: (row) => <span className="font-mono text-xs text-slate-400">#{row.id}</span> },
@@ -119,7 +120,8 @@ export default function AdminGameContentPage() {
       <AsyncState loading={listQuery.isLoading} error={listQuery.error ? getAdminGameContentError(listQuery.error) : ""} empty={!listQuery.isLoading && !rows.length} emptyText={`Belum ada konten untuk game ${GAME_TYPE_META[gameType].label}.`} />
 
       {rows.length ? (
-        <div className="w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+        <>
+          <div className="w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
@@ -135,6 +137,8 @@ export default function AdminGameContentPage() {
             </tbody>
           </table>
         </div>
+        <InfiniteScrollSentinel query={listQuery} />
+        </>
       ) : null}
 
       <AdminGameContentEditor

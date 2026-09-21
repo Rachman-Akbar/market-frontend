@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
+import { ActionIconButton } from "@/shared/components/crud/ActionIconButton";
 
 export const BulkActionsMenu = memo(function BulkActionsMenu({ selectedCount = 0, actions = [], disabled = false }) {
   const [open, setOpen] = useState(false);
@@ -19,16 +20,15 @@ export const BulkActionsMenu = memo(function BulkActionsMenu({ selectedCount = 0
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        disabled={disabled || (!selectedCount && !canOpenWithoutSelection)}
+      <ActionIconButton
+        icon="checklist"
+        title="Bulk Action"
+        tooltip={false}
+        badge={selectedCount > 0 ? selectedCount : undefined}
+        active={open}
         onClick={() => setOpen((current) => !current)}
-        className="inline-flex h-10 items-center justify-center gap-2 bg-slate-100 px-3 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        <span className="material-symbols-outlined text-[19px]">checklist</span>
-        <span>{selectedCount ? `${selectedCount} dipilih` : "Bulk Action"}</span>
-        <span className="material-symbols-outlined text-[17px]">keyboard_arrow_down</span>
-      </button>
+        disabled={disabled || (!selectedCount && !canOpenWithoutSelection)}
+      />
       {open ? (
         <div className="absolute right-0 top-full z-[110] mt-1 min-w-60 bg-white py-1 ring-1 ring-slate-200">
           {availableActions.map((action) => {

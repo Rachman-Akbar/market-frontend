@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
-import { ColumnVisibilityMenu } from "@/shared/components/crud/ColumnVisibilityMenu";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
-import { TableLayoutHint } from "@/shared/components/table/TableLayoutHint";
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { useColumnVisibility } from "@/shared/hooks/useColumnVisibility";
 import { formatTableValue, resolveTableValue } from "@/shared/utils/tableData";
+import { useToolbarTableColumns } from "./ToolbarTableColumnsContext";
 
 function hasFilterValue(type, value) {
   if (type === "range") return Boolean(value?.min !== "" || value?.max !== "");
@@ -18,6 +17,7 @@ function valueText(value) {
 }
 
 export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey, hasNextPage = false, isFetchingNextPage = false, onLoadMore }) {
+  const { register, unregister } = useToolbarTableColumns();
   const visibleState = useColumnVisibility(columns, storageKey || `advanced.${columns.map((column) => column.key).join(".")}`);
   const visibleColumns = useMemo(
     () => columns.filter((column) => visibleState.visibleSet.has(column.key)),
@@ -87,22 +87,25 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
   const tableWidth = layout.totalWidth + (selectionEnabled ? 44 : 0);
   const activeFilterCount = Object.keys(columnFilters).filter((key) => hasFilterValue(filterConfig[key]?.type, columnFilters[key])).length;
 
+  useEffect(() => {
+    if (!register) return undefined;
+    if (columns.length <= 1) {
+      unregister();
+      return undefined;
+    }
+    register({
+      columns: layoutColumns,
+      visibleKeys: visibleState.visibleKeys,
+      onToggle: visibleState.toggleColumn,
+      onShowAll: visibleState.showAll,
+      onReset: visibleState.reset,
+      onApplyDefault: visibleState.applyAsDefault,
+    });
+    return () => unregister();
+  }, [columns.length, layoutColumns, register, unregister, visibleState.applyAsDefault, visibleState.reset, visibleState.showAll, visibleState.toggleColumn, visibleState.visibleKeys]);
+
   return (
     <div className="w-full min-w-0 max-w-full">
-      <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
-        <TableLayoutHint onReset={layout.resetLayout} />
-        {columns.length > 1 ? (
-          <ColumnVisibilityMenu
-            columns={layoutColumns}
-            visibleKeys={visibleState.visibleKeys}
-            onToggle={visibleState.toggleColumn}
-            onShowAll={visibleState.showAll}
-            onReset={visibleState.reset}
-            onApplyDefault={visibleState.applyAsDefault}
-          />
-        ) : null}
-      </div>
-
       {!sortedRows.length ? <div className="border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{rows.length && !activeFilterCount ? emptyText : activeFilterCount ? "Tidak ada data yang cocok dengan filter aktif." : emptyText}</div> : null}
 
       {sortedRows.length ? (

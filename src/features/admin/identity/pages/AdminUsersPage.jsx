@@ -11,6 +11,7 @@ import {
 import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { ConfirmDialog, EntityToolbar } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
+import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 
@@ -21,7 +22,7 @@ export default function AdminUsersPage() {
   const editor = useEntityEditor();
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [message, setMessage] = useState("");
-  const rows = usersQuery.data || [];
+  const rows = usersQuery.rows;
   const searchableRows = useMemo(
     () => rows.map((row) => ({ ...row, roleNames: row.roles.map((role) => role.name).join(" ") })),
     [rows],
@@ -101,27 +102,30 @@ export default function AdminUsersPage() {
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={usersQuery.isLoading} error={usersQuery.error ? getAdminIdentityError(usersQuery.error) : ""} empty={!usersQuery.isLoading && !filteredRows.length} emptyText="User belum tersedia." />
           {filteredRows.length ? (
-            <UserTable
-              rows={filteredRows}
-              columns={columns}
-              onEdit={editor.edit}
-              onToggleActive={(row, isActive) => {
-                quickUpdateMutation.mutate(
-                  { id: row.id, values: { ...row, isActive, isBanned: false, roleIds: row.roles.map((role) => role.id) } },
-                  {
-                    onSuccess: () => setMessage("Status user berhasil diperbarui."),
-                    onError: (error) => setMessage(getAdminIdentityError(error)),
-                  },
-                );
-              }}
-              pendingId={quickUpdateMutation.variables?.id}
-              visibleSet={columnVisibility.visibleSet}
-              selectionEnabled={selection.enabled}
-              selectedIds={selection.selectedIds}
-              allSelected={selection.allSelected}
-              onToggleRow={selection.toggleRow}
-              onToggleAll={selection.toggleAll}
-            />
+            <>
+              <UserTable
+                rows={filteredRows}
+                columns={columns}
+                onEdit={editor.edit}
+                onToggleActive={(row, isActive) => {
+                  quickUpdateMutation.mutate(
+                    { id: row.id, values: { ...row, isActive, isBanned: false, roleIds: row.roles.map((role) => role.id) } },
+                    {
+                      onSuccess: () => setMessage("Status user berhasil diperbarui."),
+                      onError: (error) => setMessage(getAdminIdentityError(error)),
+                    },
+                  );
+                }}
+                pendingId={quickUpdateMutation.variables?.id}
+                visibleSet={columnVisibility.visibleSet}
+                selectionEnabled={selection.enabled}
+                selectedIds={selection.selectedIds}
+                allSelected={selection.allSelected}
+                onToggleRow={selection.toggleRow}
+                onToggleAll={selection.toggleAll}
+              />
+              <InfiniteScrollSentinel query={usersQuery} />
+            </>
           ) : null}
         </>
       ) : null}

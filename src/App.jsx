@@ -36,7 +36,6 @@ const SellerPromotionPage = lazy(() => import("@/features/seller/promotion/pages
 const SellerStorePage = lazy(() => import("@/features/seller/store/pages/SellerStorePage"));
 const SellerStorePreviewPage = lazy(() => import("@/features/seller/store/pages/SellerStorePreviewPage"));
 const SellerOrdersPage = lazy(() => import("@/features/seller/order/pages/SellerOrdersPage"));
-const SellerOrderDetailPage = lazy(() => import("@/features/seller/order/pages/OrderDetailPage"));
 const SchedulePage = lazy(() => import("@/features/seller/planner/pages/SchedulePage"));
 const AdminHomePage = lazy(() => import("@/features/admin/dashboard/pages/AdminHomePage"));
 const AdminProductsPage = lazy(() => import("@/features/admin/product/pages/AdminProductsPage"));
@@ -73,7 +72,6 @@ const PpobPage = lazy(() => import("@/features/ppob/pages/PpobPage"));
 const PpobReceiptPage = lazy(() => import("@/features/ppob/pages/PpobReceiptPage"));
 const PromotionPaymentsPage = lazy(() => import("@/features/advanced/pages/PromotionPaymentsPage"));
 const AnnouncementPage = lazy(() => import("@/features/advanced/pages/AnnouncementPage"));
-const OrderOperationsPage = lazy(() => import("@/features/advanced/pages/OrderOperationsPage"));
 const ReviewsPage = lazy(() => import("@/features/advanced/pages/ReviewsPage"));
 const RealtimeChatPage = lazy(() => import("@/features/advanced/pages/RealtimeChatPage"));
 
@@ -166,9 +164,7 @@ function renderSellerRoutes() {
           <Route path="/seller/vouchers" element={<SellerVoucherPage />} />
           <Route path="/seller/promotions" element={<SellerPromotionPage />} />
           <Route path="/seller/orders" element={<SellerOrdersPage />} />
-          <Route path="/seller/orders/:id" element={<SellerOrderDetailPage />} />
           <Route path="/seller/customers" element={<CustomersPage />} />
-          <Route path="/seller/order-operations" element={<OrderOperationsPage />} />
           <Route path="/seller/planner" element={<SchedulePage />} />
           <Route path="/seller/cashflow" element={<FinancePage mode="cashflow" />} />
           <Route path="/seller/receivables-payables" element={<FinancePage mode="receivables" />} />
@@ -196,11 +192,9 @@ function renderAdminRoutes() {
         <Route path="/admin/vouchers" element={<AdminVoucherPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionPage />} />
         <Route path="/admin/orders" element={<AdminOrdersPage />} />
-        <Route path="/admin/orders/:id" element={<SellerOrderDetailPage />} />
         <Route path="/admin/ppob" element={<AdminPpobPage />} />
-        <Route path="/admin/customers" element={<CustomersPage />} />
-        <Route path="/admin/order-operations" element={<OrderOperationsPage />} />
-        <Route path="/admin/cashflow" element={<FinancePage mode="cashflow" />} />
+<Route path="/admin/customers" element={<CustomersPage />} />
+          <Route path="/admin/cashflow" element={<FinancePage mode="cashflow" />} />
         <Route path="/admin/receivables-payables" element={<FinancePage mode="receivables" />} />
         <Route path="/admin/fee-configs" element={<AdminFeeConfigPage />} />
         <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />

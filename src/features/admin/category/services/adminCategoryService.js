@@ -88,7 +88,7 @@ export function useAdminCategoryList() {
   return useQuery({
     queryKey: adminCategoryKeys.all,
     queryFn: getAdminCategories,
-    staleTime: 0,
+    staleTime: 30000,
   });
 }
 

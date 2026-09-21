@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { publicQueryOptions } from "@/core/api/publicQueryOptions";
+import { useInfiniteList } from "@/shared/hooks/useInfiniteList";
 import { toBoolean } from "@/core/utils/boolean";
 import { beginOptimisticEntityUpdate, mergeOptimisticValues, rollbackOptimisticEntityUpdate } from "@/shared/utils/optimisticQueryData";
 
@@ -9,6 +10,8 @@ export const adminIdentityKeys = {
   roles: ["admin", "identity", "roles"],
   permissions: ["admin", "identity", "permissions"],
 };
+
+const PUBLIC_ADMIN_LIST_STALE_MS = 30000;
 
 function normalizeRoleReference(row = {}) {
   return {
@@ -92,9 +95,20 @@ function serializeRole(values) {
   };
 }
 
-export async function getAdminUsers() {
-  const response = await apiClient.get("/api/v1/identity/users", { params: { per_page: 100 } });
-  return unwrapCollection(response.data).map(normalizeUser);
+function normalizeUserPage(payload) {
+  const response = payload?.data ?? payload;
+  const rows = (unwrapCollection(response) || []).map(normalizeUser);
+  const meta = response?.meta || {
+    current_page: 1,
+    last_page: 1,
+    total: rows.length,
+  };
+  return { rows, meta };
+}
+
+export async function getAdminUsers(params = {}) {
+  const response = await apiClient.get("/api/v1/identity/users", { params });
+  return normalizeUserPage(response.data);
 }
 
 export async function createAdminUser(values) {
@@ -140,8 +154,14 @@ function refreshIdentityQueries(queryClient) {
   queryClient.invalidateQueries({ queryKey: ["auth"] });
 }
 
-export function useAdminUsers() {
-  return useQuery({ queryKey: adminIdentityKeys.users, queryFn: getAdminUsers, ...publicQueryOptions });
+export function useAdminUsers(params = {}) {
+  return useInfiniteList({
+    queryKey: [...adminIdentityKeys.users],
+    queryFn: getAdminUsers,
+    params,
+    perPage: 25,
+    staleTime: PUBLIC_ADMIN_LIST_STALE_MS,
+  });
 }
 
 export function useAdminRoles() {

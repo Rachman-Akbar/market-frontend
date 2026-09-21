@@ -5,6 +5,7 @@ import { advancedKeys } from "@/features/advanced/services/advancedMarketplaceSe
 import { apiClient, getApiMessage } from "@/core/utils/apiClient";
 import { updateOrderStatus } from "@/features/admin/order/services/orderManagementService";
 import { Input } from "@/shared/components/ui/Input";
+import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
 
 function formatInputValue(date) {
   const d = new Date(date || Date.now());
@@ -37,11 +38,13 @@ export default function OrderCompletionIncomeModal({ rows = [], open, onClose, o
   const [occurredAt, setOccurredAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [printOpen, setPrintOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setBusy(false);
       setError("");
+      setPrintOpen(false);
       return;
     }
     setTitle(defaultTitle);
@@ -101,6 +104,7 @@ export default function OrderCompletionIncomeModal({ rows = [], open, onClose, o
       onSubmit={handleSubmit}
       busy={busy}
       submitLabel="Selesaikan & Catat Pemasukan"
+      extraActions={focus ? [{ icon: "print", label: "Cetak Nota", onClick: () => setPrintOpen(true) }] : []}
     >
       <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
         <p className="font-bold text-slate-700">{totalCount} pesanan akan diselesaikan.</p>
@@ -122,6 +126,7 @@ export default function OrderCompletionIncomeModal({ rows = [], open, onClose, o
       <Field label="Deskripsi" hint="Opsional. Detail tambahan transaksi.">
         <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ringkasan pemasukan" />
       </Field>
+      {printOpen && focus ? <OrderPrintSheet row={focus} onClose={() => setPrintOpen(false)} /> : null}
     </FormModal>
   );
 }
