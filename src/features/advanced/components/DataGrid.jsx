@@ -4,6 +4,8 @@ import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSen
 import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
 import { useColumnVisibility } from "@/shared/hooks/useColumnVisibility";
 import { formatTableValue, resolveTableValue } from "@/shared/utils/tableData";
+import { cn } from "@/shared/utils/utils";
+import { BannedStamp, isInactiveRow } from "@/shared/components/feedback/BannedStamp";
 import { useToolbarTableColumns } from "./ToolbarTableColumnsContext";
 
 function hasFilterValue(type, value) {
@@ -153,16 +155,27 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {sortedRows.map((row) => (
-                <tr key={row.id} onClick={() => onRowClick?.(row)} className={onRowClick ? "cursor-pointer hover:bg-emerald-50/40" : "hover:bg-slate-50"}>
-                  {selectionEnabled ? (
-                    <td className="px-3 py-2.5 text-center" onClick={(event) => event.stopPropagation()}>
-                      <input type="checkbox" checked={selectedIds.has(String(row.id)) || selectedIds.has(Number(row.id))} onChange={() => onToggleRow?.(row.id)} aria-label={`Pilih data ${row.id}`} />
-                    </td>
-                  ) : null}
-                  {layout.orderedColumns.map((column) => <td key={column.key} className="overflow-hidden px-3 py-2.5 align-top text-slate-700"><div className="truncate">{column.render ? column.render(row) : formatTableValue(resolveTableValue(row, column.key))}</div></td>)}
-                </tr>
-              ))}
+              {sortedRows.map((row) => {
+                const inactive = isInactiveRow(row);
+                return (
+                  <tr key={row.id} onClick={() => onRowClick?.(row)} className={cn("relative", inactive && "bg-slate-50", onRowClick ? "cursor-pointer hover:bg-emerald-50/40" : "hover:bg-slate-50")}>
+                    {inactive ? <BannedStamp overlay /> : null}
+                    {selectionEnabled ? (
+                      <td className={cn("px-3 py-2.5 text-center", inactive && "opacity-50 saturate-50")} onClick={(event) => event.stopPropagation()}>
+                        <input type="checkbox" checked={selectedIds.has(String(row.id)) || selectedIds.has(Number(row.id))} onChange={() => onToggleRow?.(row.id)} aria-label={`Pilih data ${row.id}`} />
+                      </td>
+                    ) : null}
+                    {layout.orderedColumns.map((column) => {
+                      const content = column.render ? column.render(row) : formatTableValue(resolveTableValue(row, column.key));
+                      return (
+                        <td key={column.key} className="overflow-hidden px-3 py-2.5 align-top text-slate-700">
+                          <div className={cn("truncate", inactive && "opacity-50 saturate-50")}>{content}</div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {hasNextPage || isFetchingNextPage ? (

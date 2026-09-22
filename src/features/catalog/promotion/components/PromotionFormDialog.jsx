@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
-import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { ImageFilePicker } from "@/shared/components/form/ImageFilePicker";
@@ -162,7 +162,12 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
   return (
     <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Promosi" : "Tambah Promosi"} subtitle={isSeller ? "Setiap pengajuan seller otomatis berstatus pending sampai disetujui admin." : "Promosi baru tetap pending dan harus melalui approval sebelum tampil di homepage."} size="max-w-3xl">
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-6 md:grid-cols-2 lg:pr-44">
+        <FormEditorLayout
+          actions={
+            <FormActionDock tone={isSeller ? "emerald" : "teal"} save={{ icon: isSeller ? "send" : "save", label: isSeller ? "Ajukan Promosi" : "Simpan Promosi" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+          }
+        >
+        <div className="grid gap-4 md:grid-cols-2">
           <FormField label="Nama promosi" error={errors.name} required><input value={values.name} onChange={(event) => setField("name", event.target.value)} className={inputClassName} /></FormField>
           {isSeller ? <FormField label="Pembayaran promosi" error={errors.promotionPaymentId} required><SearchableSelect value={values.promotionPaymentId} onChange={(nextValue) => setField("promotionPaymentId", nextValue)} options={paymentOptions.map((row) => ({ value: row.id, label: `${row.payment_number} - ${row.package_name} - Rp${Number(row.amount || 0).toLocaleString("id-ID")}` }))} placeholder="Pilih pembayaran approved" searchPlaceholder="Cari nomor pembayaran" /></FormField> : null}
           <FormField label="Urutan"><input type="number" min="0" value={values.sortOrder} onChange={(event) => setField("sortOrder", event.target.value)} className={inputClassName} /></FormField>
@@ -174,12 +179,20 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
           {values.clickAction === "product" ? <FormField label="Produk target" error={errors.targetId} required><SearchableSelect value={values.targetId} onChange={(nextValue) => setField("targetId", nextValue)} options={(productsQuery.data || []).map((product) => ({ value: product.id, label: product.name }))} placeholder="Pilih produk" searchPlaceholder="Cari produk" onCreate={openProductCreate} createLabel={(name) => `Data tidak ditemukan, buka Data Baru Product untuk “${name}”`} /></FormField> : null}
           {values.clickAction === "category" ? <FormField label="Kategori target" error={errors.targetId} required><SearchableSelect value={values.targetId} onChange={(nextValue) => setField("targetId", nextValue)} options={(categoriesQuery.data || []).map((category) => ({ value: category.id, label: toTitleCase(category.name) }))} placeholder="Pilih kategori" searchPlaceholder="Cari kategori" onCreate={quickCreateCategory} creating={quickCreateCategoryMutation.isPending} createLabel={(name) => `Data tidak ditemukan, tambahkan “${name}” sebagai Category baru`} /></FormField> : null}
           {values.clickAction === "url" ? <FormField label="URL target" error={errors.targetUrl} required><input value={values.targetUrl} onChange={(event) => setField("targetUrl", event.target.value)} className={inputClassName} placeholder="/search?q=promo atau https://..." /></FormField> : null}
-          <div className="md:col-span-2"><ActiveToggle checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} description="Promosi tetap tidak tampil ke buyer sebelum approval admin." /></div>
+          <div className="md:col-span-2">
+            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+              <div>
+                <span className="block text-sm font-bold text-slate-700">Status aktif</span>
+                <span className="block text-[11px] text-slate-400">Promosi tetap tidak tampil ke buyer sebelum approval admin.</span>
+              </div>
+              <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
+            </div>
+          </div>
           {values.imageUrl ? <picture className="md:col-span-2"><source media="(max-width: 640px)" srcSet={values.mobileImageUrl || values.imageUrl} /><img src={values.imageUrl} alt="Preview promosi" className="aspect-[4/1] w-full rounded-2xl bg-slate-100 object-cover" /></picture> : null}
           {message ? <p className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
+        </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className={`h-10 px-4 text-sm font-extrabold text-white disabled:opacity-60 ${isSeller ? "bg-emerald-600" : "bg-teal-600"}`}>{isSeller ? "Ajukan Promosi" : "Simpan Promosi"}</button></div>
-        <FormActionDock tone={isSeller ? "emerald" : "teal"} save={{ icon: isSeller ? "send" : "save", label: isSeller ? "Ajukan Promosi" : "Simpan Promosi" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

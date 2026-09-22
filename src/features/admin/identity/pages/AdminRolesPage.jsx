@@ -9,7 +9,7 @@ import {
   useUpdateAdminRole,
 } from "@/features/admin/identity/services/adminIdentityService";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
-import { ConfirmDialog, EntityToolbar } from "@/shared/components/crud";
+import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
@@ -67,7 +67,8 @@ export default function AdminRolesPage() {
   return (
     <AdminShell>
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -91,6 +92,8 @@ export default function AdminRolesPage() {
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
           />
+          )}
+        >
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={rolesQuery.isLoading} error={rolesQuery.error ? getAdminIdentityError(rolesQuery.error) : ""} empty={!rolesQuery.isLoading && !filteredRows.length} emptyText="Role belum tersedia." />
           {filteredRows.length ? (
@@ -116,7 +119,7 @@ export default function AdminRolesPage() {
               onToggleAll={selection.toggleAll}
             />
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <RoleFormDialog open={editor.open} role={editor.entity} onDelete={setDeleteTarget} onClose={editor.close} onSaved={() => setMessage(`${editor.entity ? "Role berhasil diperbarui" : "Role berhasil ditambahkan"}.`)} />

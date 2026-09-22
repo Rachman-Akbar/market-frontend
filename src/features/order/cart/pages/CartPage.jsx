@@ -34,6 +34,7 @@ import { Skeleton, SkeletonLine } from "@/shared/components/feedback/Skeleton";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import VoucherSearchSelect from "@/features/order/voucher/components/VoucherSearchSelect";
 import { formatPrice } from "@/shared/utils/utils";
+import { parseShipping } from "@/shared/utils/shipping";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import {
   PPOB_STATUS_STYLES,
@@ -437,7 +438,7 @@ function OrderDetailPanel({ orderId, onBack, paymentNotice = "" }) {
           </div>
           <div className="mt-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Alamat</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">{order.shippingAddress || "-"}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{parseShipping(order.shippingAddress).display || "-"}</p>
           </div>
           <p className="mt-3 text-[11px] text-slate-400">Bayar: {order.paymentMethod || "-"}</p>
           {String(order.status).toLowerCase() === "shipped" ? (

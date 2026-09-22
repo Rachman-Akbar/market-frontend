@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
-import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import {
   FormField,
   inputClassName,
@@ -93,8 +93,13 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
       size="max-w-3xl"
     >
       <form onSubmit={submit}>
-        <div className="space-y-4 p-6 lg:pr-44">
-          <FormField label="Nama role" error={errors.name} required>
+        <FormEditorLayout
+          actions={
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Role" }} disabled={mutation.isPending} onDelete={role && onDelete ? () => onDelete(role) : undefined} />
+          }
+        >
+          <div className="space-y-4">
+            <FormField label="Nama role" error={errors.name} required>
             <input
               value={values.name}
               onChange={(event) => setField("name", event.target.value)}
@@ -135,11 +140,13 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
             </div>
           </div>
 
-          <ActiveToggle
-            checked={values.isActive}
-            onChange={(isActive) => setField("isActive", isActive)}
-            description="Role nonaktif tidak dapat dipakai untuk login atau assignment baru."
-          />
+          <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+            <div>
+              <span className="block text-sm font-bold text-slate-700">Status aktif</span>
+              <span className="block text-[11px] text-slate-400">Role nonaktif tidak dapat dipakai untuk login atau assignment baru.</span>
+            </div>
+            <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
+          </div>
 
           {message ? (
             <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
@@ -147,13 +154,13 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
             </p>
           ) : null}
         </div>
+        </FormEditorLayout>
 
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {role && onDelete ? <button type="button" onClick={() => onDelete(role)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
           <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Role"</button>
         </div>
-        <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Role" }} disabled={mutation.isPending} onDelete={role && onDelete ? () => onDelete(role) : undefined} />
       </form>
     </CrudDialog>
   );

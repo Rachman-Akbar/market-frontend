@@ -1,6 +1,12 @@
-import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
+import { useEffect, useState } from "react";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { formatPrice } from "@/shared/utils/utils";
+import { advancedError, useCreateCustomer, useDeleteCustomer, useUpdateCustomer } from "@/features/advanced/services/advancedMarketplaceService";
+import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
+import { ConfirmDialog } from "@/shared/components/crud";
+import { Input } from "@/shared/components/ui/Input";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -8,65 +14,154 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("id-ID");
 }
 
-function CustomerDetailForm({ customer }) {
-  if (!customer) return null;
+const INITIAL_FORM = { name: "", email: "", is_active: true };
 
-  const avatar = resolveMediaUrl(customer.avatar || "");
+function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [message, setMessage] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const createMutation = useCreateCustomer();
+  const updateMutation = useUpdateCustomer();
+  const deleteMutation = useDeleteCustomer();
+
+  const editing = Boolean(customer);
+  const saving = createMutation.isPending || updateMutation.isPending;
+  const busy = saving || deleteMutation.isPending;
+
+  useEffect(() => {
+    setMessage("");
+    setForm(customer ? { name: customer.name || "", email: customer.email || "", is_active: customer.is_active !== false } : INITIAL_FORM);
+  }, [customer]);
+
+  if (admin && !customer) return null;
+
+  const avatar = resolveMediaUrl(customer?.avatar || "");
   const stats = [
-    { label: "Jumlah Pesanan", value: Number(customer.orders_count || 0).toLocaleString("id-ID"), icon: "receipt_long", tone: "bg-sky-50 text-sky-700" },
-    { label: "Total Belanja", value: formatPrice(customer.total_spent), icon: "payments", tone: "bg-emerald-50 text-emerald-700" },
-    { label: "Pesanan Terakhir", value: formatDate(customer.last_order_at), icon: "schedule", tone: "bg-amber-50 text-amber-700" },
+    { label: "Jumlah Pesanan", value: Number(customer?.orders_count || 0).toLocaleString("id-ID"), icon: "receipt_long", tone: "bg-sky-50 text-sky-700" },
+    { label: "Total Belanja", value: formatPrice(customer?.total_spent), icon: "payments", tone: "bg-emerald-50 text-emerald-700" },
+    { label: "Pesanan Terakhir", value: formatDate(customer?.last_order_at), icon: "schedule", tone: "bg-amber-50 text-amber-700" },
   ];
 
-  return (
-    <FormPageLayout
-      title="Detail Pelanggan"
-      subtitle={customer.name ? `ID ${customer.id} · ${customer.name}` : `ID ${customer.id}`}
-      lead={
-        <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase ${customer.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-          {customer.is_active ? "Aktif" : "Nonaktif"}
-        </span>
+  const handleSave = async () => {
+    setMessage("");
+    try {
+      const payload = { name: form.name.trim(), email: form.email.trim(), is_active: form.is_active };
+      if (editing) {
+        await updateMutation.mutateAsync({ id: customer.id, values: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
       }
-    >
-      <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-        <div className="flex items-center gap-4">
-          {avatar ? (
-            <img src={avatar} alt={customer.name || "Pelanggan"} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-slate-200" />
-          ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-slate-400">
-              <span className="material-symbols-outlined text-[32px]">person</span>
-            </span>
-          )}
-          <div className="min-w-0">
-            <p className="truncate text-lg font-black text-slate-900">{customer.name || "Tanpa Nama"}</p>
-            <p className="truncate text-sm text-slate-500">{customer.email || "-"}</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-400">Terdaftar {formatDate(customer.registered_at)}</p>
-          </div>
-        </div>
-      </div>
+      onSaved?.();
+    } catch (error) {
+      setMessage(advancedError(error));
+    }
+  };
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {stats.map((item) => (
-          <div key={item.label} className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
-            <span className={`grid h-9 w-9 place-items-center rounded-lg ${item.tone}`}>
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            </span>
-            <p className="mt-3 text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{item.label}</p>
-            <p className="mt-1 truncate text-lg font-black text-slate-900">{item.value}</p>
-          </div>
-        ))}
-      </div>
+  const handleDelete = async () => {
+    setDeleteError("");
+    try {
+      await deleteMutation.mutateAsync(customer.id);
+      setDeleteOpen(false);
+      onDeleted?.();
+    } catch (error) {
+      setDeleteError(advancedError(error));
+    }
+  };
 
-      <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-        <h2 className="text-sm font-extrabold text-slate-900">Informasi Kontak</h2>
-        <div className="mt-3 divide-y divide-slate-100">
-          <div className="flex justify-between gap-4 py-2.5 text-sm"><span className="text-slate-500">Nama</span><span className="max-w-[60%] truncate text-right font-bold text-slate-800">{customer.name || "-"}</span></div>
-          <div className="flex justify-between gap-4 py-2.5 text-sm"><span className="text-slate-500">Email</span><span className="max-w-[60%] truncate text-right font-bold text-slate-800">{customer.email || "-"}</span></div>
-          <div className="flex justify-between gap-4 py-2.5 text-sm"><span className="text-slate-500">Status</span><span className="text-right font-bold text-slate-800">{customer.is_active ? "Aktif" : "Nonaktif"}</span></div>
-          <div className="flex justify-between gap-4 py-2.5 text-sm"><span className="text-slate-500">Terdaftar</span><span className="max-w-[60%] truncate text-right font-bold text-slate-800">{formatDate(customer.registered_at)}</span></div>
-        </div>
-      </div>
-    </FormPageLayout>
+  return (
+    <>
+      <OrderFormLayout
+        aside={
+          admin ? null : (
+            <>
+              <OrderFormActionButton tone="emerald" variant="soft" icon={editing ? "save" : "person_add"} label={editing ? "Simpan" : "Simpan"} type="submit" disabled={busy || !form.name.trim()} onClick={handleSave} />
+              {editing ? <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus" onClick={() => setDeleteOpen(true)} /> : null}
+            </>
+          )
+        }
+      >
+        <FormPageLayout
+          title={editing ? "Detail Pelanggan" : "Tambah Pelanggan"}
+          subtitle={editing ? `${customer.email || `ID ${customer.id}`} · Terdaftar ${formatDate(customer.registered_at)}` : "Buat pelanggan manual untuk toko ini."}
+          lead={
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-3 py-1 text-xs font-extrabold uppercase ${customer?.is_active !== false ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                {customer?.is_active !== false ? "Aktif" : "Nonaktif"}
+              </span>
+              {customer?.is_manual ? <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-extrabold uppercase text-teal-700">Manual</span> : null}
+            </div>
+          }
+        >
+          {message ? <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
+
+          {editing ? (
+            <>
+              <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+                <div className="flex items-center gap-4">
+                  {avatar ? (
+                    <img src={avatar} alt={customer.name || "Pelanggan"} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-slate-200" />
+                  ) : (
+                    <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-slate-400">
+                      <span className="material-symbols-outlined text-[32px]">person</span>
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-black text-slate-900">{customer.name || "Tanpa Nama"}</p>
+                    <p className="truncate text-sm text-slate-500">{customer.email || "-"}</p>
+                    <p className="mt-0.5 text-[11px] font-semibold text-slate-400">Terdaftar {formatDate(customer.registered_at)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {stats.map((item) => (
+                  <div key={item.label} className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+                    <span className={`grid h-9 w-9 place-items-center rounded-lg ${item.tone}`}>
+                      <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                    </span>
+                    <p className="mt-3 text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{item.label}</p>
+                    <p className="mt-1 truncate text-lg font-black text-slate-900">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-slate-400">contact_page</span>
+              <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Data Pelanggan</h2>
+            </div>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-bold text-slate-700 sm:col-span-2">
+                <span>Nama<span className="ml-1 text-red-500">*</span></span>
+                <Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nama pelanggan" maxLength={255} />
+              </label>
+              <label className="grid gap-1.5 text-sm font-bold text-slate-700 sm:col-span-2">
+                <span>Email<span className="ml-1 text-red-500">*</span></span>
+                <Input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="email@contoh.com" maxLength={255} />
+              </label>
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 sm:col-span-2">
+                <span>Status aktif</span>
+                <InlineActiveSwitch checked={form.is_active} onChange={(checked) => setForm((current) => ({ ...current, is_active: checked }))} showLabel={false} />
+              </label>
+            </div>
+          </div>
+        </FormPageLayout>
+      </OrderFormLayout>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Hapus Pelanggan"
+        message={`Pelanggan “${customer?.name || ""}” akan dihapus permanen (soft-delete akun) beserta riwayatnya dari daftar ini. Transaksi lama tetap tersimpan.`}
+        confirmLabel="Hapus Pelanggan"
+        pending={deleteMutation.isPending}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteOpen(false)}
+      />
+      {deleteError ? <p className="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{deleteError}</p> : null}
+    </>
   );
 }
 

@@ -1,7 +1,9 @@
 export { ConfirmDialog } from "./ConfirmDialog";
 export { CrudDialog } from "./CrudDialog";
 export { EntityToolbar } from "./EntityToolbar";
+export { ListPageFrame } from "./ListPageFrame";
 export { FormActionDock } from "./FormActionDock";
+export { FormEditorLayout } from "./FormEditorLayout";
 export { ReasonDialog } from "./ReasonDialog";
 export { RowActions } from "./RowActions";
 export * from "./ColumnVisibilityMenu";

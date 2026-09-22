@@ -4,17 +4,18 @@ import { Input } from "@/shared/components/ui/Input";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { useSellerProducts } from "@/features/seller/product/services/sellerProductService";
 import { createManualOrder, getManualOrderError } from "@/features/seller/order/services/manualOrderService";
+import { useCustomers } from "@/features/advanced/services/advancedMarketplaceService";
 import { formatPrice } from "@/shared/utils/utils";
 import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
 
 const COURIER_OPTIONS = [
+  { value: "ambil_sendiri", label: "Ambil Sendiri" },
   { value: "jne", label: "JNE" },
   { value: "jnt", label: "J&T Express" },
   { value: "sicepat", label: "SiCepat" },
   { value: "pos", label: "POS Indonesia" },
   { value: "anteraja", label: "AnterAja" },
   { value: "manual", label: "Kurir / Manual" },
-  { value: "ambil_sendiri", label: "Ambil Sendiri" },
 ];
 
 const PAYMENT_OPTIONS = [
@@ -31,22 +32,33 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Selesai" },
 ];
 
+const PURCHASE_TYPE_OPTIONS = [
+  { value: "normal", label: "Langsung" },
+  { value: "preorder", label: "Preorder" },
+  { value: "booking", label: "Booking" },
+];
+
 function emptyLine() {
   return { key: Math.random().toString(36).slice(2), variantId: "", label: "", price: 0, stock: 0, quantity: 1 };
 }
 
 export function ManualOrderForm({ open = true, onClose, onSaved }) {
   const productsQuery = useSellerProducts({ per_page: 100 });
+  const customersQuery = useCustomers({ per_page: 100 }, { enabled: open });
   const [lines, setLines] = useState([emptyLine()]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [guestCustomer, setGuestCustomer] = useState(false);
   const [courier, setCourier] = useState("manual");
   const [service, setService] = useState("");
   const [shippingCost, setShippingCost] = useState("0");
   const [paymentMethod, setPaymentMethod] = useState("tunai_toko");
   const [status, setStatus] = useState("processing");
+  const [purchaseType, setPurchaseType] = useState("normal");
+  const [preorderReleaseAt, setPreorderReleaseAt] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -66,6 +78,31 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
     return options;
   }, [productsQuery.data]);
 
+  const customerOptions = useMemo(() => [
+    { value: "guest", label: "Customer Guest (Pelanggan Umum)", keywords: "guest tamu pelanggan umum walk-in", phone: "", address: "" },
+    ...(customersQuery.data?.rows || []).map((customer) => ({
+      value: String(customer.id),
+      label: customer.name || "Pelanggan",
+      keywords: [customer.name, customer.phone, customer.address, customer.email].filter(Boolean).join(" ").toLowerCase(),
+      phone: customer.phone || "",
+      address: customer.address || "",
+    })),
+  ], [customersQuery.data]);
+
+  const pickCustomer = (value) => {
+    if (String(value) === "guest") {
+      setGuestCustomer(true);
+      setCustomerEmail("");
+      return;
+    }
+    setGuestCustomer(false);
+    const customer = customerOptions.find((option) => option.value === String(value));
+    if (!customer) return;
+    setCustomerName(customer.label);
+    setCustomerPhone(customer.phone);
+    setAddress(customer.address);
+  };
+
   useEffect(() => {
     if (open) {
       setLines([emptyLine()]);
@@ -73,11 +110,15 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
       setCustomerPhone("");
       setCustomerEmail("");
       setAddress("");
+      setGuestCustomer(false);
       setCourier("manual");
       setService("");
       setShippingCost("0");
       setPaymentMethod("tunai_toko");
       setStatus("processing");
+      setPurchaseType("normal");
+      setPreorderReleaseAt("");
+      setScheduledAt("");
       setMessage("");
       setBusy(false);
     }
@@ -109,28 +150,36 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
       setMessage("Pilih minimal satu produk untuk order manual.");
       return;
     }
-    if (!customerName.trim()) {
+    if (!guestCustomer && !customerName.trim()) {
       setMessage("Nama pelanggan wajib diisi.");
       return;
     }
-    if (courier !== "ambil_sendiri" && !address.trim()) {
+    if (!guestCustomer && courier !== "ambil_sendiri" && !address.trim()) {
       setMessage("Alamat pengiriman wajib diisi.");
+      return;
+    }
+    if (purchaseType === "booking" && !scheduledAt) {
+      setMessage("Tanggal kirim wajib diisi untuk metode pembelian booking.");
       return;
     }
     setBusy(true);
     setMessage("");
     try {
+      const isPickup = courier === "ambil_sendiri";
       const payload = {
-        customer_name: customerName.trim(),
+        customer_name: customerName.trim() || "Pelanggan Umum",
         customer_phone: customerPhone.trim(),
         customer_email: customerEmail.trim() || null,
-        address: address.trim(),
+        address: isPickup ? null : address.trim() || "Datang langsung ke toko",
         courier,
         service: service.trim() || null,
         shipping_cost: shippingTotal,
         payment_method: paymentMethod,
         payment_status: "paid",
         status,
+        order_type: purchaseType,
+        preorder_release_at: purchaseType === "preorder" ? preorderReleaseAt || null : null,
+        scheduled_at: purchaseType === "booking" ? scheduledAt || null : null,
         items: validLines.map((line) => ({ variant_id: Number(line.variantId), quantity: Number(line.quantity || 0) })),
       };
       const saved = await createManualOrder(payload);
@@ -148,7 +197,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
         <OrderFormLayout
           aside={
             <>
-              <OrderFormActionButton tone="emerald" icon="add" label="Buat Order" type="submit" disabled={busy} />
+              <OrderFormActionButton tone="emerald" variant="soft" icon="add" label="Buat Order" type="submit" disabled={busy} />
             </>
           }
         >
@@ -192,25 +241,57 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
 
           <section className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Customer</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-sm font-bold text-slate-700">
-                <span>Nama pelanggan<span className="ml-1 text-red-500">*</span></span>
-                <Input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Nama pembeli / tamu" />
-              </label>
-              <label className="grid gap-1.5 text-sm font-bold text-slate-700">
-                <span>No. HP<span className="ml-1 text-red-500">*</span></span>
-                <Input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="08xxxxxxxxxx" />
-              </label>
-              <label className="grid gap-1.5 text-sm font-bold text-slate-700">
-                <span>Email</span>
-                <Input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="Opsional" />
-                <span className="text-xs font-normal text-slate-500">Jika diisi dan sudah terdaftar, order dikaitkan ke akun tersebut.</span>
-              </label>
-              <label className="grid gap-1.5 text-sm font-bold text-slate-700">
-                <span>Alamat pengiriman<span className="ml-1 text-red-500">*</span></span>
-                <Input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Alamat lengkap penerima" />
-              </label>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 px-3 py-2.5">
+              <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-emerald-700">Pilih penerima tersimpan (seperti checkout)</div>
+              <SearchableSelect
+                value={guestCustomer ? "guest" : null}
+                onChange={pickCustomer}
+                options={customerOptions}
+                placeholder="Cari nama / no. HP / alamat pelanggan"
+                searchPlaceholder={`${customerOptions.length} pilihan tersedia`}
+                emptyText="Pelanggan tidak ditemukan"
+                clearable
+                buttonClassName="h-10 bg-white text-xs"
+              />
+              {guestCustomer ? (
+                <p className="mt-2 text-xs font-semibold text-emerald-700">
+                  Pelanggan umum — order diisi otomatis sebagai tamu. Anda tidak perlu mengisi data apa pun; kosongkan saja untuk transaksi walk-in.
+                </p>
+              ) : null}
             </div>
+            {guestCustomer ? (
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+                <span className="material-symbols-outlined text-[18px] text-slate-400">person</span>
+                Data otomatis terisi "Pelanggan Umum" — Nama, No. HP, Email, dan Alamat tidak diwajibkan.
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+                  <span>Nama pelanggan<span className="ml-1 text-red-500">*</span></span>
+                  <Input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Nama pembeli / tamu" />
+                </label>
+                <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+                  <span>No. HP</span>
+                  <Input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="08xxxxxxxxxx" />
+                </label>
+                <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+                  <span>Email</span>
+                  <Input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="Opsional" />
+                  <span className="text-xs font-normal text-slate-500">Jika diisi dan sudah terdaftar, order dikaitkan ke akun tersebut.</span>
+                </label>
+                {courier === "ambil_sendiri" ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-sm font-semibold text-emerald-700 sm:col-span-2">
+                    <span className="material-symbols-outlined text-[18px]">storefront</span>
+                    Ambil sendiri di toko — alamat pengiriman tidak digunakan.
+                  </div>
+                ) : (
+                  <label className="grid gap-1.5 text-sm font-bold text-slate-700 sm:col-span-2">
+                    <span>Alamat pengiriman<span className="ml-1 text-red-500">*</span></span>
+                    <Input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Alamat lengkap penerima" />
+                  </label>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="space-y-3">
@@ -233,9 +314,25 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
                 <SearchableSelect value={paymentMethod} onChange={setPaymentMethod} options={PAYMENT_OPTIONS} clearable={false} buttonClassName="h-10" />
               </label>
               <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+                <span>Metode pembelian</span>
+                <SearchableSelect value={purchaseType} onChange={setPurchaseType} options={PURCHASE_TYPE_OPTIONS} clearable={false} buttonClassName="h-10" />
+              </label>
+              <label className="grid gap-1.5 text-sm font-bold text-slate-700">
                 <span>Status pesanan</span>
                 <SearchableSelect value={status} onChange={setStatus} options={STATUS_OPTIONS} clearable={false} buttonClassName="h-10" />
               </label>
+              {purchaseType === "preorder" ? (
+                <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+                  <span>Perkiraan rilis preorder (opsional)</span>
+                  <Input type="date" min={new Date().toISOString().slice(0, 10)} value={preorderReleaseAt} onChange={(event) => setPreorderReleaseAt(event.target.value)} placeholder="Tanggal rilis" />
+                </label>
+              ) : null}
+              {purchaseType === "booking" ? (
+                <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+                  <span>Tanggal kirim<span className="ml-1 text-red-500">*</span></span>
+                  <Input type="date" min={new Date().toISOString().slice(0, 10)} value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} />
+                </label>
+              ) : null}
             </div>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-xs font-semibold text-emerald-700">
               Pembayaran dicatat lunas otomatis (kasir). Anda dapat mencetak nota setelah pesanan dibuat.

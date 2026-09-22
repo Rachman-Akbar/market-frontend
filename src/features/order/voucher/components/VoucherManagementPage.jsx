@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
@@ -64,7 +65,8 @@ export function VoucherManagementPage({ portal, children: wrap }) {
   const content = (
     <>
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -86,6 +88,8 @@ export function VoucherManagementPage({ portal, children: wrap }) {
             hasActiveFilters={Boolean(query)}
             onClearFilters={() => setQuery("")}
           />
+          )}
+        >
           <AsyncState loading={vouchersQuery.isLoading} error={vouchersQuery.error ? getVoucherManagementError(vouchersQuery.error) : ""} empty={!vouchersQuery.isLoading && !filteredRows.length} emptyText="Voucher belum tersedia." />
           {filteredRows.length ? (
             <VoucherManagementTable
@@ -102,7 +106,7 @@ export function VoucherManagementPage({ portal, children: wrap }) {
               pendingId={quickUpdateMutation.variables?.id}
             />
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { parseShipping } from "@/shared/utils/shipping";
 
 function money(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -136,7 +137,7 @@ export default function OrderPrintSheet({ row, onClose }) {
         <div className="mt-6 grid grid-cols-2 gap-6 text-xs">
           <div>
             <p className="font-black uppercase tracking-wide text-slate-400">Alamat Pengiriman</p>
-            <p className="mt-1 whitespace-pre-line leading-relaxed text-slate-600">{raw.shipping_address || row.shippingAddress || "-"}</p>
+            <p className="mt-1 whitespace-pre-line leading-relaxed text-slate-600">{parseShipping(raw.shipping_address || row.shippingAddress).display || "-"}</p>
           </div>
           <div>
             <p className="font-black uppercase tracking-wide text-slate-400">Penanggung Jawab</p>

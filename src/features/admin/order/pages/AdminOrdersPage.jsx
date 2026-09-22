@@ -3,6 +3,7 @@ import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
 import { getOrderManagementError, useAdminOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
@@ -74,7 +75,8 @@ export default function AdminOrdersPage() {
       {editor.open && editor.entity ? (
         <OrderDetailForm row={editor.entity} />
       ) : !spreadsheet.activeOperation ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -124,6 +126,8 @@ export default function AdminOrdersPage() {
               </>
             )}
           />
+          )}
+        >
           {message ? <p className="mb-3 border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={ordersQuery.isLoading} error={ordersQuery.error ? getOrderManagementError(ordersQuery.error) : ""} empty={!ordersQuery.isLoading && !rows.length} emptyText="Pesanan belum tersedia." />
           {rows.length ? (
@@ -155,7 +159,7 @@ export default function AdminOrdersPage() {
             />
           ) : null}
           <InfiniteScrollSentinel hasNextPage={ordersQuery.hasNextPage} isFetchingNextPage={ordersQuery.isFetchingNextPage} onLoadMore={() => ordersQuery.fetchNextPage()} />
-        </>
+        </ListPageFrame>
       ) : null}
       <SpreadsheetOperationPanel workspace={spreadsheet} />
       {printRow ? <OrderPrintSheet row={printRow} onClose={() => setPrintRow(null)} /> : null}

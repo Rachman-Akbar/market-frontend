@@ -18,7 +18,7 @@ export const InteractiveTableHeader = memo(function InteractiveTableHeader({
       {...headerProps}
       style={style}
       className={cn(
-        "group relative select-none whitespace-nowrap px-4 py-3 font-extrabold",
+        "group relative select-none whitespace-nowrap bg-slate-100 px-4 py-3 font-extrabold",
         align === "right" && "text-right",
         align === "center" && "text-center",
         dragging && "opacity-45",

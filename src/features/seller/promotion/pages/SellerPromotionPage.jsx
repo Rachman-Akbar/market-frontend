@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerPanelShell";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
@@ -59,7 +60,8 @@ export default function SellerPromotionPage() {
   return (
     <SellerPanelShell title="Promosi Toko" subtitle="Ajukan promotion homepage, import/export Excel, dan pantau status approval admin.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -82,6 +84,8 @@ export default function SellerPromotionPage() {
             onClearFilters={() => setApprovalStatus("")}
             filters={<SearchableSelect value={approvalStatus} onChange={setApprovalStatus} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }]} placeholder="Semua approval" className="w-44" buttonClassName="h-9" />}
           />
+          )}
+        >
           <AsyncState loading={promotionsQuery.isLoading} error={promotionsQuery.error ? getPromotionError(promotionsQuery.error) : ""} empty={!promotionsQuery.isLoading && !filteredRows.length} emptyText="Belum ada pengajuan promosi." />
           {filteredRows.length ? (
             <PromotionManagementTable
@@ -99,7 +103,7 @@ export default function SellerPromotionPage() {
               pendingId={quickUpdateMutation.variables?.id}
             />
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

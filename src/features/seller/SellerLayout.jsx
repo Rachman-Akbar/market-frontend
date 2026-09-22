@@ -39,7 +39,7 @@ export default function SellerLayout() {
             <PanelHeader eyebrow="Seller Center" title={store?.name || "Official Store"} storeName={store?.name || "Official Store"} userName={user?.name || "Seller"} roleLabel="Store Owner" accentTextClassName="text-emerald-700" avatarClassName="bg-emerald-500" notificationClassName="hover:bg-emerald-50 hover:text-emerald-700" notificationPanel={({ close }) => <NotificationCenterPanel onClose={close} />} mobileNavigation={<PanelMobileNavigation items={SELLER_NAV_ITEMS} activeClassName="bg-emerald-50 text-emerald-700" />} backToMarketplace />
             <PanelTabBar />
             <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3 pb-20 sm:px-4 lg:pb-3">
-              <RouteOutletBoundary className="w-full min-w-0 max-w-full" />
+              <RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" />
             </main>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
-import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { ImageFilePicker } from "@/shared/components/form/ImageFilePicker";
 import { required, validateFields } from "@/core/utils/formValidation";
@@ -43,15 +43,24 @@ export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
   return (
     <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Banner Toko" : "Tambah Banner Toko"} subtitle="Banner hanya ditampilkan pada halaman detail toko buyer." size="max-w-xl">
       <form onSubmit={submit}>
-        <div className="space-y-4 p-6 lg:pr-44">
-          <FormField label="Nama banner" error={errors.name} required><input value={values.name} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} className={inputClassName} /></FormField>
-          <FormField label="Gambar banner" error={errors.imageUrl} required><ImageFilePicker value={values.imageUrl} onChange={(imageUrl) => setValues((current) => ({ ...current, imageUrl }))} scope="banners" label="Pilih gambar banner" aspectClassName="aspect-[3/1]" /></FormField>
-          <FormField label="Urutan"><input type="number" min="0" value={values.sortOrder} onChange={(event) => setValues((current) => ({ ...current, sortOrder: event.target.value }))} className={inputClassName} /></FormField>
-          <ActiveToggle checked={values.isActive} onChange={(isActive) => setValues((current) => ({ ...current, isActive }))} />
-          {message ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
-        </div>
+        <FormEditorLayout
+          contentClassName="max-w-xl"
+          actions={
+            <FormActionDock tone="emerald" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+          }
+        >
+          <div className="space-y-4">
+            <FormField label="Nama banner" error={errors.name} required><input value={values.name} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} className={inputClassName} /></FormField>
+            <FormField label="Gambar banner" error={errors.imageUrl} required><ImageFilePicker value={values.imageUrl} onChange={(imageUrl) => setValues((current) => ({ ...current, imageUrl }))} scope="banners" label="Pilih gambar banner" aspectClassName="aspect-[3/1]" /></FormField>
+            <FormField label="Urutan"><input type="number" min="0" value={values.sortOrder} onChange={(event) => setValues((current) => ({ ...current, sortOrder: event.target.value }))} className={inputClassName} /></FormField>
+            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+              <span className="text-sm font-bold text-slate-700">Status aktif</span>
+              <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setValues((current) => ({ ...current, isActive }))} showLabel={false} />
+            </div>
+            {message ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
+          </div>
+        </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className="h-10 bg-emerald-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan"</button></div>
-        <FormActionDock tone="emerald" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

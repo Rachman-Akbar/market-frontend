@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { BannedStamp, isInactiveRow } from "@/shared/components/feedback/BannedStamp";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
@@ -109,25 +110,27 @@ export const VoucherManagementTable = memo(function VoucherManagementTable({
   return (
     <div className="overflow-hidden bg-white ring-1 ring-slate-200">
       {hasActiveFilters ? <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs"><span className="font-semibold text-slate-500">Filter aktif:</span><button type="button" onClick={resetFilters} className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300">Reset semua</button></div> : null}
-      <div className="overflow-x-auto">
-        <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 1000), minWidth: "100%" }}>
+      <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 1000), minWidth: "100%" }}>
           <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} />
-          <thead className="bg-slate-100 text-xs font-extrabold text-slate-600">
+          <thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600">
             <tr>
               <TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />
               {layout.orderedColumns.map(renderHeader)}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {tableRows.map((row) => (
-              <tr key={row.id} onClick={() => onEdit(row)} className="cursor-pointer hover:bg-slate-50" title="Klik untuk edit">
-                <TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />
-                {layout.orderedColumns.map((column) => renderCell(column, row))}
-              </tr>
-            ))}
+            {tableRows.map((row) => {
+              const inactive = isInactiveRow(row);
+              return (
+                <tr key={row.id} onClick={() => onEdit(row)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`} title="Klik untuk edit">
+                  {inactive ? <BannedStamp overlay /> : null}
+                  <TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />
+                  {layout.orderedColumns.map((column) => renderCell(column, row))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-      </div>
     </div>
   );
 });

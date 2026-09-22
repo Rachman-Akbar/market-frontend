@@ -236,13 +236,13 @@ export default function HelpPage() {
             {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
             {ticketQuery.isLoading ? null : (
               <>
-                <div className="grid gap-3 border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
-                  <div><p className="text-xs font-bold uppercase text-slate-500">Pengaju</p><p className="mt-1 text-sm font-semibold text-slate-800">{ticket?.user_name || "-"}</p></div>
-                  <div><p className="text-xs font-bold uppercase text-slate-500">Toko</p><p className="mt-1 text-sm font-semibold text-slate-800">{ticket?.store_name || "Tidak terkait toko"}</p></div>
-                  <div><p className="text-xs font-bold uppercase text-slate-500">Kategori</p><p className="mt-1 text-sm font-semibold text-slate-800">{ticket?.category || "-"}</p></div>
-                  <div><p className="text-xs font-bold uppercase text-slate-500">Prioritas</p><p className="mt-1 text-sm font-semibold text-slate-800">{ticket?.priority || "-"}</p></div>
+                <div className="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-2">
+                  <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Pengaju</span><Input value={ticket?.user_name || "-"} disabled /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Toko</span><Input value={ticket?.store_name || "Tidak terkait toko"} disabled /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Kategori</span><Input value={ticket?.category || "-"} disabled /></label>
+                  <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Prioritas</span><Input value={ticket?.priority || "-"} disabled /></label>
                 </div>
-                <div className="border border-slate-200 bg-white p-4"><p className="whitespace-pre-wrap text-sm text-slate-800">{ticket?.description}</p></div>
+                <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Keluhan</span><textarea value={ticket?.description || ""} readOnly rows={4} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none" /></label>
                 {admin ? <div className="flex items-center gap-2"><span className="text-sm font-bold">Status</span><select value={ticket?.status || "open"} onChange={(event) => updateStatus(event.target.value)} className="h-9 border border-slate-300 px-3 text-sm">{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select></div> : null}
                 <div className="space-y-3">{(ticket?.messages || []).map((item) => <div key={item.id} className="border border-slate-200 p-3"><div className="flex justify-between text-xs font-bold text-slate-500"><span>{item.user_name || "User"}</span><span>{item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{item.message}</p></div>)}</div>
                 <form onSubmit={sendReply} className="space-y-2"><textarea value={reply} onChange={(event) => setReply(event.target.value)} className="min-h-24 w-full border border-slate-300 p-3 text-sm" placeholder="Tulis balasan" required /><div className="flex justify-end"><Button type="submit" disabled={replyMutation.isPending}>Kirim Balasan</Button></div></form>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
-import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { ImageFilePicker } from "@/shared/components/form/ImageFilePicker";
@@ -187,7 +187,13 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
       size="max-w-4xl"
     >
       <form onSubmit={submit}>
-        <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)] lg:pr-44">
+        <FormEditorLayout
+          asCard={false}
+          actions={
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+          }
+        >
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
           <section className="min-w-0 rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
               <h3 className="text-sm font-extrabold text-slate-800">Struktur Kategori</h3>
@@ -291,19 +297,24 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
               )}
 
               <div className="space-y-3 border-t border-slate-100 pt-4">
-                <ActiveToggle checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} />
-                <ActiveToggle
-                  checked={values.isVisibleInMenu}
-                  onChange={(isVisibleInMenu) => setField("isVisibleInMenu", isVisibleInMenu)}
-                  label="Tampil di menu"
-                  description="Kategori akan muncul pada navigasi buyer."
-                />
+                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+                  <span className="text-sm font-bold text-slate-700">Status aktif</span>
+                  <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
+                </div>
+                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+                  <div>
+                    <span className="block text-sm font-bold text-slate-700">Tampil di menu</span>
+                    <span className="block text-[11px] text-slate-400">Kategori akan muncul pada navigasi buyer.</span>
+                  </div>
+                  <InlineActiveSwitch checked={values.isVisibleInMenu} onChange={(isVisibleInMenu) => setField("isVisibleInMenu", isVisibleInMenu)} showLabel={false} />
+                </div>
               </div>
             </div>
           </section>
 
           {message ? <p className="lg:col-span-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
+        </FormEditorLayout>
 
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
@@ -312,7 +323,6 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
             "Simpan"
           </button>
         </div>
-        <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

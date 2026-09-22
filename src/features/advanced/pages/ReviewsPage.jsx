@@ -26,7 +26,17 @@ export default function ReviewsPage() {
 
   return (
     <>
-      {editor.open && editor.entity ? <ReviewDetailForm row={editor.entity} onClose={editor.close} onDeleted={() => editor.markListDirty()} /> : null}
+      {editor.open && editor.entity ? (
+        <ReviewDetailForm
+          row={editor.entity}
+          onClose={editor.close}
+          onSaved={() => {
+            editor.markListDirty();
+            editor.completeSave();
+          }}
+          onDeleted={() => editor.markListDirty()}
+        />
+      ) : null}
       {editor.isListActive ? (
         <ModuleFrame title="Review dan Rating Produk" subtitle="Review berasal dari Buyer setelah transaksi selesai. Seller dapat mengekspor review untuk analisis, tetapi import review dinonaktifkan agar rating tetap berasal dari transaksi nyata." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} bulkActions={spreadsheet.actions} filters={<select value={rating} onChange={(event) => setRating(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua rating</option>{[5, 4, 3, 2, 1].map((item) => <option key={item} value={item}>{item} bintang</option>)}</select>}>
           <DataGrid

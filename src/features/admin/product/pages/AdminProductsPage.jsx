@@ -4,7 +4,7 @@ import { useAdminCategoryList } from "@/features/admin/category/services/adminCa
 import { getAdminProductError, useAdminProducts, useAdminProductStores, useCreateAdminProduct, useDeleteAdminProduct, useUpdateAdminProduct } from "@/features/admin/product/services/adminProductService";
 import { SellerProductEditor } from "@/features/seller/product/components/SellerProductEditor";
 import { PRODUCT_TABLE_COLUMNS, SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
-import { ConfirmDialog, EntityToolbar } from "@/shared/components/crud";
+import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
@@ -89,7 +89,8 @@ export default function AdminProductsPage() {
   return (
     <AdminShell title="Manajemen Product" subtitle="Kelola product seluruh toko, import/export Excel, gambar, filter header, dan active/non-active.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -111,6 +112,8 @@ export default function AdminProductsPage() {
             hasActiveFilters={hasActiveFilters}
             onClearFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
           />
+          )}
+        >
           <AsyncState loading={productsQuery.isLoading} error={productsQuery.error ? getAdminProductError(productsQuery.error) : ""} />
           {!productsQuery.isLoading ? (
             <>
@@ -138,7 +141,7 @@ export default function AdminProductsPage() {
               <InfiniteScrollSentinel hasNextPage={productsQuery.hasNextPage} isFetchingNextPage={productsQuery.isFetchingNextPage} onLoadMore={() => productsQuery.fetchNextPage()} />
             </>
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

@@ -3,6 +3,7 @@ import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerP
 import { BANNER_TABLE_COLUMNS, BannerManagementTable } from "@/features/seller/banner/components/BannerManagementTable";
 import { SellerBannerForm } from "@/features/seller/banner/components/SellerBannerForm";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
@@ -57,7 +58,8 @@ export default function SellerBannerPage() {
   return (
     <SellerPanelShell title="Banner Toko" subtitle="Kelola banner halaman toko, import/export Excel, gambar, urutan, dan status active/non-active.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -79,6 +81,8 @@ export default function SellerBannerPage() {
             hasActiveFilters={Boolean(query)}
             onClearFilters={() => setQuery("")}
           />
+          )}
+        >
           <AsyncState loading={bannersQuery.isLoading} error={bannersQuery.error ? getSellerBannerError(bannersQuery.error) : ""} empty={!bannersQuery.isLoading && !filteredRows.length} emptyText="Banner toko belum tersedia." />
           {filteredRows.length ? (
             <BannerManagementTable
@@ -96,7 +100,7 @@ export default function SellerBannerPage() {
               onToggleAll={selection.toggleAll}
             />
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

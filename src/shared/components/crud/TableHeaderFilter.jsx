@@ -235,7 +235,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
     <th
       {...headerProps}
       style={columnStyle}
-      className={cn("group relative select-none whitespace-nowrap px-4 py-3", align === "right" && "text-right", align === "center" && "text-center", dragging && "opacity-45", dropTarget && !dragging && "bg-emerald-50", className)}
+      className={cn("group relative select-none whitespace-nowrap bg-slate-100 px-4 py-3", align === "right" && "text-right", align === "center" && "text-center", dragging && "opacity-45", dropTarget && !dragging && "bg-emerald-50", className)}
       title="Tarik header untuk mengubah urutan kolom. Tarik garis kanan untuk mengubah lebar."
     >
       <button

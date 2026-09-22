@@ -23,6 +23,7 @@ export const ORDER_TABLE_COLUMNS = [
   { key: "number", label: "Nomor" },
   { key: "store", label: "Toko" },
   { key: "customer", label: "Customer" },
+  { key: "origin", label: "Sumber" },
   { key: "items", label: "Produk" },
   { key: "total", label: "Total" },
   { key: "payment", label: "Pembayaran" },
@@ -33,7 +34,7 @@ export const ORDER_TABLE_COLUMNS = [
   { key: "status", label: "Status" },
 ];
 
-const widths = { number: 220, store: 210, customer: 200, items: 280, total: 160, payment: 160, tracking: 200, orderType: 130, release: 170, schedule: 180, status: 190 };
+const widths = { number: 220, store: 210, customer: 200, origin: 140, items: 280, total: 160, payment: 160, tracking: 200, orderType: 130, release: 170, schedule: 180, status: 190 };
 
 const STATUS_BUTTON_STYLES = {
   pending: "border-amber-200 bg-amber-50 text-amber-800",
@@ -53,7 +54,20 @@ const STATUS_DOT_STYLES = {
   cancelled: "bg-red-500",
 };
 
-const FILTER_TYPES = { number: "text", store: "text", customer: "text", items: "text", total: "range", payment: "select", tracking: "text", orderType: "select", release: "text", schedule: "text", status: "select" };
+const FILTER_TYPES = { number: "text", store: "text", customer: "text", origin: "select", items: "text", total: "range", payment: "select", tracking: "text", orderType: "select", release: "text", schedule: "text", status: "select" };
+
+const ORIGIN_OPTIONS = [
+  { value: "marketplace", label: "Marketplace" },
+  { value: "kasir", label: "Kasir" },
+];
+
+function rowOrigin(row) {
+  const isManual = row.orderType === "manual"
+    || row.is_manual === true
+    || String(row.orderNumber || "").startsWith("MAN-")
+    || String(row.subOrderNumber || "").startsWith("MAN-");
+  return isManual ? "kasir" : "marketplace";
+}
 
 const ORDER_TYPE_OPTIONS = [
   { value: "normal", label: "Normal" },
@@ -71,6 +85,7 @@ function columnValue(column, row) {
   if (column.key === "number") return row.subOrderNumber || row.orderNumber || `#${row.id}`;
   if (column.key === "store") return row.storeName;
   if (column.key === "customer") return row.customerName;
+  if (column.key === "origin") return rowOrigin(row);
   if (column.key === "items") return (row.items || []).map((item) => item.productName).join(" ");
   if (column.key === "total") return row.total;
   if (column.key === "payment") return row.paymentStatus;
@@ -137,6 +152,10 @@ export const OrderManagementTable = memo(function OrderManagementTable({ rows, p
     if (column.key === "number") return <td key={column.key} className="px-4 py-3"><p className="truncate font-extrabold text-slate-900">{row.subOrderNumber || row.orderNumber || `#${row.id}`}</p><p className="mt-0.5 truncate text-xs text-slate-500">{row.createdAt ? new Date(row.createdAt).toLocaleString("id-ID") : "-"}</p></td>;
     if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(row.storeName) || "-"}</td>;
     if (column.key === "customer") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{toTitleCase(row.customerName) || "-"}</td>;
+    if (column.key === "origin") {
+      const origin = rowOrigin(row);
+      return <td key={column.key} className="px-4 py-3"><span className={origin === "kasir" ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-700" : "rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-extrabold text-indigo-700"}>{origin === "kasir" ? "Kasir" : "Marketplace"}</span></td>;
+    }
     if (column.key === "items") {
       const items = row.items || [];
       if (!items.length) return <td key={column.key} className="px-4 py-3 text-slate-400">-</td>;
@@ -152,5 +171,5 @@ export const OrderManagementTable = memo(function OrderManagementTable({ rows, p
     return <td key={column.key} className="px-4 py-3"><div className="flex w-full items-center gap-2" onClick={(event) => event.stopPropagation()}>{onPrint ? <button type="button" onClick={() => onPrint(row)} title="Lihat / cetak nota pesanan" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 text-xs font-extrabold text-slate-700 transition hover:bg-teal-50 hover:text-teal-700"><span className="material-symbols-outlined text-[16px]">receipt_long</span>Nota</button> : null}<div className="w-full"><SearchableSelect value={row.status} disabled={pendingId === row.id} onChange={(nextValue) => onStatusChange(row, nextValue)} options={STATUS_OPTIONS} clearable={false} buttonClassName={`h-9 border text-xs ${STATUS_BUTTON_STYLES[row.status] || "border-slate-200 bg-white"}`} indicatorClassName={STATUS_DOT_STYLES[row.status]} /></div></div></td>;
   };
 
-  return <div className="bg-white ring-1 ring-slate-200"><div className="overflow-x-auto"><table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 820), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map((column) => <TableHeaderFilter key={column.key} label={column.label} sortKey={column.key} sortBy={sortBy} sortDirection={sortDirection} onSortChange={(key, direction) => { setSortBy(key); setSortDirection(direction); }} filterType={FILTER_TYPES[column.key]} filterValue={columnFilters[column.key]} onFilterChange={(value) => setColumnFilters((current) => { const next = { ...current }; if (hasFilterValue(FILTER_TYPES[column.key], value)) next[column.key] = value; else delete next[column.key]; return next; })} options={column.key === "payment" ? paymentOptions : column.key === "status" ? STATUS_OPTIONS : column.key === "orderType" ? ORDER_TYPE_OPTIONS : []} headerProps={layout.getHeaderProps(column.key)} columnKey={column.key} columnStyle={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key}>{column.label}</TableHeaderFilter>)}</tr></thead><tbody className="divide-y divide-slate-100">{visibleRows.map((row) => <tr key={`${row.id}:${row.subOrderNumber}`} onClick={onEdit ? () => onEdit(row) : undefined} title={onEdit ? "Klik untuk melihat detail pesanan" : undefined} className={cn("hover:bg-slate-50", onEdit && "cursor-pointer hover:bg-emerald-50/40")}><TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />{layout.orderedColumns.map((column) => renderCell(column, row))}</tr>)}</tbody></table></div></div>;
+  return <div className="bg-white ring-1 ring-slate-200"><table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 820), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map((column) => <TableHeaderFilter key={column.key} label={column.label} sortKey={column.key} sortBy={sortBy} sortDirection={sortDirection} onSortChange={(key, direction) => { setSortBy(key); setSortDirection(direction); }} filterType={FILTER_TYPES[column.key]} filterValue={columnFilters[column.key]} onFilterChange={(value) => setColumnFilters((current) => { const next = { ...current }; if (hasFilterValue(FILTER_TYPES[column.key], value)) next[column.key] = value; else delete next[column.key]; return next; })} options={column.key === "payment" ? paymentOptions : column.key === "status" ? STATUS_OPTIONS : column.key === "orderType" ? ORDER_TYPE_OPTIONS : column.key === "origin" ? ORIGIN_OPTIONS : []} headerProps={layout.getHeaderProps(column.key)} columnKey={column.key} columnStyle={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key}>{column.label}</TableHeaderFilter>)}</tr></thead><tbody className="divide-y divide-slate-100">{visibleRows.map((row) => <tr key={`${row.id}:${row.subOrderNumber}`} onClick={onEdit ? () => onEdit(row) : undefined} title={onEdit ? "Klik untuk melihat detail pesanan" : undefined} className={cn("hover:bg-slate-50", onEdit && "cursor-pointer hover:bg-emerald-50/40")}><TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />{layout.orderedColumns.map((column) => renderCell(column, row))}</tr>)}</tbody></table></div>;
 });

@@ -9,7 +9,7 @@ import {
   useUpdateAdminUser,
 } from "@/features/admin/identity/services/adminIdentityService";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
-import { ConfirmDialog, EntityToolbar } from "@/shared/components/crud";
+import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
@@ -74,7 +74,8 @@ export default function AdminUsersPage() {
   return (
     <AdminShell>
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -98,6 +99,8 @@ export default function AdminUsersPage() {
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
           />
+          )}
+        >
 
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={usersQuery.isLoading} error={usersQuery.error ? getAdminIdentityError(usersQuery.error) : ""} empty={!usersQuery.isLoading && !filteredRows.length} emptyText="User belum tersedia." />
@@ -127,7 +130,7 @@ export default function AdminUsersPage() {
               <InfiniteScrollSentinel query={usersQuery} />
             </>
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <UserFormDialog

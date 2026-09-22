@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
@@ -55,12 +56,15 @@ export default function AdminCatalogGroupPage() {
   return (
     <AdminShell title="Catalog Group" subtitle="Kelola level teratas katalog, import/export Excel, dan status active/non-active.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => groupsQuery.refetch()} refreshing={groupsQuery.isFetching} createLabel="Tambah Group" selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
           onApplyDefaultColumns={columnVisibility.applyAsDefault} hasActiveFilters={Boolean(query)} onClearFilters={() => setQuery("")} />
+          )}
+        >
           <AsyncState loading={groupsQuery.isLoading} error={groupsQuery.error ? getCatalogGroupError(groupsQuery.error) : ""} empty={!groupsQuery.isLoading && !filteredRows.length} emptyText="Catalog Group belum tersedia." />
           {filteredRows.length ? <CatalogGroupCrudTable rows={filteredRows} columns={columns} onEdit={editor.edit} onToggleActive={toggleActive} pendingId={quickUpdateMutation.variables?.id} visibleSet={columnVisibility.visibleSet} selectionEnabled={selection.enabled} selectedIds={selection.selectedIds} allSelected={selection.allSelected} onToggleRow={selection.toggleRow} onToggleAll={selection.toggleAll} /> : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

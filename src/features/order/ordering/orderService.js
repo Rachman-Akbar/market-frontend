@@ -514,12 +514,15 @@ export async function getSellerOrders(storeId, filters = {}) {
 }
 
 export async function getShippingOptions(payload) {
-  let cartItemIds = Array.isArray(payload.cartItemIds)
+  const cartItemIds = Array.isArray(payload.cartItemIds)
     ? payload.cartItemIds.map(Number).filter(Boolean)
     : [];
-  const items = getDirectOrderItems(payload.items);
+  const directItems = getDirectOrderItems(payload.items);
 
-  if (!payload.addressId || (!cartItemIds.length && !items.length)) {
+  if (
+    !payload.addressId ||
+    (!cartItemIds.length && !directItems.length)
+  ) {
     return {
       options: [],
       warnings: [],
@@ -527,14 +530,12 @@ export async function getShippingOptions(payload) {
     };
   }
 
-  if (!cartItemIds.length && items.length) {
-    cartItemIds = await createTemporaryCartItemIds(items);
-  }
+  const body = { address_id: payload.addressId };
 
-  if (!cartItemIds.length) {
-    throw new Error(
-      "Item checkout belum dapat dikenali untuk menghitung ongkir.",
-    );
+  if (cartItemIds.length) {
+    body.cart_item_ids = cartItemIds;
+  } else {
+    body.items = directItems;
   }
 
   let response;
@@ -542,10 +543,7 @@ export async function getShippingOptions(payload) {
   try {
     response = await apiClient.post(
       "/api/v1/order/orderings/shipping-options",
-      {
-        address_id: payload.addressId,
-        cart_item_ids: cartItemIds,
-      },
+      body,
     );
   } catch (error) {
     if (isIgnoredShippingError(error)) {
@@ -603,73 +601,6 @@ function buildOrderPayload(payload, cartItemIds = payload.cartItemIds) {
   return requestPayload;
 }
 
-function requiresCartItemFallback(error) {
-  if (Number(error?.response?.status || 0) !== 422) {
-    return false;
-  }
-
-  const payload = error?.response?.data || {};
-  const text = JSON.stringify({
-    message: payload.message,
-    errors: payload.errors,
-  }).toLowerCase();
-
-  return text.includes("cart_item") || text.includes("cart item");
-}
-
-function extractCartRows(payload = {}) {
-  const source = unwrapApiData(payload) || {};
-
-  if (Array.isArray(source)) {
-    return source;
-  }
-
-  if (Array.isArray(source.items)) {
-    return source.items;
-  }
-
-  if (Array.isArray(source.cart_items)) {
-    return source.cart_items;
-  }
-
-  if (Array.isArray(source.data)) {
-    return source.data;
-  }
-
-  return [];
-}
-
-async function createTemporaryCartItemIds(items) {
-  const directItems = getDirectOrderItems(items);
-
-  if (directItems.some((item) => !item.product_variant_id)) {
-    return [];
-  }
-
-  const response = await apiClient.post("/api/v1/order/carts/items", {
-    items: directItems,
-  });
-  let rows = extractCartRows(response.data);
-
-  if (!rows.length) {
-    const cartResponse = await apiClient.get("/api/v1/order/carts");
-    rows = extractCartRows(cartResponse.data);
-  }
-
-  const targetVariantIds = new Set(
-    directItems.map((item) => Number(item.product_variant_id)),
-  );
-
-  return rows
-    .filter((item) =>
-      targetVariantIds.has(
-        Number(item.variant_id ?? item.product_variant_id ?? item.variantId),
-      ),
-    )
-    .map((item) => Number(item.cart_item_id ?? item.id ?? item.cartItemId))
-    .filter(Boolean);
-}
-
 async function postOrder(requestPayload) {
   const response = await apiClient.post(
     "/api/v1/order/orderings",
@@ -680,25 +611,7 @@ async function postOrder(requestPayload) {
 }
 
 export async function createOrder(payload) {
-  const requestPayload = buildOrderPayload(payload);
-
-  try {
-    return await postOrder(requestPayload);
-  } catch (error) {
-    const directItems = getDirectOrderItems(payload.items);
-
-    if (!directItems.length || !requiresCartItemFallback(error)) {
-      throw error;
-    }
-
-    const cartItemIds = await createTemporaryCartItemIds(directItems);
-
-    if (!cartItemIds.length) {
-      throw error;
-    }
-
-    return postOrder(buildOrderPayload(payload, cartItemIds));
-  }
+  return postOrder(buildOrderPayload(payload));
 }
 
 export async function cancelOrder(id) {

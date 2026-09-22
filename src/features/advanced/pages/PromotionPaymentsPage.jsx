@@ -153,11 +153,29 @@ export default function PromotionPaymentsPage() {
         dangerAction={activeReviewAction === "approve" && activeReviewRow ? <button type="button" onClick={() => openReview(activeReviewRow, "reject")} className="h-8 select-none bg-red-50 px-4 text-xs font-extrabold text-red-600 hover:bg-red-100">Tolak {'\u00b7'} isi alasan</button> : undefined}
       >
         {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
-        <div className="grid gap-3 border border-slate-200 bg-slate-50 p-4 text-sm">
-          <div className="grid grid-cols-[140px_1fr] gap-3"><span className="font-bold text-slate-500">Nomor</span><span className="font-semibold text-slate-900">{activeReviewRow?.payment_number || "-"}</span></div>
-          <div className="grid grid-cols-[140px_1fr] gap-3"><span className="font-bold text-slate-500">Toko</span><span className="font-semibold text-slate-900">{activeReviewRow?.store?.name || "-"}</span></div>
-          <div className="grid grid-cols-[140px_1fr] gap-3"><span className="font-bold text-slate-500">Nominal</span><span className="font-semibold text-slate-900">{money(activeReviewRow?.amount)}</span></div>
-          <div className="grid grid-cols-[140px_1fr] gap-3"><span className="font-bold text-slate-500">Bukti</span><span>{activeReviewRow?.proof_url ? <a href={activeReviewRow.proof_url} target="_blank" rel="noreferrer" className="font-bold text-blue-600 underline">Buka bukti pembayaran</a> : "-"}</span></div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+            <span>Nomor</span>
+            <Input value={activeReviewRow?.payment_number || "-"} disabled />
+          </label>
+          <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+            <span>Toko</span>
+            <Input value={activeReviewRow?.store?.name || "-"} disabled />
+          </label>
+          <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+            <span>Nominal</span>
+            <Input value={money(activeReviewRow?.amount)} disabled />
+          </label>
+          <label className="grid gap-1.5 text-sm font-bold text-slate-700">
+            <span>Metode</span>
+            <Input value={activeReviewRow?.payment_method || "-"} disabled />
+          </label>
+          <label className="grid gap-1.5 text-sm font-bold text-slate-700 md:col-span-2">
+            <span>Bukti</span>
+            {activeReviewRow?.proof_url ? (
+              <a href={activeReviewRow.proof_url} target="_blank" rel="noreferrer" className="flex h-10 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-semibold text-blue-600 underline">Buka bukti pembayaran</a>
+            ) : <Input value="-" disabled />}
+          </label>
         </div>
         {activeReviewAction === "reject" ? (
           <Field label="Alasan Penolakan" required>

@@ -3,6 +3,7 @@ import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerP
 import { PRODUCT_TABLE_COLUMNS, SellerProductTable } from "@/features/seller/product/components/SellerProductTable";
 import { SellerProductEditor } from "@/features/seller/product/components/SellerProductEditor";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
@@ -80,7 +81,8 @@ export default function SellerProductsPage() {
   return (
     <SellerPanelShell title="Produk Toko" subtitle="Kelola product, variant, gambar, harga, status, serta import/export. Saldo stok dikelola terpisah melalui Persediaan.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -102,6 +104,8 @@ export default function SellerProductsPage() {
             hasActiveFilters={hasActiveFilters}
             onClearFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
           />
+          )}
+        >
           {hasActiveFilters || columnFilters.lowStock ? (
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
               <span className="font-semibold text-slate-500">Filter aktif:</span>
@@ -148,7 +152,7 @@ export default function SellerProductsPage() {
               <InfiniteScrollSentinel hasNextPage={productsQuery.hasNextPage} isFetchingNextPage={productsQuery.isFetchingNextPage} onLoadMore={() => productsQuery.fetchNextPage()} />
             </>
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={activeSpreadsheet} />

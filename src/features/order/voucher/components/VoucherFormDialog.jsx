@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
-import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { minimumNumber, required, validateFields } from "@/core/utils/formValidation";
@@ -92,7 +92,12 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
       size="max-w-3xl"
     >
       <form onSubmit={submit}>
-        <div className="grid gap-4 p-6 md:grid-cols-2 lg:pr-44">
+        <FormEditorLayout
+          actions={
+            <FormActionDock tone={portal === "admin" ? "teal" : "emerald"} save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+          }
+        >
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2 flex items-center justify-between bg-slate-50 px-4 py-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Cakupan voucher</p>
@@ -160,9 +165,15 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
               <img src={previewImageUrl} alt="Preview voucher" className="h-40 w-full object-cover" />
             </div>
           ) : null}
-          <div className="md:col-span-2"><ActiveToggle checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} /></div>
+          <div className="md:col-span-2">
+            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+              <span className="text-sm font-bold text-slate-700">Status aktif</span>
+              <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
+            </div>
+          </div>
           {message ? <p className="md:col-span-2 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
+        </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
@@ -170,7 +181,6 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
             Simpan
           </button>
         </div>
-        <FormActionDock tone={portal === "admin" ? "teal" : "emerald"} save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

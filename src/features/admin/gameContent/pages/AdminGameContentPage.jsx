@@ -10,6 +10,7 @@ import {
   useUpdateAdminGameContent,
 } from "@/features/admin/gameContent/services/adminGameContentService";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
@@ -78,8 +79,10 @@ export default function AdminGameContentPage() {
 
   return (
     <AdminShell title="Game Content" subtitle="Kelola data tiap game: soal quiz, pernyataan myth/fact, item sortir sampah, kartu SDG, dan lainnya. Data ini dipakai aplikasi market-game.">
-      <EntityToolbar
-        query={query}
+      <ListPageFrame
+        toolbar={(
+        <EntityToolbar
+          query={query}
         onQueryChange={setQuery}
         onCreate={openCreate}
         onRefresh={() => listQuery.refetch()}
@@ -116,14 +119,15 @@ export default function AdminGameContentPage() {
         onResetColumns={columnVisibility.reset}
         onApplyDefaultColumns={columnVisibility.applyAsDefault}
       />
-
+        )}
+      >
       <AsyncState loading={listQuery.isLoading} error={listQuery.error ? getAdminGameContentError(listQuery.error) : ""} empty={!listQuery.isLoading && !rows.length} emptyText={`Belum ada konten untuk game ${GAME_TYPE_META[gameType].label}.`} />
 
       {rows.length ? (
         <>
           <div className="w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-slate-100">
               <tr className="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
                 {visibleColumns.map((column) => <th key={column.key} className="px-4 py-3">{column.label}</th>)}
               </tr>
@@ -140,6 +144,7 @@ export default function AdminGameContentPage() {
         <InfiniteScrollSentinel query={listQuery} />
         </>
       ) : null}
+      </ListPageFrame>
 
       <AdminGameContentEditor
         open={editorOpen}

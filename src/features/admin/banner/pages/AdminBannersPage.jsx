@@ -5,6 +5,7 @@ import { getAdminBannerError, useAdminBanners, useDeleteAdminBanner, useUpdateAd
 import { BANNER_TABLE_COLUMNS, BannerManagementTable } from "@/features/seller/banner/components/BannerManagementTable";
 import { useAdminProductStores } from "@/features/admin/product/services/adminProductService";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
@@ -55,7 +56,8 @@ export default function AdminBannersPage() {
   return (
     <AdminShell title="Manajemen Banner" subtitle="Kelola banner toko, gambar, import/export Excel, urutan, dan status active/non-active.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={query}
             onQueryChange={setQuery}
@@ -77,6 +79,8 @@ export default function AdminBannersPage() {
             hasActiveFilters={Boolean(query)}
             onClearFilters={() => setQuery("")}
           />
+          )}
+        >
           <AsyncState loading={bannersQuery.isLoading} error={bannersQuery.error ? getAdminBannerError(bannersQuery.error) : ""} empty={!bannersQuery.isLoading && !rows.length} emptyText="Banner belum tersedia." />
           {rows.length ? (
             <BannerManagementTable
@@ -94,7 +98,7 @@ export default function AdminBannersPage() {
               onToggleAll={selection.toggleAll}
             />
           ) : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

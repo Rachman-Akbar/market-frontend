@@ -5,6 +5,7 @@ import { StoreModerationDialog } from "@/features/admin/store/components/StoreMo
 import { ADMIN_STORE_COLUMNS, AdminStoreTable } from "@/features/admin/store/components/AdminStoreTable";
 import { getAdminStoreError, useAdminStores, useUpdateAdminStoreStatus } from "@/features/admin/store/services/adminStoreService";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
@@ -55,7 +56,8 @@ export default function AdminStoresPage() {
   return (
     <AdminShell>
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar
             query={draftQuery}
             onQueryChange={setDraftQuery}
@@ -81,6 +83,8 @@ export default function AdminStoresPage() {
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
             filters={<SearchableSelect value={status} onChange={(nextValue) => setStatus(nextValue)} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "suspended", label: "Suspended" }]} placeholder="Semua status" className="w-44" buttonClassName="h-9" />}
           />
+          )}
+        >
           {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={storesQuery.isLoading} error={storesQuery.error ? getAdminStoreError(storesQuery.error) : ""} empty={!storesQuery.isLoading && !rows.length} emptyText="Toko belum tersedia." />
           {rows.length ? <AdminStoreTable rows={rows} columns={columns} onEdit={editor.edit} pendingId={statusMutation.variables?.id} visibleSet={columnVisibility.visibleSet} selectionEnabled={selection.enabled} selectedIds={selection.selectedIds} allSelected={selection.allSelected} onToggleRow={selection.toggleRow} onToggleAll={selection.toggleAll} onToggleActive={(store, isActive) => {
@@ -93,7 +97,7 @@ export default function AdminStoresPage() {
             );
           }} /> : null}
           <InfiniteScrollSentinel hasNextPage={storesQuery.hasNextPage} isFetchingNextPage={storesQuery.isFetchingNextPage} onLoadMore={() => storesQuery.fetchNextPage()} />
-        </>
+        </ListPageFrame>
       ) : null}
       <StoreModerationDialog
         open={moderation.open}

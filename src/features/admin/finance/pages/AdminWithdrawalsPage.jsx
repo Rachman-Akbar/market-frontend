@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { Button } from "@/shared/components/ui/Button";
+import { Input } from "@/shared/components/ui/Input";
 import { Card, CardContent } from "@/shared/components/ui/Card";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { SkeletonTable } from "@/shared/components/feedback/Skeleton";
@@ -171,11 +172,27 @@ export default function AdminWithdrawalsPage() {
             <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-slate-900">Detail Penarikan</h3>
               <p className="mt-1 text-sm text-slate-500">{detailTarget.withdrawalNumber} • {formatRupiah(detailTarget.amount)}</p>
-              <div className="mt-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-slate-500">Toko</span><span className="font-semibold text-slate-900">{detailTarget.storeName}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Metode</span><span className="font-semibold text-slate-900">{METHOD_LABELS[detailTarget.method] || detailTarget.method}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Rekening</span><span className="font-semibold text-slate-900">{bankSummary(detailTarget.bankDetails) || "-"}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Status</span><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[detailTarget.status] || "bg-slate-100 text-slate-600"}`}>{STATUS_LABELS[detailTarget.status] || detailTarget.status}</span></div>
+              <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                <label className="grid gap-1.5 text-slate-500">
+                  <span className="font-bold text-slate-500">Toko</span>
+                  <Input value={detailTarget.storeName || "-"} disabled />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className="font-bold text-slate-500">Metode</span>
+                  <Input value={METHOD_LABELS[detailTarget.method] || detailTarget.method || "-"} disabled />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className="font-bold text-slate-500">Rekening</span>
+                  <Input value={bankSummary(detailTarget.bankDetails) || "-"} disabled />
+                </label>
+                <label className="grid gap-1.5">
+                  <span className="font-bold text-slate-500">Jumlah</span>
+                  <Input value={formatRupiah(detailTarget.amount)} disabled />
+                </label>
+                <label className="grid gap-1.5 sm:col-span-2">
+                  <span className="font-bold text-slate-500">Status</span>
+                  <Input value={STATUS_LABELS[detailTarget.status] || detailTarget.status || "-"} disabled />
+                </label>
               </div>
               {detailTarget.status === "pending" ? (
                 <div className="mt-5 flex justify-end gap-2">

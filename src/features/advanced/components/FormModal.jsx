@@ -1,4 +1,4 @@
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
 import { Button } from "@/shared/components/ui/Button";
 
 export function FormModal({ open, title, subtitle, children, onClose, onSubmit, busy, submitLabel = "Simpan", dangerAction, tone = "emerald", saveIcon = "save", extraActions = [] }) {
@@ -14,7 +14,12 @@ export function FormModal({ open, title, subtitle, children, onClose, onSubmit, 
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
-        <div className="grid gap-4 p-5 sm:p-6 lg:pr-44">{children}</div>
+        <FormEditorLayout
+          asCard={false}
+          actions={<FormActionDock tone={tone} save={{ icon: saveIcon, label: submitLabel }} disabled={busy} onDelete={dangerAction ? () => dangerAction.props.onClick?.() : undefined} extraActions={extraActions} />}
+        >
+          <div className="grid gap-4">{children}</div>
+        </FormEditorLayout>
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:hidden">
           <div>{dangerAction}</div>
           <div className="flex items-center gap-2">
@@ -22,7 +27,6 @@ export function FormModal({ open, title, subtitle, children, onClose, onSubmit, 
             <Button type="submit" disabled={busy}>{submitLabel}</Button>
           </div>
         </div>
-        <FormActionDock tone={tone} save={{ icon: saveIcon, label: submitLabel }} disabled={busy} onDelete={dangerAction ? () => dangerAction.props.onClick?.() : undefined} extraActions={extraActions} />
       </form>
     </CrudDialog>
   );

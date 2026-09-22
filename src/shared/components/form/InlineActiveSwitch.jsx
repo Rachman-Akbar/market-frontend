@@ -9,6 +9,7 @@ export const InlineActiveSwitch = memo(function InlineActiveSwitch({
   activeLabel = "Active",
   inactiveLabel = "Non-Active",
   compact = false,
+  showLabel = true,
 }) {
   const label = checked ? activeLabel : inactiveLabel;
 
@@ -46,9 +47,11 @@ export const InlineActiveSwitch = memo(function InlineActiveSwitch({
           )}
         />
       </span>
-      <span className={cn("inline-flex items-center gap-1 font-bold", checked ? "text-emerald-700" : "text-slate-500")}>
-        {label}
-      </span>
+      {showLabel ? (
+        <span className={cn("inline-flex items-center gap-1 font-bold", checked ? "text-emerald-700" : "text-slate-500")}>
+          {label}
+        </span>
+      ) : null}
     </button>
   );
 });

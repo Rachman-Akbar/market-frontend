@@ -81,6 +81,11 @@ export async function deleteOrder(id) {
   return response.data;
 }
 
+export async function updateOrder(id, payload) {
+  const response = await apiClient.patch(`/api/v1/order/orderings/${id}`, payload);
+  return response.data;
+}
+
 export function useAdminOrders(params = {}) {
   return useInfiniteList({
     queryKey: ["admin", "orders"],
@@ -106,6 +111,10 @@ export function useUpdateOrderStatus() {
 
 export function useDeleteOrder() {
   return useMutation({ mutationFn: (id) => deleteOrder(id) });
+}
+
+export function useUpdateOrder() {
+  return useMutation({ mutationFn: ({ id, payload }) => updateOrder(id, payload) });
 }
 
 export function getOrderManagementError(error) {

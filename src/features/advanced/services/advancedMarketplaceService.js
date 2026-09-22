@@ -244,6 +244,18 @@ export function useCustomers(params = {}, options = {}) {
   });
 }
 
+export function useCreateCustomer() {
+  return useMutationHelper((values) => post("/api/v1/seller/customers", values), advancedKeys.customers);
+}
+
+export function useUpdateCustomer() {
+  return useMutationHelper(({ id, values }) => patch(`/api/v1/seller/customers/${id}`, values), advancedKeys.customers);
+}
+
+export function useDeleteCustomer() {
+  return useMutationHelper((id) => remove(`/api/v1/seller/customers/${id}`), advancedKeys.customers);
+}
+
 export function useShowcases(params = {}) {
   return useInfiniteList({ queryKey: advancedKeys.showcases, queryFn: (queryParams) => getList("/api/v1/seller/showcases", queryParams), params });
 }

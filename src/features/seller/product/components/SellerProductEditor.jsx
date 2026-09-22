@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock } from "@/shared/components/crud";
-import { ActiveToggle } from "@/shared/components/form/ActiveToggle";
+import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName, textAreaClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { validateFields, minimumNumber, required } from "@/core/utils/formValidation";
@@ -337,7 +337,18 @@ export function SellerProductEditor({
       <form onSubmit={submit}>
         <ProductEditorTabs activeTab={activeSection} onChange={setActiveSection} errorTabs={getErrorTabs(errors)} />
 
-        <div className="min-h-[420px] space-y-6 p-5 sm:p-6 lg:pr-44">
+        <FormEditorLayout
+          asCard={false}
+          actions={
+            <FormActionDock
+              tone={isAdmin ? "teal" : "emerald"}
+              save={product ? { icon: "save", label: "Simpan" } : { icon: "add", label: "Tambah" }}
+              disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending}
+              onDelete={product && onDelete ? () => onDelete(product) : undefined}
+            />
+          }
+        >
+        <div className="min-h-[420px] space-y-6">
           {activeSection === "general" ? (
             <div className="space-y-5">
               <section className="rounded-xl border border-slate-200 bg-white">
@@ -443,7 +454,10 @@ export function SellerProductEditor({
               </section>
 
               <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <ActiveToggle checked={values.isActive} onChange={(checked) => setField("isActive", checked)} />
+                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+                  <span className="text-sm font-bold text-slate-700">Status aktif</span>
+                  <InlineActiveSwitch checked={values.isActive} onChange={(checked) => setField("isActive", checked)} showLabel={false} />
+                </div>
               </section>
             </div>
           ) : null}
@@ -522,6 +536,7 @@ export function SellerProductEditor({
 
           {message ? <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
+        </FormEditorLayout>
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/50 px-5 py-4 sm:px-6 lg:hidden">
           {product && onDelete ? (
@@ -531,13 +546,6 @@ export function SellerProductEditor({
             {product ? "Simpan Perubahan" : "Tambah Produk"}
           </button>
         </div>
-
-        <FormActionDock
-          tone={isAdmin ? "teal" : "emerald"}
-          save={product ? { icon: "save", label: "Simpan" } : { icon: "add", label: "Tambah" }}
-          disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending}
-          onDelete={product && onDelete ? () => onDelete(product) : undefined}
-        />
       </form>
     </CrudDialog>
   );

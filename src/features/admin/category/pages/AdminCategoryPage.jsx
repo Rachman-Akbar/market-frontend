@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
@@ -59,12 +60,15 @@ export default function AdminCategoryPage() {
   return (
     <AdminShell title="Manajemen Category" subtitle="Kelola struktur category, gambar, import/export Excel, urutan, dan status active/non-active.">
       {editor.isListActive ? (
-        <>
+        <ListPageFrame
+          toolbar={(
           <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => categoriesQuery.refetch()} refreshing={categoriesQuery.isFetching} createLabel="Tambah Kategori" placeholder="Cari category, parent, atau catalog group" selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
           onApplyDefaultColumns={columnVisibility.applyAsDefault} hasActiveFilters={Boolean(query)} onClearFilters={() => setQuery("")} />
+          )}
+        >
           <AsyncState loading={categoriesQuery.isLoading} error={categoriesQuery.error ? getCategoryError(categoriesQuery.error) : ""} empty={!categoriesQuery.isLoading && !filteredRows.length} emptyText="Category belum tersedia." />
           {filteredRows.length ? <CategoryCrudTable rows={filteredRows} columns={columns} groupsById={groupsById} onEdit={editor.edit} onToggleActive={toggleActive} pendingId={quickUpdateMutation.variables?.id} visibleSet={columnVisibility.visibleSet} selectionEnabled={selection.enabled} selectedIds={selection.selectedIds} allSelected={selection.allSelected} onToggleRow={selection.toggleRow} onToggleAll={selection.toggleAll} /> : null}
-        </>
+        </ListPageFrame>
       ) : null}
 
       <SpreadsheetOperationPanel workspace={spreadsheet} />

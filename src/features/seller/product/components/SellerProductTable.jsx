@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { formatPrice } from "@/shared/utils/utils";
 import { StatusBadge } from "@/shared/components/feedback/StatusBadge";
+import { BannedStamp, isInactiveRow } from "@/shared/components/feedback/BannedStamp";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
@@ -83,13 +84,11 @@ export const SellerProductTable = memo(function SellerProductTable({
 
   return (
     <div className="bg-white ring-1 ring-slate-200">
-      <div className="overflow-x-auto pb-1">
-        <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 840), minWidth: "100%" }}>
-          <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} />
-          <thead className="bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead>
-          <tbody className="divide-y divide-slate-100">{rows.map((product) => <tr key={product.id} onClick={() => onEdit(product)} className="cursor-pointer hover:bg-slate-50" title="Klik untuk edit"><TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(product.id))} onToggle={() => onToggleRow?.(product.id)} />{layout.orderedColumns.map((column) => renderCell(column, product))}</tr>)}</tbody>
-        </table>
-      </div>
+      <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 840), minWidth: "100%" }}>
+        <InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} />
+        <thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead>
+          <tbody className="divide-y divide-slate-100">{rows.map((product) => { const inactive = isInactiveRow(product); return <tr key={product.id} onClick={() => onEdit(product)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`} title="Klik untuk edit">{inactive ? <BannedStamp overlay /> : null}<TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(product.id))} onToggle={() => onToggleRow?.(product.id)} />{layout.orderedColumns.map((column) => renderCell(column, product))}</tr>; })}</tbody>
+      </table>
     </div>
   );
 });

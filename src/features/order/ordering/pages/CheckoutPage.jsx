@@ -7,7 +7,6 @@ import {
   Landmark,
   MapPin,
   ShoppingBag,
-  Store,
   Truck,
 } from "lucide-react";
 import { useCart } from "@/features/order/cart/context/CartContext";
@@ -36,18 +35,7 @@ const PAYMENT_METHODS = [
   { id: "midtrans", label: "Midtrans", icon: Landmark },
   { id: "cod", label: "Bayar di Tempat", icon: Banknote },
   { id: "transfer_manual", label: "Transfer Manual", icon: CreditCard },
-  { id: "tunai_toko", label: "Bayar Tunai di Toko", icon: Store },
 ];
-
-const PICKUP_OPTION = {
-  id: "ambil_sendiri:pickup",
-  courier: "ambil_sendiri",
-  courier_label: "Ambil Sendiri",
-  service: "PICKUP",
-  description: "Ambil pesanan langsung di toko tanpa biaya pengiriman.",
-  cost: 0,
-  price: 0,
-};
 
 function formatAddress(address) {
   return [
@@ -69,7 +57,7 @@ function shippingKey(option) {
 }
 
 function mergeShippingOptions(remoteOptions) {
-  const rows = [PICKUP_OPTION, ...remoteOptions];
+  const rows = remoteOptions;
   const keys = new Set();
 
   return rows.filter((option) => {
@@ -135,7 +123,7 @@ export default function CheckoutPage() {
   const addressesQuery = useAddresses();
   const createOrderMutation = useCreateOrder();
   const [addressId, setAddressId] = useState(null);
-  const [shippingId, setShippingId] = useState(PICKUP_OPTION.id);
+  const [shippingId, setShippingId] = useState("");
   const [payment, setPayment] = useState("midtrans");
   const [orderType, setOrderType] = useState("normal");
   const [preorderReleaseAt, setPreorderReleaseAt] = useState("");
@@ -257,13 +245,7 @@ export default function CheckoutPage() {
     shippingOptions.find(
       (option) => String(option.id) === String(shippingId),
     ) || shippingOptions[0];
-  const availablePaymentMethods = useMemo(() => {
-    if (shipping?.courier === "ambil_sendiri") {
-      return PAYMENT_METHODS.filter((method) => method.id !== "cod");
-    }
-
-    return PAYMENT_METHODS.filter((method) => method.id !== "tunai_toko");
-  }, [shipping?.courier]);
+  const availablePaymentMethods = useMemo(() => PAYMENT_METHODS, []);
   const shippingPrice = Number(shipping?.price || shipping?.cost || 0);
   const shippingBreakdown = shipping?.storeBreakdown || shipping?.store_breakdown || null;
   const availableVouchers = useMemo(
@@ -336,7 +318,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    setShippingId(String(shippingOptions[0]?.id || PICKUP_OPTION.id));
+    setShippingId(String(shippingOptions[0]?.id || ""));
   }, [shippingId, shippingOptions]);
 
   useEffect(() => {
@@ -384,18 +366,13 @@ export default function CheckoutPage() {
       return false;
     }
 
-    if (shipping.courier !== "ambil_sendiri" && !addressId) {
+    if (!addressId) {
       setError("Pilih alamat pengiriman untuk layanan kurir.");
       return false;
     }
 
     if (effectiveOrderType === "booking" && !scheduledAt) {
       setError("Tentukan jadwal kirim atau slot pickup untuk pesanan booking.");
-      return false;
-    }
-
-    if (payment === "tunai_toko" && shipping.courier !== "ambil_sendiri") {
-      setError("Bayar tunai di toko hanya tersedia untuk metode ambil sendiri.");
       return false;
     }
 
@@ -522,8 +499,8 @@ export default function CheckoutPage() {
           <div className="grid gap-5 p-5 sm:p-7 md:grid-cols-2">
             <section className="rounded-xl border border-slate-200 p-4">
               <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Penerima</p>
-              <p className="mt-2 font-bold text-slate-900">{shipping?.courier === "ambil_sendiri" ? "Ambil sendiri di toko" : selectedAddress?.recipientName || "-"}</p>
-              <p className="mt-1 text-sm leading-5 text-slate-600">{shipping?.courier === "ambil_sendiri" ? "Tidak menggunakan alamat pengiriman." : selectedAddress ? formatAddress(selectedAddress) : "-"}</p>
+              <p className="mt-2 font-bold text-slate-900">{selectedAddress?.recipientName || "-"}</p>
+              <p className="mt-1 text-sm leading-5 text-slate-600">{selectedAddress ? formatAddress(selectedAddress) : "-"}</p>
             </section>
 
             <section className="rounded-xl border border-slate-200 p-4">
@@ -690,14 +667,14 @@ export default function CheckoutPage() {
                 <Info size={16} className="mt-0.5 shrink-0" />
                 <span>
                   Ongkir kurir nasional tidak tersedia untuk area ini. Kamu
-                  tetap dapat memilih metode pengiriman lain atau Ambil Sendiri.
+                  tetap dapat memilih metode pengiriman lain.
                 </span>
               </div>
             ) : null}
 
             {shippingWarnings.length ? (
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
-                {shippingWarnings.join(" ")} Metode Ambil Sendiri tetap tersedia.
+                {shippingWarnings.join(" ")}
               </div>
             ) : null}
 
@@ -707,15 +684,15 @@ export default function CheckoutPage() {
             !shippingWarnings.length &&
             !remoteShippingOptions.length ? (
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
-                Ongkir tidak tersedia untuk area ini. Kamu tetap dapat melanjutkan
-                checkout dengan metode Ambil Sendiri.
+                Ongkir tidak tersedia untuk area ini. Periksa kembali alamat
+                pengiriman atau coba area lain.
               </div>
             ) : null}
 
             {shippingQuery.error && shippingErrorMessage ? (
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
-                Ongkir sementara tidak tersedia untuk area ini. Metode Ambil
-                Sendiri tetap dapat digunakan.
+                Ongkir sementara tidak tersedia untuk alamat ini. Coba lagi atau
+                periksa alamat pengiriman.
               </div>
             ) : null}
 
@@ -818,16 +795,10 @@ export default function CheckoutPage() {
             ) : null}
             {effectiveOrderType === "booking" ? (
               <label className="mt-4 grid gap-1.5 text-sm font-bold text-slate-700">
-                {shipping?.courier === "ambil_sendiri"
-                  ? "Slot Ambil di Toko (tanggal dan jam)"
-                  : "Tanggal Kirim"}
+                Tanggal Kirim
                 <input
-                  type={shipping?.courier === "ambil_sendiri" ? "datetime-local" : "date"}
-                  min={
-                    shipping?.courier === "ambil_sendiri"
-                      ? new Date().toISOString().slice(0, 16)
-                      : new Date().toISOString().slice(0, 10)
-                  }
+                  type="date"
+                  min={new Date().toISOString().slice(0, 10)}
                   value={scheduledAt}
                   onChange={(event) => setScheduledAt(event.target.value)}
                   className="h-10 rounded-md border border-slate-300 px-3 text-sm"

@@ -36,8 +36,8 @@ export const CrudDialog = memo(function CrudDialog({
 
   return (
     <div className="fixed inset-0 z-[90] overflow-y-auto bg-slate-950/35 p-4 backdrop-blur-sm">
-      <section className={`mx-auto my-6 w-full ${size} overflow-hidden rounded-lg bg-white`}>
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+      <section className={`mx-auto my-6 w-full ${size} overflow-hidden rounded-lg bg-slate-100`}>
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-extrabold text-slate-950">{title}</h2>
             {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
