@@ -343,6 +343,12 @@ export function persistSession(session, options = {}) {
     sessionStorage.removeItem(BASE_SESSION_KEY);
   }
 
+  window.dispatchEvent(
+    new CustomEvent("marketku:session-changed", {
+      detail: { scope, token, session: nextSession },
+    }),
+  );
+
   return nextSession;
 }
 

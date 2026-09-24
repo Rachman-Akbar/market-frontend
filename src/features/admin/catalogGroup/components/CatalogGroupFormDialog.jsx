@@ -4,6 +4,8 @@ import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getCatalogGroupError, useCreateAdminCatalogGroup, useUpdateAdminCatalogGroup } from "@/features/admin/catalogGroup/services/adminCatalogGroupService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(entity) {
   return { name: entity?.name || "", slug: entity?.slug || "", isActive: entity?.isActive ?? true };
@@ -12,7 +14,8 @@ function initialValues(entity) {
 export function CatalogGroupFormDialog({ open, entity, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(entity));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(entity);
+  const dirty = useFormDirty(pristine, values);
   const createMutation = useCreateAdminCatalogGroup();
   const updateMutation = useUpdateAdminCatalogGroup();
   const mutation = entity ? updateMutation : createMutation;
@@ -21,7 +24,6 @@ export function CatalogGroupFormDialog({ open, entity, onClose, onSaved, onDelet
     if (open) {
       setValues(initialValues(entity));
       setErrors({});
-      setMessage("");
     }
   }, [entity, open]);
 
@@ -35,9 +37,10 @@ export function CatalogGroupFormDialog({ open, entity, onClose, onSaved, onDelet
         ? await updateMutation.mutateAsync({ id: entity.id, values })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(entity ? "Catalog Group berhasil diperbarui." : "Catalog Group berhasil ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getCatalogGroupError(error));
+      toastError("Gagal menyimpan catalog group", getCatalogGroupError(error));
     }
   };
 
@@ -47,7 +50,7 @@ export function CatalogGroupFormDialog({ open, entity, onClose, onSaved, onDelet
         <FormEditorLayout
           contentClassName="max-w-2xl"
           actions={
-            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending || !dirty} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
           }
         >
           <div className="space-y-4">
@@ -57,13 +60,12 @@ export function CatalogGroupFormDialog({ open, entity, onClose, onSaved, onDelet
               <span className="text-sm font-bold text-slate-700">Status aktif</span>
               <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setValues((current) => ({ ...current, isActive }))} showLabel={false} />
             </div>
-            {message ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
           </div>
         </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white hover:bg-teal-700 disabled:opacity-60">Simpan</button>
+          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan</button>
         </div>
       </form>
     </CrudDialog>

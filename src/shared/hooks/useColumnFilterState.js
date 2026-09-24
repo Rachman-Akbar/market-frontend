@@ -21,12 +21,15 @@ export function useColumnFilterState({ rows = [], getValue, filterTypes = {}, in
 
   const resetFilters = useCallback(() => setColumnFilters({}), []);
 
+  const resetSort = useCallback(() => {
+    setSortBy(initialSortBy);
+    setSortDirection(initialSortDirection || "asc");
+  }, [initialSortBy, initialSortDirection]);
+
   const setSort = useCallback((key, direction) => {
     setSortBy(key);
     setSortDirection(direction || "asc");
   }, []);
-
-  const hasActiveFilters = Object.keys(columnFilters).length > 0;
 
   const processedRows = useMemo(() => {
     let output = rows;
@@ -42,9 +45,9 @@ export function useColumnFilterState({ rows = [], getValue, filterTypes = {}, in
     columnFilters,
     changeFilter,
     resetFilters,
+    resetSort,
     sortBy,
     sortDirection,
     setSort,
-    hasActiveFilters,
   };
 }

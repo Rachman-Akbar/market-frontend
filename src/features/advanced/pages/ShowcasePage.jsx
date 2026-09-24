@@ -10,6 +10,8 @@ import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const initialForm = { store_id: "", name: "", description: "", sort_order: 0, is_active: true, product_ids: [] };
 
@@ -88,7 +90,8 @@ export default function ShowcasePage() {
   const admin = activeRole === "admin";
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(initialForm);
-  const [message, setMessage] = useState("");
+  const [pristine, setPristine] = useState(initialForm);
+  const dirty = useFormDirty(pristine, form);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [productSearch, setProductSearch] = useState("");
   const deferredProductSearch = useDeferredValue(productSearch.trim());
@@ -104,9 +107,10 @@ export default function ShowcasePage() {
   useEffect(() => {
     if (!editor.open) return;
     const row = editor.entity;
-    setMessage("");
     setProductSearch("");
-    setForm(row ? { store_id: String(row.store_id || ""), name: row.name || "", description: row.description || "", sort_order: Number(row.sort_order || 0), is_active: row.is_active !== false, product_ids: (row.products || []).map((product) => Number(product.id)) } : { ...initialForm, store_id: admin ? "" : String(store?.id || "") });
+    const initial = row ? { store_id: String(row.store_id || ""), name: row.name || "", description: row.description || "", sort_order: Number(row.sort_order || 0), is_active: row.is_active !== false, product_ids: (row.products || []).map((product) => Number(product.id)) } : { ...initialForm, store_id: admin ? "" : String(store?.id || "") };
+    setPristine(initial);
+    setForm(initial);
   }, [admin, editor.entity, editor.open, store?.id]);
 
   const toggleActive = useCallback((row) => {
@@ -120,7 +124,7 @@ export default function ShowcasePage() {
         is_active: !row.is_active,
         product_ids: (row.products || []).map((product) => Number(product.id)),
       },
-    }).catch((error) => setMessage(advancedError(error)));
+    }).catch((error) => toastError("Ubah Status Etalase", advancedError(error)));
   }, [admin, saveMutation]);
 
   const columns = useMemo(() => [
@@ -135,17 +139,17 @@ export default function ShowcasePage() {
   async function submit(event) {
     event.preventDefault();
     if (!form.product_ids.length) {
-      setMessage("Pilih minimal satu produk agar etalase mempunyai isi.");
+      toastError("Simpan Etalase", "Pilih minimal satu produk agar etalase mempunyai isi.");
       return;
     }
     try {
       await saveMutation.mutateAsync({ id: editor.entity?.id, values: { ...(admin ? { store_id: Number(form.store_id) } : {}), name: form.name.trim(), description: form.description.trim() || null, sort_order: Number(form.sort_order || 0), is_active: Boolean(form.is_active), product_ids: form.product_ids } });
+      toastSuccess("Simpan Etalase", editor.entity ? "Etalase berhasil diperbarui." : "Etalase berhasil ditambahkan.");
       editor.markListDirty();
       editor.completeSave();
       editor.close();
-      setMessage("Etalase berhasil disimpan.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Simpan Etalase", advancedError(error));
     }
   }
 
@@ -155,9 +159,9 @@ export default function ShowcasePage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      setMessage("Etalase berhasil dihapus.");
+      toastSuccess("Hapus Etalase", "Etalase berhasil dihapus.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Hapus Etalase", advancedError(error));
     }
   }
 
@@ -166,13 +170,11 @@ export default function ShowcasePage() {
       {editor.isListActive ? (
         <ModuleFrame title="Etalase Toko" subtitle="Kelompokkan produk toko ke beberapa etalase dan atur urutan tampilnya di storefront." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={editor.create} createLabel="Tambah Etalase">
           <div className="flex flex-wrap items-center justify-between gap-2 border border-slate-200 bg-white px-4 py-3"><div><p className="text-sm font-extrabold text-slate-800">Pengelompokan produk storefront</p><p className="mt-0.5 text-xs text-slate-500">Produk mengikuti urutan yang kamu susun di dalam masing-masing etalase.</p></div>{!admin ? <Link to="/seller/store-preview" className="inline-flex h-9 items-center gap-2 border border-emerald-200 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50"><span className="material-symbols-outlined text-[18px]">preview</span>Preview Toko</Link> : null}</div>
-          {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <DataGrid storageKey={`${activeRole}.showcases`} columns={columns} rows={rows} onRowClick={editor.edit} emptyText={listQuery.isLoading ? "" : "Etalase belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} />
         </ModuleFrame>
       ) : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Etalase" message={`Etalase “${deleteTarget?.name || ""}” akan dihapus. Produk tidak ikut terhapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
-      <FormModal open={editor.open} title={editor.entity ? "Edit Etalase" : "Tambah Etalase"} subtitle="Atur nama, urutan etalase, lalu susun produk dengan drag and drop." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending} dangerAction={editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
+      <FormModal open={editor.open} title={editor.entity ? "Edit Etalase" : "Tambah Etalase"} subtitle="Atur nama, urutan etalase, lalu susun produk dengan drag and drop." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending || !dirty} dangerAction={editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
         {admin ? <Field label="ID Toko" required><Input type="number" min="1" value={form.store_id} onChange={(event) => { setProductSearch(""); setForm((current) => ({ ...current, store_id: event.target.value, product_ids: [] })); }} required /></Field> : null}
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nama Etalase" required><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} maxLength={120} required /></Field><Field label="Urutan Tampil"><Input type="number" min="0" value={form.sort_order} onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))} /></Field></div>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={3000} className="min-h-20 w-full border border-slate-300 p-3 text-sm outline-none focus:border-emerald-500" placeholder="Contoh: Koleksi produk terbaru dan paling diminati." /></Field>

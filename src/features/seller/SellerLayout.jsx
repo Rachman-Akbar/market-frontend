@@ -9,6 +9,7 @@ import { RouteOutletBoundary } from "@/shared/layout/RouteOutletBoundary";
 export const SELLER_NAV_ITEMS = [
   { href: "/seller", label: "Dashboard", icon: "dashboard", exact: true, hiddenInSidebar: true },
   { href: "/seller/products", label: "Product", icon: "inventory_2", group: "Persediaan" },
+  { href: "/seller/bahan-baku", label: "Bahan Baku", icon: "science", group: "Persediaan" },
   { href: "/seller/stock", label: "Stock", icon: "warehouse", group: "Persediaan" },
   { href: "/seller/vouchers", label: "Voucher", icon: "confirmation_number", group: "Penjualan" },
   { href: "/seller/promotions", label: "Promosi", icon: "campaign", group: "Penjualan" },
@@ -23,7 +24,7 @@ export const SELLER_NAV_ITEMS = [
   { href: "/seller/banners", label: "Banner", icon: "view_carousel", group: "Toko" },
   { href: "/seller/store-preview", label: "Preview Toko", icon: "preview", group: "Toko", noChildTabs: true },
   { href: "/seller/planner", label: "Jadwal", icon: "calendar_month", bottom: true, iconColor: "#06b6d4" },
-  { href: "/seller/chat", label: "Chat", icon: "forum", bottom: true, iconColor: "#3b82f6" },
+  { href: "/seller/chat", label: "Chat", icon: "forum", bottom: true, noChildTabs: true, iconColor: "#3b82f6" },
   { href: "/seller/help", label: "Bantuan", icon: "support_agent", bottom: true, iconColor: "#ec4899", dividerBefore: true },
 ];
 
@@ -38,7 +39,7 @@ export default function SellerLayout() {
           <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
             <PanelHeader eyebrow="Seller Center" title={store?.name || "Official Store"} storeName={store?.name || "Official Store"} userName={user?.name || "Seller"} roleLabel="Store Owner" accentTextClassName="text-emerald-700" avatarClassName="bg-emerald-500" notificationClassName="hover:bg-emerald-50 hover:text-emerald-700" notificationPanel={({ close }) => <NotificationCenterPanel onClose={close} />} mobileNavigation={<PanelMobileNavigation items={SELLER_NAV_ITEMS} activeClassName="bg-emerald-50 text-emerald-700" />} backToMarketplace />
             <PanelTabBar />
-            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3 pb-20 sm:px-4 lg:pb-3">
+            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pt-0.5 pb-20 sm:px-4 lg:pb-3">
               <RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" />
             </main>
           </div>

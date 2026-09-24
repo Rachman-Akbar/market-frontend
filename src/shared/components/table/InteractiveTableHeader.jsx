@@ -28,7 +28,6 @@ export const InteractiveTableHeader = memo(function InteractiveTableHeader({
       title="Tarik header untuk mengubah urutan kolom. Tarik garis kanan untuk mengubah lebar."
     >
       <div className={cn("flex min-w-0 items-center gap-1.5", align === "right" && "justify-end", align === "center" && "justify-center")}>
-        <span className="material-symbols-outlined shrink-0 cursor-grab text-[16px] text-slate-300 opacity-0 transition-opacity group-hover:opacity-100">drag_indicator</span>
         <div className="min-w-0 flex-1 truncate">{children}</div>
       </div>
       <button

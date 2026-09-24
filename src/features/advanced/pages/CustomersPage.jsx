@@ -7,6 +7,7 @@ import { CustomerDetailForm } from "@/features/advanced/pages/CustomerDetailPage
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
+import { toastSuccess } from "@/shared/utils/userFeedback";
 
 function money(value) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -16,7 +17,6 @@ export default function CustomersPage() {
   const { activeRole } = useAuth();
   const admin = activeRole === "admin";
   const [query, setQuery] = useState("");
-  const [message, setMessage] = useState("");
   const deferredQuery = useDeferredValue(query.trim());
   const listQuery = useCustomers({ per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}) });
   const rows = listQuery.data?.rows || [];
@@ -34,7 +34,7 @@ export default function CustomersPage() {
   ], []);
 
   return <>
-    {editor.open ? <CustomerDetailForm customer={editor.entity || null} admin={admin} onSaved={() => { editor.markListDirty(); editor.completeSave(); editor.close(); setMessage(editor.entity ? "Pelanggan berhasil diperbarui." : "Pelanggan berhasil ditambahkan."); }} onDeleted={() => { editor.close(); setMessage("Pelanggan berhasil dihapus."); }} /> : null}
+    {editor.open ? <CustomerDetailForm customer={editor.entity || null} admin={admin} onSaved={() => { editor.markListDirty(); editor.completeSave(); editor.close(); toastSuccess("Simpan Pelanggan", editor.entity ? "Pelanggan berhasil diperbarui." : "Pelanggan berhasil ditambahkan."); }} onDeleted={() => { editor.close(); toastSuccess("Hapus Pelanggan", "Pelanggan berhasil dihapus."); }} /> : null}
     {editor.isListActive ? (
       <ModuleFrame
         title="Pelanggan"
@@ -46,7 +46,6 @@ export default function CustomersPage() {
         onCreate={admin ? undefined : editor.create}
         createLabel="Tambah Pelanggan"
       >
-        {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
         <DataGrid
           storageKey="seller.customers"
           columns={columns}

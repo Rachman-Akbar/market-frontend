@@ -4,6 +4,8 @@ import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch"
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getAdminIdentityError, useAdminRoles, useCreateAdminUser, useUpdateAdminUser } from "@/features/admin/identity/services/adminIdentityService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(user) {
   return {
@@ -22,9 +24,10 @@ function initialValues(user) {
 export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(user));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
   const [useCustomChatMessage, setUseCustomChatMessage] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const pristine = initialValues(user);
+  const dirty = useFormDirty(pristine, values);
   const rolesQuery = useAdminRoles();
   const createMutation = useCreateAdminUser();
   const updateMutation = useUpdateAdminUser();
@@ -36,7 +39,6 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
     if (open) {
       setValues(initialValues(user));
       setErrors({});
-      setMessage("");
       setUseCustomChatMessage(false);
       setChatMessage("");
     }
@@ -83,9 +85,10 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
         ? await updateMutation.mutateAsync({ id: user.id, values: payload })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(user ? "User berhasil diperbarui." : "User berhasil ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Gagal menyimpan user", getAdminIdentityError(error));
     }
   };
 
@@ -94,7 +97,7 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
-            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan User" }} disabled={mutation.isPending} onDelete={user && onDelete ? () => onDelete(user) : undefined} />
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan User" }} disabled={mutation.isPending || !dirty} onDelete={user && onDelete ? () => onDelete(user) : undefined} />
           }
         >
           <div className="grid gap-4 md:grid-cols-2">
@@ -156,13 +159,12 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
               )}
             </div>
           )}
-          {message ? <p className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
         </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {user && onDelete ? <button type="button" onClick={() => onDelete(user)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan User"</button>
+          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan User</button>
         </div>
       </form>
     </CrudDialog>

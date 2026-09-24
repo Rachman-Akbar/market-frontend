@@ -191,6 +191,10 @@ export function useSaveRawMaterial() {
   return useMutationHelper(({ id, values }) => id ? put(`/api/v1/seller/inventory/materials/${id}`, values) : post("/api/v1/seller/inventory/materials", values), advancedKeys.materials);
 }
 
+export function useDeleteRawMaterial() {
+  return useMutationHelper((id) => remove(`/api/v1/seller/inventory/materials/${id}`), advancedKeys.materials);
+}
+
 export function useAdjustRawMaterial() {
   const queryClient = useQueryClient();
   return useMutation({

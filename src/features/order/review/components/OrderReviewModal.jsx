@@ -3,6 +3,7 @@ import { ImagePlus, Loader2, Star, X } from "lucide-react";
 import { advancedError, useCreateReview } from "@/features/advanced/services/advancedMarketplaceService";
 import { uploadMarketplaceImage, getMediaUploadError } from "@/shared/services/mediaUploadService";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function RatingStars({ value, onChange }) {
   return (
@@ -38,7 +39,6 @@ export default function OrderReviewModal({
   const [reviewText, setReviewText] = useState("");
   const [media, setMedia] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
   const reviewMutation = useCreateReview();
 
   useEffect(() => {
@@ -47,7 +47,6 @@ export default function OrderReviewModal({
       setReviewText("");
       setMedia([]);
       setUploading(false);
-      setMessage("");
     }
   }, [open, item?.id]);
 
@@ -83,7 +82,6 @@ export default function OrderReviewModal({
     if (!files.length) return;
 
     setUploading(true);
-    setMessage("");
 
     try {
       const uploaded = [];
@@ -100,7 +98,7 @@ export default function OrderReviewModal({
         [...current, ...uploaded].filter(Boolean).slice(0, 5),
       );
     } catch (error) {
-      setMessage(getMediaUploadError(error));
+      toastError("Upload Foto Review", getMediaUploadError(error));
     } finally {
       setUploading(false);
     }
@@ -112,7 +110,6 @@ export default function OrderReviewModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setMessage("");
 
     const payload = {
       order_item_id: Number(item.id),
@@ -128,8 +125,9 @@ export default function OrderReviewModal({
       await reviewMutation.mutateAsync(payload);
       onSaved?.(item);
       onClose?.();
+      toastSuccess("Kirim Review", "Terima kasih! Review Anda berhasil dikirim.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Kirim Review", advancedError(error));
     }
   };
 
@@ -262,12 +260,6 @@ export default function OrderReviewModal({
             </div>
           ) : null}
         </div>
-
-        {message ? (
-          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            {message}
-          </p>
-        ) : null}
 
         <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button

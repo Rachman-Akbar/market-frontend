@@ -78,8 +78,6 @@ export default function SellerBannerPage() {
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
-            hasActiveFilters={Boolean(query)}
-            onClearFilters={() => setQuery("")}
           />
           )}
         >

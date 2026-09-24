@@ -34,8 +34,6 @@ function ModuleFrameInner({
   onShowAllColumns,
   onResetColumns,
   onApplyDefaultColumns,
-  hasActiveFilters = false,
-  onClearFilters,
 }) {
   const { registration } = useToolbarTableColumns();
   const incomingProps = {
@@ -70,10 +68,8 @@ function ModuleFrameInner({
         onShowAllColumns={resolved.onShowAllColumns}
         onResetColumns={resolved.onResetColumns}
         onApplyDefaultColumns={resolved.onApplyDefaultColumns}
-        hasActiveFilters={hasActiveFilters}
-        onClearFilters={onClearFilters}
       />
-      <div className="space-y-3">{children}</div>
+      <div className="space-y-0.5">{children}</div>
     </section>
   );
 }

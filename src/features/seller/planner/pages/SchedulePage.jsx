@@ -2,42 +2,29 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import {
   useSchedules,
   useGrid,
-  useCreateSchedule,
-  useUpdateSchedule,
   useDeleteSchedule,
   useCompleteSchedule,
   plannerError,
 } from "../services/plannerService";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useStoreContextStores } from "@/features/admin/storeContext/services/adminStoreContextService";
+import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { cn } from "@/shared/utils/utils";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
+import { useRefreshOnListActivation } from "@/shared/hooks/useRefreshOnListActivation";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import {
+  TYPE_OPTIONS,
+  PRIORITY_OPTIONS,
+  typeColor,
+  priorityDot,
+  recurrenceLabel,
+} from "../constants";
+import { ScheduleForm } from "../components/ScheduleForm";
 import KanbanBoard from "../components/KanbanBoard";
 
-const TYPE_OPTIONS = [
-  { value: "task", label: "Task", color: "#3b82f6" },
-  { value: "meeting", label: "Meeting", color: "#8b5cf6" },
-  { value: "reminder", label: "Reminder", color: "#f59e0b" },
-  { value: "shipment", label: "Shipment", color: "#10b981" },
-  { value: "restock", label: "Restock", color: "#ef4444" },
-];
-
-const PRIORITY_OPTIONS = [
-  { value: "low", label: "Low", dot: "bg-slate-400" },
-  { value: "normal", label: "Normal", dot: "bg-blue-500" },
-  { value: "high", label: "High", dot: "bg-amber-500" },
-  { value: "urgent", label: "Urgent", dot: "bg-red-500" },
-];
-
 const WEEKDAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-
-function typeColor(type) {
-  return TYPE_OPTIONS.find((t) => t.value === type)?.color || "#6b7280";
-}
-
-function priorityDot(priority) {
-  return PRIORITY_OPTIONS.find((p) => p.value === priority)?.dot || "bg-slate-400";
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -62,17 +49,16 @@ function todayString() {
   return toDateString(d.getFullYear(), d.getMonth() + 1, d.getDate());
 }
 
-const EMPTY_FORM = {
-  title: "",
-  description: "",
-  type: "task",
-  priority: "normal",
-  color: "",
-  date: "",
-  start_time: "",
-  end_time: "",
-  is_all_day: true,
-};
+function shade(hex, percent) {
+  const clean = String(hex || "").replace("#", "");
+  if (clean.length !== 6) return hex;
+  const num = parseInt(clean, 16);
+  const amt = Math.round(2.55 * percent);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amt));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + amt));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 const SWIPE_THRESHOLD = 60;
 
@@ -84,19 +70,25 @@ export default function SchedulePage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [viewMode, setViewMode] = useState(isAdmin ? "board" : "kanban");
-  const [, setSelectedDate] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [createDefaults, setCreateDefaults] = useState(null);
   const [filterType, setFilterType] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
   const [filterStoreId, setFilterStoreId] = useState("");
+  const [query, setQuery] = useState("");
   const [exporting, setExporting] = useState(false);
   const [slideDir, setSlideDir] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const calendarRef = useRef(null);
   const swipeStartX = useRef(null);
+
+  const editor = useEntityEditor({
+    createLabel: "Jadwal Baru",
+    getEditLabel: (entity) => {
+      const title = entity?.title || "";
+      return title ? `Edit: ${title.length > 24 ? `${title.slice(0, 24)}…` : title}` : "Edit Jadwal";
+    },
+  });
 
   const storesQuery = useStoreContextStores({ search: undefined, per_page: 100 }, isAdmin);
   const adminStores = storesQuery.data?.rows || [];
@@ -109,12 +101,21 @@ export default function SchedulePage() {
     return p;
   }, [filterType, filterPriority, filterStoreId, isAdmin]);
 
-  const { data: gridData, isLoading: gridLoading } = useGrid(year, month, isAdmin && filterStoreId ? { store_id: filterStoreId } : {});
-  const { data: listData, isLoading: listLoading } = useSchedules(queryParams);
-  const createMutation = useCreateSchedule();
-  const updateMutation = useUpdateSchedule();
+  const { data: gridData, isLoading: gridLoading, refetch: refetchGrid } = useGrid(year, month, isAdmin && filterStoreId ? { store_id: filterStoreId } : {});
+  const { data: listData, isLoading: listLoading, refetch: refetchList } = useSchedules(queryParams);
   const deleteMutation = useDeleteSchedule();
   const completeMutation = useCompleteSchedule();
+
+  const refetchAll = useCallback(() => {
+    refetchList();
+    refetchGrid();
+  }, [refetchGrid, refetchList]);
+
+  useRefreshOnListActivation({
+    isListActive: editor.isListActive,
+    listRevision: editor.listRevision,
+    refetch: refetchAll,
+  });
 
   const schedulesByDate = useMemo(() => {
     const map = {};
@@ -129,13 +130,14 @@ export default function SchedulePage() {
     return map;
   }, [gridData]);
 
-  const listItems = useMemo(() => {
-    return listData?.rows || listData || [];
-  }, [listData]);
-
   const days = daysInMonth(year, month);
   const startDay = firstDayOfMonth(year, month);
   const today = todayString();
+
+  const extraCreatePayload = useMemo(
+    () => (isAdmin && filterStoreId ? { store_id: Number(filterStoreId) } : null),
+    [filterStoreId, isAdmin]
+  );
 
   const goToMonth = useCallback((nextYear, nextMonth, dir) => {
     setYear(nextYear);
@@ -171,49 +173,23 @@ export default function SchedulePage() {
     else if (delta < -SWIPE_THRESHOLD) nextMonth();
   };
 
-  const openNew = (date) => {
-    setEditingId(null);
-    setForm({ ...EMPTY_FORM, date: date || today });
-    setShowForm(true);
+  const openCreate = (defaults = null) => {
+    setCreateDefaults(defaults);
+    editor.create();
   };
 
   const openEdit = (schedule) => {
-    setEditingId(schedule.id);
-    setForm({
-      title: schedule.title || "",
-      description: schedule.description || "",
-      type: schedule.type || "task",
-      priority: schedule.priority || "normal",
-      color: schedule.color || "",
-      date: schedule.date || "",
-      start_time: schedule.start_time || "",
-      end_time: schedule.end_time || "",
-      is_all_day: schedule.is_all_day ?? true,
-    });
-    setShowForm(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.date) return;
-    try {
-      if (editingId) {
-        await updateMutation.mutateAsync({ id: editingId, values: form });
-      } else {
-        await createMutation.mutateAsync(form);
-      }
-      setShowForm(false);
-      setEditingId(null);
-      setForm(EMPTY_FORM);
-    } catch (e) {
-      alert(plannerError(e));
-    }
+    editor.edit(schedule);
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteMutation.mutateAsync(id);
+      editor.markListDirty();
+      if (editor.open) editor.completeSave();
+      toastSuccess("Jadwal dihapus.");
     } catch (e) {
-      alert(plannerError(e));
+      toastError("Gagal menghapus jadwal", plannerError(e));
     } finally {
       setDeleteTarget(null);
     }
@@ -222,8 +198,9 @@ export default function SchedulePage() {
   const handleComplete = async (id) => {
     try {
       await completeMutation.mutateAsync(id);
+      toastSuccess("Jadwal ditandai selesai.");
     } catch (e) {
-      alert(plannerError(e));
+      toastError("Gagal menyelesaikan jadwal", plannerError(e));
     }
   };
 
@@ -243,7 +220,7 @@ export default function SchedulePage() {
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch {
-      alert("Gagal export gambar.");
+      toastError("Gagal export gambar.");
     } finally {
       setExporting(false);
     }
@@ -254,304 +231,326 @@ export default function SchedulePage() {
     year: "numeric",
   });
 
+  const normalizedQuery = query.trim().toLowerCase();
+  const listItems = useMemo(() => {
+    const rows = listData?.rows || listData || [];
+    if (!normalizedQuery) return rows;
+    return rows.filter((s) => [s.title, s.description, s.type].some((value) => String(value || "").toLowerCase().includes(normalizedQuery)));
+  }, [listData, normalizedQuery]);
+
+  const scheduleActions = [
+    { key: "export-image", label: "Export Gambar", icon: "download", requiresSelection: false, disabled: exporting, onClick: handleExport },
+  ];
+
+  const filters = (
+    <>
+      <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        <button onClick={prevMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" title="Bulan sebelumnya">&lsaquo;</button>
+        <span className="min-w-[140px] text-center text-sm font-medium text-slate-800">{monthLabel}</span>
+        <button onClick={nextMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" title="Bulan berikutnya">&rsaquo;</button>
+        <button onClick={goToday} className="ml-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">Hari ini</button>
+      </div>
+      <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700">
+        <option value="">Semua Tipe</option>
+        {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+      </select>
+      <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700">
+        <option value="">Semua Prioritas</option>
+        {PRIORITY_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+      </select>
+      {isAdmin ? (
+        <select value={filterStoreId} onChange={(e) => setFilterStoreId(e.target.value)} className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700">
+          <option value="">Jadwal Saya (Admin)</option>
+          {adminStores.map((s) => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
+        </select>
+      ) : null}
+    </>
+  );
+
   return (
-    <div className="w-full min-w-0 max-w-full">
-      <style>{`
-        @keyframes slide-in-right { from { transform: translateX(48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes slide-in-left { from { transform: translateX(-48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .schedule-slide { animation-duration: 260ms; animation-timing-function: ease-out; }
-        .schedule-slide-right { animation-name: slide-in-left; }
-        .schedule-slide-left { animation-name: slide-in-right; }
-      `}</style>
+    <>
+      {editor.isListActive ? (
+        <ModuleFrame
+          query={query}
+          onQueryChange={setQuery}
+          onRefresh={refetchAll}
+          onCreate={() => openCreate()}
+          createLabel="Jadwal"
+          placeholder="Cari jadwal berdasarkan judul, tipe, atau catatan..."
+          filters={filters}
+          bulkActions={scheduleActions}
+        >
+          <style>{`
+            @keyframes slide-in-right { from { transform: translateX(48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes slide-in-left { from { transform: translateX(-48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            .schedule-slide { animation-duration: 260ms; animation-timing-function: ease-out; }
+            .schedule-slide-right { animation-name: slide-in-left; }
+            .schedule-slide-left { animation-name: slide-in-right; }
+          `}</style>
 
-      <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#10B981]">{isAdmin ? "Master Data" : "Operasional"}</p>
-        <h1 className="mt-1 text-2xl font-light text-slate-900">Planner / Jadwal</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {isAdmin
-            ? "Pantau jadwal tiap toko dalam satu papan yang dapat digeser, atau lihat tabel ringkas."
-            : "Kelola jadwal harian dan mingguan toko Anda. Geser papan untuk berpindah bulan."}
-        </p>
-      </div>
+          <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+            {[
+              ["kanban", "Papan", "view_kanban"],
+              ["board", "Kalender", "calendar_month"],
+              ["table", "Tabel", "table_rows"],
+            ].map(([id, label, icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setViewMode(id)}
+                className={cn(
+                  "inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-sm font-bold transition",
+                  viewMode === id
+                    ? "bg-emerald-600 text-white shadow-sm shadow-emerald-200"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                )}
+              >
+                <span className="material-symbols-outlined text-[16px]">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
 
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <button onClick={prevMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" title="Bulan sebelumnya">&lsaquo;</button>
-          <span className="min-w-[140px] text-center text-sm font-medium text-slate-800">{monthLabel}</span>
-          <button onClick={nextMonth} className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100" title="Bulan berikutnya">&rsaquo;</button>
-          <button onClick={goToday} className="ml-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">Hari ini</button>
-        </div>
-
-        <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <button onClick={() => setViewMode("kanban")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "kanban" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Papan</button>
-          <button onClick={() => setViewMode("board")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "board" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Kalender</button>
-          <button onClick={() => setViewMode("table")} className={cn("rounded-md px-3 py-1 text-xs font-medium transition", viewMode === "table" ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-slate-100")}>Tabel</button>
-        </div>
-
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700">
-          <option value="">Semua Tipe</option>
-          {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-
-        <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700">
-          <option value="">Semua Prioritas</option>
-          {PRIORITY_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
-
-        {isAdmin && (
-          <select value={filterStoreId} onChange={(e) => setFilterStoreId(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700">
-            <option value="">Jadwal Saya (Admin)</option>
-            {adminStores.map((s) => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
-          </select>
-        )}
-
-        <div className="ml-auto flex gap-2">
-          <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-            <span className="material-symbols-outlined text-sm">download</span>
-            {exporting ? "Exporting..." : "Export Gambar"}
-          </button>
-          <button onClick={() => openNew()} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600">
-            <span className="material-symbols-outlined text-sm">add</span>
-            Jadwal Baru
-          </button>
-        </div>
-      </div>
-
-      {/* Kanban board */}
-      {viewMode === "kanban" ? (
-        <KanbanBoard isAdmin={isAdmin} filterStoreId={filterStoreId} filterType={filterType} filterPriority={filterPriority} />
-      ) : (
-      /* Calendar / Table content (this gets exported as image) */
-      <div ref={calendarRef} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {viewMode === "board" ? (
-          <div
-            key={`${year}-${month}`}
-            className={cn("schedule-slide", slideDir === "left" ? "schedule-slide-left" : slideDir === "right" ? "schedule-slide-right" : "")}
-            style={{ touchAction: "pan-y", cursor: "grab" }}
-            onPointerDown={handleSwipeStart}
-            onPointerUp={handleSwipeEnd}
-            onPointerCancel={() => { swipeStartX.current = null; }}
-            onPointerMove={(e) => { if (swipeStartX.current !== null && Math.abs(e.clientX - swipeStartX.current) > 8) e.currentTarget.style.cursor = "grabbing"; }}
-          >
-            {gridLoading ? (
-              <div className="flex items-center justify-center py-12 text-sm text-slate-400">Memuat...</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <div className="grid grid-cols-7 border-b border-slate-100">
-                  {WEEKDAYS.map((w) => (
-                    <div key={w} className="px-2 py-2 text-center text-xs font-semibold text-slate-500">{w}</div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7">
-                  {Array.from({ length: startDay }).map((_, i) => (
-                    <div key={`empty-${i}`} className="min-h-[90px] border-b border-r border-slate-100 bg-slate-50/50" />
-                  ))}
-                  {Array.from({ length: days }).map((_, i) => {
-                    const day = i + 1;
-                    const dateStr = toDateString(year, month, day);
-                    const isToday = dateStr === today;
-                    const daySchedules = schedulesByDate[dateStr] || [];
-                    return (
-                      <div
-                        key={day}
-                        className={cn(
-                          "min-h-[90px] border-b border-r border-slate-100 p-1.5 cursor-pointer transition hover:bg-emerald-50/30",
-                          isToday && "bg-emerald-50/60"
-                        )}
-                        onClick={() => setSelectedDate(dateStr)}
-                        onDoubleClick={() => openNew(dateStr)}
-                      >
-                        <div className={cn(
-                          "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
-                          isToday ? "bg-emerald-500 text-white" : "text-slate-700"
-                        )}>
-                          {day}
-                        </div>
-                        <div className="space-y-0.5">
-                          {daySchedules.slice(0, 3).map((s) => (
+          {viewMode === "kanban" ? (
+            <KanbanBoard
+              isAdmin={isAdmin}
+              filterStoreId={filterStoreId}
+              filterType={filterType}
+              filterPriority={filterPriority}
+              onCreate={openCreate}
+              onEdit={openEdit}
+            />
+          ) : (
+            <>
+              <div ref={calendarRef} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                {viewMode === "board" ? (
+                  <div
+                    key={`${year}-${month}`}
+                    className={cn("schedule-slide", slideDir === "left" ? "schedule-slide-left" : slideDir === "right" ? "schedule-slide-right" : "")}
+                    style={{ touchAction: "pan-y", cursor: "grab" }}
+                    onPointerDown={handleSwipeStart}
+                    onPointerUp={handleSwipeEnd}
+                    onPointerCancel={() => { swipeStartX.current = null; }}
+                    onPointerMove={(e) => { if (swipeStartX.current !== null && Math.abs(e.clientX - swipeStartX.current) > 8) e.currentTarget.style.cursor = "grabbing"; }}
+                  >
+                    {gridLoading ? (
+                      <div className="flex items-center justify-center py-12 text-sm text-slate-400">Memuat...</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+                          {WEEKDAYS.map((w) => (
                             <div
-                              key={s.id}
-                              onClick={(e) => { e.stopPropagation(); openEdit(s); }}
-                              className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight text-white cursor-pointer hover:opacity-80"
-                              style={{ backgroundColor: typeColor(s.type) }}
-                              title={s.title}
+                              key={w}
+                              className={cn(
+                                "px-2 py-2.5 text-center text-[11px] font-extrabold uppercase tracking-wider",
+                                w === "Min" ? "text-rose-500" : w === "Sab" ? "text-sky-500" : "text-slate-500"
+                              )}
                             >
-                              {s.start_time && <span className="shrink-0">{s.start_time}</span>}
-                              <span className="truncate">{s.title}</span>
+                              {w}
                             </div>
                           ))}
-                          {daySchedules.length > 3 && (
-                            <div className="px-1 text-[10px] text-slate-400">+{daySchedules.length - 3} lagi</div>
-                          )}
+                        </div>
+                        <div className="grid grid-cols-7">
+                          {Array.from({ length: startDay }).map((_, i) => (
+                            <div key={`empty-${i}`} className="min-h-[104px] border-b border-r border-slate-200/80 bg-slate-50/60" />
+                          ))}
+                          {Array.from({ length: days }).map((_, i) => {
+                            const day = i + 1;
+                            const dateStr = toDateString(year, month, day);
+                            const isToday = dateStr === today;
+                            const weekday = (startDay + i) % 7;
+                            const isWeekend = weekday === 0 || weekday === 6;
+                            const daySchedules = schedulesByDate[dateStr] || [];
+                            return (
+                              <div
+                                key={day}
+                                className={cn(
+                                  "min-h-[104px] border-b border-r border-slate-200/80 p-1.5 transition",
+                                  isToday
+                                    ? "bg-emerald-50/80 ring-2 ring-inset ring-emerald-400"
+                                    : isWeekend
+                                      ? "bg-slate-50/80 hover:bg-slate-100/70"
+                                      : "bg-white hover:bg-emerald-50/40"
+                                )}
+                                onDoubleClick={() => openCreate({ date: dateStr })}
+                                title="Klik ganda untuk menambah jadwal"
+                              >
+                                <div className="mb-1 flex items-center justify-between gap-1">
+                                  <span className={cn(
+                                    "flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] font-bold",
+                                    isToday
+                                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-300"
+                                      : "text-slate-600"
+                                  )}>
+                                    {day}
+                                  </span>
+                                  {daySchedules.length > 0 ? (
+                                    <span className={cn(
+                                      "rounded-full px-1.5 py-px text-[9px] font-extrabold leading-4 text-white",
+                                      isToday ? "bg-emerald-600" : "bg-slate-700"
+                                    )}>
+                                      {daySchedules.length}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="space-y-1">
+                                  {daySchedules.slice(0, 3).map((s) => {
+                                    const color = s.color || typeColor(s.type);
+                                    return (
+                                      <div
+                                        key={s.id}
+                                        onClick={(e) => { e.stopPropagation(); openEdit(s); }}
+                                        className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight text-white shadow-sm transition hover:brightness-110 hover:shadow"
+                                        style={{
+                                          backgroundColor: color,
+                                          backgroundImage: `linear-gradient(135deg, ${shade(color, 18)} 0%, ${color} 55%, ${shade(color, -14)} 100%)`,
+                                          boxShadow: `0 1px 2px ${color}66`,
+                                        }}
+                                        title={`${s.title}${s.start_time ? ` • ${s.start_time}` : ""}`}
+                                      >
+                                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/80" />
+                                        {s.start_time && <span className="shrink-0 tabular-nums opacity-90">{s.start_time}</span>}
+                                        {s.recurrence && s.recurrence !== "none" && (
+                                          <span className="material-symbols-outlined text-[10px]" title={recurrenceLabel(s.recurrence)}>repeat</span>
+                                        )}
+                                        <span className="truncate">{s.title}</span>
+                                        {s.priority === "urgent" ? (
+                                          <span className="material-symbols-outlined shrink-0 text-[11px] font-bold" title="Prioritas urgent">priority_high</span>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
+                                  {daySchedules.length > 3 ? (
+                                    <div className="rounded-md bg-slate-100 px-1.5 py-0.5 text-center text-[10px] font-bold text-slate-500 transition hover:bg-slate-200">
+                                      +{daySchedules.length - 3} lainnya
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {Array.from({ length: (7 - ((startDay + days) % 7)) % 7 }).map((_, i) => (
+                            <div key={`end-${i}`} className="min-h-[104px] border-b border-r border-slate-200/80 bg-slate-50/60" />
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
-                  {Array.from({ length: (7 - ((startDay + days) % 7)) % 7 }).map((_, i) => (
-                    <div key={`end-${i}`} className="min-h-[90px] border-b border-r border-slate-100 bg-slate-50/50" />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-center text-[10px] text-slate-400">
-              Geser papan ke kiri/kanan untuk berganti bulan
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {listLoading ? (
-              <div className="flex items-center justify-center py-12 text-sm text-slate-400">Memuat...</div>
-            ) : listItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                <span className="material-symbols-outlined mb-2 text-3xl">event_note</span>
-                <p className="text-sm">Belum ada jadwal.</p>
-              </div>
-            ) : (
-              listItems.map((s) => (
-                <div key={s.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50">
-                  <div className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: typeColor(s.type) }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={cn("text-sm font-medium", s.is_completed ? "text-slate-400 line-through" : "text-slate-800")}>{s.title}</span>
-                      <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium", s.is_completed ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500")}>
-                        {s.is_completed ? "Selesai" : TYPE_OPTIONS.find((t) => t.value === s.type)?.label || s.type}
-                      </span>
-                      {isAdmin && s.store_id ? (
-                        <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
-                          Toko #{s.store_id}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                      <span>{formatDate(s.date)}</span>
-                      {s.start_time && <span>{s.start_time}{s.end_time ? ` - ${s.end_time}` : ""}</span>}
-                      <span className={cn("inline-block h-1.5 w-1.5 rounded-full", priorityDot(s.priority))} />
-                      {s.color ? (
-                        <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                      ) : null}
-                    </div>
-                    {s.description && <p className="mt-1 text-xs text-slate-500 line-clamp-1">{s.description}</p>}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {!s.is_completed && (
-                      <button onClick={() => handleComplete(s.id)} className="rounded p-1 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600" title="Selesai">
-                        <span className="material-symbols-outlined text-sm">check_circle</span>
-                      </button>
                     )}
-                    <button onClick={() => openEdit(s)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Edit / Jadwal Ulang">
-                      <span className="material-symbols-outlined text-sm">edit_calendar</span>
-                    </button>
-                    <button onClick={() => setDeleteTarget(s)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
-                      <span className="material-symbols-outlined text-sm">delete</span>
-                    </button>
+                    <div className="border-t border-slate-200 bg-slate-50/80 px-3 py-1.5 text-center text-[10px] font-medium text-slate-400">
+                      Geser papan ke kiri/kanan untuk berganti bulan &bull; Klik ganda hari untuk tambah jadwal
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-      )}
-
-      {/* Legend */}
-      {viewMode === "board" && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {TYPE_OPTIONS.map((t) => (
-            <div key={t.value} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} />
-              {t.label}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">{editingId ? "Edit Jadwal (Reschedule)" : "Jadwal Baru"}</h3>
-
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Judul *</label>
-                <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" placeholder="Judul jadwal..." />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Tipe</label>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400">
-                    {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Prioritas</label>
-                  <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400">
-                    {PRIORITY_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Tanggal *</label>
-                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
-              </div>
-
-              <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-600">
-                  <input type="checkbox" checked={form.is_all_day} onChange={(e) => setForm({ ...form, is_all_day: e.target.checked })} className="rounded" />
-                  Sepanjang hari
-                </label>
-              </div>
-
-              {!form.is_all_day && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Jam Mulai</label>
-                    <input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {listLoading ? (
+                      <div className="flex items-center justify-center py-12 text-sm text-slate-400">Memuat...</div>
+                    ) : listItems.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <span className="material-symbols-outlined mb-2 text-3xl">event_note</span>
+                        <p className="text-sm">{normalizedQuery ? "Tidak ada jadwal yang cocok dengan pencarian." : "Belum ada jadwal."}</p>
+                      </div>
+                    ) : (
+                      listItems.map((s) => {
+                        const color = typeColor(s.type);
+                        return (
+                          <div
+                            key={s.id}
+                            className="flex items-start gap-3 border-l-4 bg-white px-4 py-3 transition hover:bg-slate-50"
+                            style={{ borderLeftColor: color }}
+                          >
+                            <div className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={cn("text-sm font-medium", s.is_completed ? "text-slate-400 line-through" : "text-slate-800")}>{s.title}</span>
+                                <span
+                                  className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                                  style={s.is_completed
+                                    ? { backgroundColor: "#d1fae5", color: "#047857" }
+                                    : { backgroundColor: `${color}1f`, color }}
+                                >
+                                  {s.is_completed ? "Selesai" : TYPE_OPTIONS.find((t) => t.value === s.type)?.label || s.type}
+                                </span>
+                                {s.recurrence && s.recurrence !== "none" ? (
+                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-bold text-violet-700">
+                                    <span className="material-symbols-outlined text-[11px]">repeat</span>
+                                    {recurrenceLabel(s.recurrence, true)}
+                                  </span>
+                                ) : null}
+                                {isAdmin && s.store_id ? (
+                                  <span className="inline-flex items-center rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                                    Toko #{s.store_id}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                                <span>{formatDate(s.date)}</span>
+                                {s.start_time && <span>{s.start_time}{s.end_time ? ` - ${s.end_time}` : ""}</span>}
+                                <span className={cn("inline-block h-1.5 w-1.5 rounded-full", priorityDot(s.priority))} />
+                                {s.color ? (
+                                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                ) : null}
+                              </div>
+                              {s.description && <p className="mt-1 text-xs text-slate-500 line-clamp-1">{s.description}</p>}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {!s.is_completed && (
+                                <button onClick={() => handleComplete(s.id)} className="rounded p-1 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600" title="Selesai">
+                                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                                </button>
+                              )}
+                              <button onClick={() => openEdit(s)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Edit / Jadwal Ulang">
+                                <span className="material-symbols-outlined text-sm">edit_calendar</span>
+                              </button>
+                              <button onClick={() => setDeleteTarget(s)} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Jam Selesai</label>
-                    <input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Warna</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {["", ...TYPE_OPTIONS.map((t) => t.color)].map((color) => (
-                    <button
-                      key={color || "default"}
-                      type="button"
-                      onClick={() => setForm({ ...form, color })}
-                      className={cn(
-                        "h-6 w-6 rounded-full border",
-                        color ? "" : "bg-slate-100",
-                        (form.color || "") === color ? "ring-2 ring-slate-900 ring-offset-1" : "border-slate-200"
-                      )}
-                      title={color || "Warna bawaan"}
-                    />
+              {viewMode === "board" ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {TYPE_OPTIONS.map((t) => (
+                    <span
+                      key={t.value}
+                      className="inline-flex items-center gap-1.5 rounded-full border-2 bg-white px-3 py-1 text-[11px] font-bold"
+                      style={{ borderColor: `${t.color}55`, color: t.color }}
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                      {t.label}
+                    </span>
                   ))}
+                  <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600" />
+                    Hari ini
+                  </span>
                 </div>
-              </div>
+              ) : null}
+            </>
+          )}
+        </ModuleFrame>
+      ) : null}
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Deskripsi</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" placeholder="Catatan..." />
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
-              <button onClick={handleSave} disabled={!form.title.trim() || !form.date || createMutation.isPending || updateMutation.isPending} className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
-                {editingId ? "Simpan" : "Buat Jadwal"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ScheduleForm
+        open={editor.open}
+        entity={editor.entity}
+        defaultValues={editor.entity ? null : createDefaults}
+        extraCreatePayload={extraCreatePayload}
+        onDelete={(entity) => setDeleteTarget(entity)}
+        onClose={() => {
+          setCreateDefaults(null);
+          editor.close();
+        }}
+        onSaved={() => {
+          setCreateDefaults(null);
+          editor.markListDirty();
+          editor.completeSave();
+        }}
+      />
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
@@ -561,6 +560,6 @@ export default function SchedulePage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => handleDelete(deleteTarget?.id)}
       />
-    </div>
+    </>
   );
 }

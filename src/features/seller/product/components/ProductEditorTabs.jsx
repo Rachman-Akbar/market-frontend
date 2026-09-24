@@ -12,8 +12,8 @@ export const ProductEditorTabs = memo(function ProductEditorTabs({ activeTab, on
   const errorSet = new Set(errorTabs);
 
   return (
-    <div className="overflow-x-auto bg-slate-100 px-4 pt-1 sm:px-5">
-      <div className="flex min-w-max items-end gap-1">
+    <div className="overflow-x-auto bg-slate-100 px-4 pt-0.5 sm:px-5">
+      <div className="flex min-w-max items-end gap-0.5">
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
           return (
@@ -21,12 +21,12 @@ export const ProductEditorTabs = memo(function ProductEditorTabs({ activeTab, on
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className={`flex h-10 min-w-28 items-center justify-center gap-2 px-4 text-sm font-bold transition-colors ${active ? "bg-white text-slate-900" : "bg-slate-200 text-slate-600 hover:bg-slate-300 hover:text-slate-900"}`}
+              className={`flex h-9 min-w-24 items-center justify-center gap-1.5 px-3 text-[13px] font-bold transition-colors ${active ? "bg-white text-slate-900" : "bg-slate-200 text-slate-600 hover:bg-slate-300 hover:text-slate-900"}`}
               aria-current={active ? "page" : undefined}
             >
-              <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+              <span className="material-symbols-outlined text-[17px]">{tab.icon}</span>
               <span>{tab.label}</span>
-              {errorSet.has(tab.id) ? <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Tab memiliki error" /> : null}
+              {errorSet.has(tab.id) ? <span className="h-1.5 w-1.5 rounded-full bg-red-500" aria-label="Tab memiliki error" /> : null}
             </button>
           );
         })}

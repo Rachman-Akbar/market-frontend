@@ -53,20 +53,18 @@ export function useColumnVisibility(columns = [], key = "") {
   const storageKey = getStorageKey(key);
   const defaultStorageKey = getDefaultStorageKey(key);
   const columnKeys = useMemo(() => columns.map((column) => column.key), [columns]);
-  const lockedKeys = useMemo(() => columns.filter((column) => column.locked).map((column) => column.key), [columns]);
   const defaultKeys = useMemo(
-    () => columns.filter((column) => column.defaultVisible !== false || column.locked).map((column) => column.key),
+    () => columns.filter((column) => column.defaultVisible !== false).map((column) => column.key),
     [columns],
   );
-  const lockedKeySet = useMemo(() => new Set(lockedKeys), [lockedKeys]);
 
   const sanitize = useCallback((keys) => {
     const allowed = new Set(columnKeys);
     const selected = (Array.isArray(keys) ? keys : []).filter((columnKey) => allowed.has(columnKey));
-    const resolved = uniqueKeys([...selected, ...lockedKeys]);
+    const resolved = uniqueKeys(selected);
     if (!resolved.length) return [...defaultKeys];
     return resolved;
-  }, [columnKeys, defaultKeys, lockedKeys]);
+  }, [columnKeys, defaultKeys]);
 
   const [visibleKeys, setVisibleKeys] = useState(() => {
     const defaultOverride = readStored(defaultStorageKey);
@@ -104,7 +102,6 @@ export function useColumnVisibility(columns = [], key = "") {
   }, [storageKey, sanitize]);
 
   const toggleColumn = useCallback((columnKey) => {
-    if (lockedKeySet.has(columnKey)) return;
     setVisibleKeys((current) => {
       if (current.includes(columnKey)) {
         if (current.length === 1) return current;
@@ -112,7 +109,7 @@ export function useColumnVisibility(columns = [], key = "") {
       }
       return [...current, columnKey];
     });
-  }, [lockedKeySet]);
+  }, []);
 
   const showAll = useCallback(() => {
     setVisibleKeys((current) => (equalKeys(current, columnKeys) ? current : columnKeys));
@@ -124,10 +121,13 @@ export function useColumnVisibility(columns = [], key = "") {
   }, [defaultStorageKey, visibleKeys]);
 
   const reset = useCallback(() => {
-    clearStored(defaultStorageKey);
     clearStored(storageKey);
-    setVisibleKeys((current) => (equalKeys(current, defaultKeys) ? current : defaultKeys));
-  }, [defaultKeys, defaultStorageKey, storageKey]);
+    setVisibleKeys((current) => {
+      const appliedDefault = readStored(defaultStorageKey);
+      const target = Array.isArray(appliedDefault) && appliedDefault.length ? sanitize(appliedDefault) : defaultKeys;
+      return equalKeys(current, target) ? current : target;
+    });
+  }, [defaultKeys, defaultStorageKey, sanitize, storageKey]);
 
   const visibleSet = useMemo(() => new Set(visibleKeys), [visibleKeys]);
 

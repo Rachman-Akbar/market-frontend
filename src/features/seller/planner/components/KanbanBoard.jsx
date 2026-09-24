@@ -2,51 +2,22 @@ import { useMemo, useRef, useState } from "react";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { uploadMarketplaceImage, getMediaUploadError } from "@/shared/services/mediaUploadService";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { toastError } from "@/shared/utils/userFeedback";
 import { cn } from "@/shared/utils/utils";
+import { STATUS_OPTIONS, typeColor, priorityDot, recurrenceLabel, todayIso } from "../constants";
 import {
   useBoard,
-  useCreateSchedule,
   useDeleteSchedule,
-  useUpdateSchedule,
   useMoveSchedule,
   useCompleteSchedule,
   plannerError,
 } from "../services/plannerService";
-
-const TYPE_OPTIONS = [
-  { value: "task", label: "Task", color: "#3b82f6" },
-  { value: "meeting", label: "Meeting", color: "#8b5cf6" },
-  { value: "reminder", label: "Reminder", color: "#f59e0b" },
-  { value: "shipment", label: "Shipment", color: "#10b981" },
-  { value: "restock", label: "Restock", color: "#ef4444" },
-];
-
-const PRIORITY_OPTIONS = [
-  { value: "low", label: "Low", dot: "bg-slate-400" },
-  { value: "normal", label: "Normal", dot: "bg-blue-500" },
-  { value: "high", label: "High", dot: "bg-amber-500" },
-  { value: "urgent", label: "Urgent", dot: "bg-red-500" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "todo", label: "Belum" },
-  { value: "in_progress", label: "Sedang Dikerjakan" },
-  { value: "done", label: "Selesai" },
-];
 
 const TYPE_COLORS = {
   todo: "text-rose-600 bg-rose-50 border-rose-200",
   in_progress: "border-amber-200 bg-amber-50 text-amber-800",
   done: "border-emerald-300 bg-emerald-50 text-emerald-950",
 };
-
-function typeColor(type) {
-  return TYPE_OPTIONS.find((t) => t.value === type)?.color || "#6b7280";
-}
-
-function priorityDot(priority) {
-  return PRIORITY_OPTIONS.find((p) => p.value === priority)?.dot || "bg-slate-400";
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -62,31 +33,9 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-const EMPTY_CARD = {
-  title: "",
-  description: "",
-  type: "task",
-  priority: "normal",
-  assignee: "",
-  label: "",
-  date: todayIso(),
-  start_time: "",
-  end_time: "",
-  is_all_day: true,
-  status: "todo",
-};
-
-export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filterPriority }) {
+export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filterPriority, onCreate, onEdit }) {
   const [draggingId, setDraggingId] = useState(null);
   const [overColumn, setOverColumn] = useState(null);
-  const [cardModal, setCardModal] = useState(EMPTY_CARD);
-  const [editingId, setEditingId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
   const [completeFor, setCompleteFor] = useState(null);
   const [proof, setProof] = useState({ note: "", files: [] });
   const [uploading, setUploading] = useState(false);
@@ -103,8 +52,6 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
   }, [isAdmin, filterStoreId, filterType, filterPriority]);
 
   const { data: board, isLoading } = useBoard(boardParams);
-  const createMutation = useCreateSchedule();
-  const updateMutation = useUpdateSchedule();
   const deleteMutation = useDeleteSchedule();
   const moveMutation = useMoveSchedule();
   const completeMutation = useCompleteSchedule();
@@ -112,65 +59,18 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
   const columns = board?.columns || { todo: [], in_progress: [], done: [] };
 
   const openNew = (status = "todo") => {
-    setEditingId(null);
-    setCardModal({ ...EMPTY_CARD, status });
-    setShowForm(true);
+    onCreate({ status, date: todayIso() });
   };
 
   const openEdit = (card) => {
-    setEditingId(card.id);
-    setCardModal({
-      title: card.title || "",
-      description: card.description || "",
-      type: card.type || "task",
-      priority: card.priority || "normal",
-      assignee: card.assignee || "",
-      label: card.label || "",
-      date: card.date || todayIso(),
-      start_time: card.start_time || "",
-      end_time: card.end_time || "",
-      is_all_day: card.is_all_day ?? true,
-      status: card.status || "todo",
-    });
-    setShowForm(true);
-  };
-
-  const handleSaveCard = async () => {
-    if (!cardModal.title.trim() || !cardModal.date) return;
-    const values = {
-      title: cardModal.title.trim(),
-      description: cardModal.description.trim(),
-      type: cardModal.type,
-      priority: cardModal.priority,
-      assignee: cardModal.assignee.trim(),
-      label: cardModal.label.trim(),
-      date: cardModal.date,
-      start_time: cardModal.start_time || null,
-      end_time: cardModal.end_time || null,
-      is_all_day: cardModal.is_all_day,
-      status: cardModal.status,
-    };
-    try {
-      if (editingId) {
-        await updateMutation.mutateAsync({ id: editingId, values });
-      } else {
-        const payload = { ...values };
-        if (isAdmin && filterStoreId) payload.store_id = Number(filterStoreId);
-        await createMutation.mutateAsync(payload);
-      }
-      setShowForm(false);
-      setEditingId(null);
-      setCardModal(EMPTY_CARD);
-    } catch (e) {
-      alert(plannerError(e));
-    }
+    onEdit(card);
   };
 
   const handleDeleteCard = async (card) => {
     try {
       await deleteMutation.mutateAsync(card.id);
     } catch (e) {
-      alert(plannerError(e));
+      toastError("Gagal menghapus jadwal", plannerError(e));
     } finally {
       setDeleteTarget(null);
     }
@@ -180,7 +80,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
     try {
       await moveMutation.mutateAsync({ id, values: { status, to_index: toIndex } });
     } catch (e) {
-      alert(plannerError(e));
+      toastError("Gagal memindahkan jadwal", plannerError(e));
     }
   };
 
@@ -205,7 +105,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
       setCompleteFor(null);
       setProof({ note: "", files: [] });
     } catch (e) {
-      alert(plannerError(e));
+      toastError("Gagal menyelesaikan jadwal", plannerError(e));
     }
   };
 
@@ -217,7 +117,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
         setProof((prev) => ({ ...prev, files: [...prev.files, { url: uploaded.url, name: uploaded.name || file.name }] }));
       }
     } catch (e) {
-      alert(getMediaUploadError(e));
+      toastError("Gagal mengunggah bukti", getMediaUploadError(e));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -303,6 +203,12 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
             <span className="material-symbols-outlined text-[13px]">event</span>
             {formatDate(card.date)}
           </span>
+          {card.recurrence && card.recurrence !== "none" ? (
+            <span className="inline-flex items-center gap-0.5 font-bold text-violet-600" title={`Berulang: ${recurrenceLabel(card.recurrence)}`}>
+              <span className="material-symbols-outlined text-[13px]">repeat</span>
+              {recurrenceLabel(card.recurrence, true)}
+            </span>
+          ) : null}
           <span className={cn("inline-block h-1.5 w-1.5 rounded-full", priorityDot(card.priority))} />
           {card.assignee && (
             <span className="inline-flex items-center gap-1">
@@ -402,91 +308,6 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Buat / Edit kartu */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">{editingId ? "Edit Jadwal" : "Kartu Jadwal Baru"}</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Judul *</label>
-                <input
-                  type="text"
-                  value={cardModal.title}
-                  onChange={(e) => setCardModal({ ...cardModal, title: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                  placeholder="Contoh: Packing pesanan pagi..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Tipe</label>
-                  <select value={cardModal.type} onChange={(e) => setCardModal({ ...cardModal, type: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400">
-                    {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Prioritas</label>
-                  <select value={cardModal.priority} onChange={(e) => setCardModal({ ...cardModal, priority: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400">
-                    {PRIORITY_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Tenggat *</label>
-                  <input type="date" value={cardModal.date} onChange={(e) => setCardModal({ ...cardModal, date: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Label</label>
-                  <input type="text" value={cardModal.label} onChange={(e) => setCardModal({ ...cardModal, label: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" placeholder="Produk, Operasional..." />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Penanggung Jawab</label>
-                  <input type="text" value={cardModal.assignee} onChange={(e) => setCardModal({ ...cardModal, assignee: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" placeholder="Nama tim / orang" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Status</label>
-                  <select value={cardModal.status} onChange={(e) => setCardModal({ ...cardModal, status: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400">
-                    {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-600">
-                  <input type="checkbox" checked={cardModal.is_all_day} onChange={(e) => setCardModal({ ...cardModal, is_all_day: e.target.checked })} className="rounded" />
-                  Sepanjang hari
-                </label>
-              </div>
-              {!cardModal.is_all_day && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Jam Mulai</label>
-                    <input type="time" value={cardModal.start_time || ""} onChange={(e) => setCardModal({ ...cardModal, start_time: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Jam Selesai</label>
-                    <input type="time" value={cardModal.end_time || ""} onChange={(e) => setCardModal({ ...cardModal, end_time: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Deskripsi</label>
-                <textarea value={cardModal.description} onChange={(e) => setCardModal({ ...cardModal, description: e.target.value })} rows={2} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" placeholder="Catatan tambahan..." />
-              </div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
-              <button onClick={handleSaveCard} disabled={!cardModal.title.trim() || !cardModal.date || createMutation.isPending || updateMutation.isPending} className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
-                {editingId ? "Simpan" : "Buat Kartu"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

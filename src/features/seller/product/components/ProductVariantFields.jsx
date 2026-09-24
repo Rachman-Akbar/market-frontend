@@ -65,9 +65,12 @@ export const ProductVariantFields = memo(function ProductVariantFields({ variant
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-extrabold text-slate-800">Daftar Variant</p>
-          <p className="mt-0.5 text-xs text-slate-500">Setiap container dapat dilipat. Harga dan stok diisi pada tab Stok.</p>
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-slate-400">tune</span>
+          <div>
+            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Daftar Variant</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Setiap container dapat dilipat. Harga dan stok diisi pada tab Stok.</p>
+          </div>
         </div>
         <button
           type="button"

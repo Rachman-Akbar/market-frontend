@@ -63,7 +63,7 @@ export default function AdminCategoryPage() {
         <ListPageFrame
           toolbar={(
           <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => categoriesQuery.refetch()} refreshing={categoriesQuery.isFetching} createLabel="Tambah Kategori" placeholder="Cari category, parent, atau catalog group" selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
-          onApplyDefaultColumns={columnVisibility.applyAsDefault} hasActiveFilters={Boolean(query)} onClearFilters={() => setQuery("")} />
+          onApplyDefaultColumns={columnVisibility.applyAsDefault} />
           )}
         >
           <AsyncState loading={categoriesQuery.isLoading} error={categoriesQuery.error ? getCategoryError(categoriesQuery.error) : ""} empty={!categoriesQuery.isLoading && !filteredRows.length} emptyText="Category belum tersedia." />

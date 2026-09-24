@@ -45,9 +45,12 @@ export const ProductStockFields = memo(function ProductStockFields({ mode, sku, 
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-extrabold text-slate-800">Pengaturan Harga & Stok</p>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-slate-400">payments</span>
+            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Pengaturan Harga & Stok</h2>
+          </div>
           <p className="mt-0.5 text-xs text-slate-500">Harga dapat diubah di sini. Stok marketplace (Stok) berubah melalui Persediaan agar histori dan bahan baku sinkron. Preorder dibuat otomatis saat stok habis tanpa kuota; gunakan Batas Order untuk mencegah jumlah pesanan terlalu besar.</p>
         </div>
         <div className="flex items-center gap-3">

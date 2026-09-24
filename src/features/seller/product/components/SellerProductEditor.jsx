@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
+import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName, textAreaClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -22,6 +23,8 @@ import {
   useUpdateSellerProduct,
 } from "@/features/seller/product/services/sellerProductService";
 import { advancedError, useSaveProductCosting } from "@/features/advanced/services/advancedMarketplaceService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function createInitialValues(product) {
   if (!product) {
@@ -125,7 +128,8 @@ export function SellerProductEditor({
 }) {
   const [values, setValues] = useState(() => createInitialValues(product));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const [pristine, setPristine] = useState(() => createInitialValues(product));
+  const dirty = useFormDirty(pristine, values, { volatileKeys: ["clientId"] });
   const [activeSection, setActiveSection] = useState("general");
   const notifications = useNotificationCenter();
   const openRelationCreateTab = useRelationCreateTab();
@@ -141,10 +145,20 @@ export function SellerProductEditor({
   const isAdmin = portal === "admin";
 
   useEffect(() => {
+    if (!open) return undefined;
+    const handler = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, open]);
+
+  useEffect(() => {
     if (open) {
-      setValues(createInitialValues(product));
+      const initial = createInitialValues(product);
+      setPristine(initial);
+      setValues(initial);
       setErrors({});
-      setMessage("");
       setActiveSection("general");
     }
   }, [open, product]);
@@ -286,7 +300,6 @@ export function SellerProductEditor({
     }
 
     try {
-      setMessage("");
       const saved = product
         ? await updateMutation.mutateAsync({ id: product.id, values })
         : await createMutation.mutateAsync(values);
@@ -308,15 +321,16 @@ export function SellerProductEditor({
           });
           notifications.push({ type: "success", title: "HPP tersimpan", message: "Resep, HPP, dan harga jual produk berhasil disimpan." });
         } catch (costingError) {
-          setMessage(advancedError(costingError, "Produk berhasil dibuat, tetapi HPP gagal disimpan."));
+          toastError("HPP gagal disimpan", advancedError(costingError, "Produk berhasil dibuat, tetapi HPP gagal disimpan."));
           return;
         }
       }
 
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(product ? "Produk berhasil diperbarui." : "Produk berhasil ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getError(error));
+      toastError("Gagal menyimpan produk", getError(error));
     }
   };
 
@@ -326,38 +340,46 @@ export function SellerProductEditor({
     return hasMaterials || hasVariableCost || String(costing.selling_price || "").trim() !== "";
   }
 
-  return (
-    <CrudDialog
-      open={open}
-      onClose={onClose}
-      size="max-w-6xl"
-      title={product ? "Edit Produk" : "Tambah Produk"}
-      subtitle="Product mengelola identitas, variant, gambar, harga, dan HPP. Perubahan saldo stok dilakukan melalui Persediaan agar histori dan bahan baku tetap sinkron."
-    >
-      <form onSubmit={submit}>
-        <ProductEditorTabs activeTab={activeSection} onChange={setActiveSection} errorTabs={getErrorTabs(errors)} />
+  if (!open) return null;
 
-        <FormEditorLayout
-          asCard={false}
-          actions={
-            <FormActionDock
-              tone={isAdmin ? "teal" : "emerald"}
-              save={product ? { icon: "save", label: "Simpan" } : { icon: "add", label: "Tambah" }}
-              disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending}
-              onDelete={product && onDelete ? () => onDelete(product) : undefined}
-            />
+  return (
+    <>
+      <form onSubmit={submit}>
+        <OrderFormLayout
+          aside={
+            <>
+              <OrderFormActionButton
+                tone={isAdmin ? "teal" : "emerald"}
+                variant="soft"
+                icon={product ? "save" : "add"}
+                label={product ? "Simpan" : "Tambah"}
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !dirty}
+              />
+              {product && onDelete ? (
+                <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus" onClick={() => onDelete(product)} />
+              ) : null}
+            </>
           }
         >
-        <div className="min-h-[420px] space-y-6">
-          {activeSection === "general" ? (
-            <div className="space-y-5">
-              <section className="rounded-xl border border-slate-200 bg-white">
-                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                  <h3 className="text-sm font-extrabold text-slate-800">Informasi Umum</h3>
-                  <p className="mt-0.5 text-xs text-slate-500">Data utama yang digunakan pada katalog dan halaman toko.</p>
-                </div>
+          <FormPageLayout
+            header={
+              <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+                <ProductEditorTabs activeTab={activeSection} onChange={setActiveSection} errorTabs={getErrorTabs(errors)} />
+              </div>
+            }
+          >
+            <div className="space-y-6">
+              {activeSection === "general" ? (
+                <div className="space-y-5">
+                  <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-slate-400">description</span>
+                      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Informasi Umum</h2>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">Data utama yang digunakan pada katalog dan halaman toko.</p>
 
-                <div className="grid gap-4 p-4 md:grid-cols-2">
+                    <div className="mt-3 grid gap-4 md:grid-cols-2">
                   {isAdmin ? (
                     <FormField label="Toko" error={errors.storeId} required>
                       <SearchableSelect
@@ -453,9 +475,15 @@ export function SellerProductEditor({
                 </div>
               </section>
 
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
-                  <span className="text-sm font-bold text-slate-700">Status aktif</span>
+              <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-slate-400">task_alt</span>
+                    <div>
+                      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Status Aktif</h2>
+                      <p className="mt-0.5 text-xs text-slate-500">Produk aktif tampil dan dapat dibeli oleh pelanggan.</p>
+                    </div>
+                  </div>
                   <InlineActiveSwitch checked={values.isActive} onChange={(checked) => setField("isActive", checked)} showLabel={false} />
                 </div>
               </section>
@@ -464,12 +492,13 @@ export function SellerProductEditor({
 
           {activeSection === "variant" ? (
             <div className="space-y-5">
-              <section className="rounded-xl border border-slate-200 bg-white">
-                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                  <h3 className="text-sm font-extrabold text-slate-800">Mode Produk</h3>
-                  <p className="mt-0.5 text-xs text-slate-500">Tentukan apakah produk memiliki satu SKU atau beberapa kombinasi variant.</p>
+              <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-slate-400">tune</span>
+                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Mode Produk</h2>
                 </div>
-                <div className="grid gap-3 p-4 sm:grid-cols-2">
+                <p className="mt-0.5 text-xs text-slate-500">Tentukan apakah produk memiliki satu SKU atau beberapa kombinasi variant.</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {[
                     ["simple", "Tanpa Variant", "Satu SKU dengan satu harga dan stok."],
                     ["variant", "Dengan Variant", "Mendukung ukuran, warna, SKU, harga, dan stok berbeda."],
@@ -534,19 +563,19 @@ export function SellerProductEditor({
             )
           ) : null}
 
-          {message ? <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
-        </FormEditorLayout>
+        </FormPageLayout>
+      </OrderFormLayout>
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/50 px-5 py-4 sm:px-6 lg:hidden">
           {product && onDelete ? (
             <button type="button" onClick={() => onDelete(product)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600 hover:bg-red-100">Hapus</button>
           ) : null}
-          <button type="submit" className={`h-10 px-5 text-sm font-extrabold text-white disabled:opacity-60 ${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
+          <button type="submit" disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !dirty} className={`h-10 px-5 text-sm font-extrabold ${dirty ? `${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white` : "bg-slate-100 text-slate-400"}`}>
             {product ? "Simpan Perubahan" : "Tambah Produk"}
           </button>
         </div>
       </form>
-    </CrudDialog>
+    </>
   );
 }

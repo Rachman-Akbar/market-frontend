@@ -9,6 +9,8 @@ import { getVoucherManagementError, useCreateVoucher, useUpdateVoucher } from "@
 import { toTitleCase } from "@/shared/utils/textFormatter";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(entity) {
   return {
@@ -34,7 +36,8 @@ function initialValues(entity) {
 export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(entity));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(entity);
+  const dirty = useFormDirty(pristine, values);
   const createMutation = useCreateVoucher(portal);
   const updateMutation = useUpdateVoucher(portal);
   const mutation = entity ? updateMutation : createMutation;
@@ -47,7 +50,6 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
     if (open) {
       setValues(initialValues(entity));
       setErrors({});
-      setMessage("");
     }
   }, [entity, open]);
 
@@ -75,9 +77,10 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
         ? await updateMutation.mutateAsync({ id: entity.id, values })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(entity ? "Voucher berhasil diperbarui." : "Voucher berhasil ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getVoucherManagementError(error));
+      toastError("Gagal menyimpan voucher", getVoucherManagementError(error));
     }
   };
 
@@ -94,7 +97,7 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
-            <FormActionDock tone={portal === "admin" ? "teal" : "emerald"} save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+            <FormActionDock tone={portal === "admin" ? "teal" : "emerald"} save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending || !dirty} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
           }
         >
         <div className="grid gap-4 md:grid-cols-2">
@@ -171,13 +174,12 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
               <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
             </div>
           </div>
-          {message ? <p className="md:col-span-2 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
         </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending} className={`h-10 px-4 text-sm font-extrabold text-white disabled:opacity-60 ${portal === "admin" ? "bg-teal-600" : "bg-emerald-600"}`}>
+          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? `${portal === "admin" ? "bg-teal-600" : "bg-emerald-600"} text-white` : "bg-slate-100 text-slate-400"}`}>
             Simpan
           </button>
         </div>

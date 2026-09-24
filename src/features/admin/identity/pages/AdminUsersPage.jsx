@@ -14,6 +14,7 @@ import { AsyncState } from "@/shared/components/feedback";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 export default function AdminUsersPage() {
   const usersQuery = useAdminUsers();
@@ -21,7 +22,6 @@ export default function AdminUsersPage() {
   const quickUpdateMutation = useUpdateAdminUser();
   const editor = useEntityEditor();
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [message, setMessage] = useState("");
   const rows = usersQuery.rows;
   const searchableRows = useMemo(
     () => rows.map((row) => ({ ...row, roleNames: row.roles.map((role) => role.name).join(" ") })),
@@ -38,9 +38,10 @@ export default function AdminUsersPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
       editor.close();
-      setMessage("User berhasil dihapus.");
+      editor.markListDirty();
+      toastSuccess("Hapus User", "User berhasil dihapus.");
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Hapus User", getAdminIdentityError(error));
     }
   };
 
@@ -49,9 +50,10 @@ export default function AdminUsersPage() {
     try {
       for (const user of selection.selectedRows) await deleteMutation.mutateAsync(user.id);
       selection.clear();
-      setMessage("User terpilih berhasil dihapus.");
+      editor.markListDirty();
+      toastSuccess("Hapus User", "User terpilih berhasil dihapus.");
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Hapus User", getAdminIdentityError(error));
     }
   };
 
@@ -65,9 +67,10 @@ export default function AdminUsersPage() {
         });
       }
       selection.clear();
-      setMessage(`User terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
+      editor.markListDirty();
+      toastSuccess("Aktifkan User", `User terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Ubah Status User", getAdminIdentityError(error));
     }
   };
 
@@ -102,7 +105,6 @@ export default function AdminUsersPage() {
           )}
         >
 
-          {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={usersQuery.isLoading} error={usersQuery.error ? getAdminIdentityError(usersQuery.error) : ""} empty={!usersQuery.isLoading && !filteredRows.length} emptyText="User belum tersedia." />
           {filteredRows.length ? (
             <>
@@ -114,8 +116,8 @@ export default function AdminUsersPage() {
                   quickUpdateMutation.mutate(
                     { id: row.id, values: { ...row, isActive, isBanned: false, roleIds: row.roles.map((role) => role.id) } },
                     {
-                      onSuccess: () => setMessage("Status user berhasil diperbarui."),
-                      onError: (error) => setMessage(getAdminIdentityError(error)),
+                      onSuccess: () => { editor.markListDirty(); toastSuccess("Ubah Status User", "Status user berhasil diperbarui."); },
+                      onError: (error) => toastError("Ubah Status User", getAdminIdentityError(error)),
                     },
                   );
                 }}
@@ -138,7 +140,7 @@ export default function AdminUsersPage() {
         user={editor.entity}
         onDelete={setDeleteTarget}
         onClose={editor.close}
-        onSaved={() => setMessage(`${editor.entity ? "User berhasil diperbarui" : "User berhasil ditambahkan"}.`)}
+        onSaved={() => editor.markListDirty()}
       />
 
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus User" message={`User “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />

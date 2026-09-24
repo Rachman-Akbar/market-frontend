@@ -9,6 +9,8 @@ import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialForm() {
   return { voucher_id: "", name: "", code: "", description: "", event_type: "order_completed", target_value: 1, starts_at: new Date().toISOString().slice(0, 16), ends_at: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 16), is_active: true };
@@ -22,8 +24,9 @@ export default function MissionsPage() {
   const { activeRole } = useAuth();
   const admin = activeRole === "admin";
   const [query, setQuery] = useState("");
-  const [form, setForm] = useState(initialForm());
-  const [message, setMessage] = useState("");
+  const [form, setForm] = useState(() => initialForm());
+  const [pristine, setPristine] = useState(() => initialForm());
+  const dirty = useFormDirty(pristine, form);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const editor = useEntityEditor({ createLabel: "Data Baru Misi", getEditLabel: (row) => row.name });
   const listQuery = useMissions({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) }, admin);
@@ -37,8 +40,9 @@ export default function MissionsPage() {
   useEffect(() => {
     if (!editor.open) return;
     const row = editor.entity;
-    setMessage("");
-    setForm(row ? { voucher_id: row.voucher_id ? String(row.voucher_id) : "", name: row.name || "", code: row.code || "", description: row.description || "", event_type: row.event_type || "order_completed", target_value: Number(row.target_value || 1), starts_at: row.starts_at ? new Date(row.starts_at).toISOString().slice(0, 16) : initialForm().starts_at, ends_at: row.ends_at ? new Date(row.ends_at).toISOString().slice(0, 16) : initialForm().ends_at, is_active: row.is_active !== false } : initialForm());
+    const initial = row ? { voucher_id: row.voucher_id ? String(row.voucher_id) : "", name: row.name || "", code: row.code || "", description: row.description || "", event_type: row.event_type || "order_completed", target_value: Number(row.target_value || 1), starts_at: row.starts_at ? new Date(row.starts_at).toISOString().slice(0, 16) : initialForm().starts_at, ends_at: row.ends_at ? new Date(row.ends_at).toISOString().slice(0, 16) : initialForm().ends_at, is_active: row.is_active !== false } : initialForm();
+    setPristine(initial);
+    setForm(initial);
   }, [editor.entity, editor.open]);
 
   const toggleActive = useCallback((row) => {
@@ -55,7 +59,7 @@ export default function MissionsPage() {
         ends_at: new Date(row.ends_at || Date.now()).toISOString(),
         is_active: !row.is_active,
       },
-    }).catch((error) => setMessage(advancedError(error)));
+    }).catch((error) => toastError("Ubah Status Misi", advancedError(error)));
   }, [saveMutation]);
 
   const columns = useMemo(() => admin ? [
@@ -68,12 +72,12 @@ export default function MissionsPage() {
     event.preventDefault();
     try {
       await saveMutation.mutateAsync({ id: editor.entity?.id, values: { ...form, voucher_id: form.voucher_id ? Number(form.voucher_id) : null, target_value: Number(form.target_value), starts_at: new Date(form.starts_at).toISOString(), ends_at: new Date(form.ends_at).toISOString() } });
+      toastSuccess("Simpan Misi", editor.entity ? "Misi berhasil diperbarui." : "Misi berhasil ditambahkan.");
       editor.markListDirty();
       editor.completeSave();
       editor.close();
-      setMessage("Misi berhasil disimpan.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Simpan Misi", advancedError(error));
     }
   }
 
@@ -83,18 +87,17 @@ export default function MissionsPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      setMessage("Misi berhasil dihapus.");
+      toastSuccess("Hapus Misi", "Misi berhasil dihapus.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Hapus Misi", advancedError(error));
     }
   }
 
   return (
     <>
-      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><>{message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}<DataGrid columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} /></></ModuleFrame> : null}
+      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><DataGrid columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} /></ModuleFrame> : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Misi" message={`Misi “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
-      <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending} dangerAction={admin && editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
+      <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending || !dirty} dangerAction={admin && editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nama" required><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required /></Field><Field label="Kode"><Input value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} /></Field></div>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-24 border border-slate-300 p-3 text-sm" /></Field>
         <div className="grid gap-4 md:grid-cols-3"><Field label="Event"><select value={form.event_type} onChange={(event) => setForm((current) => ({ ...current, event_type: event.target.value }))} className="h-10 border border-slate-300 px-3"><option value="">— pilih event —</option>{Object.entries(eventTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Target" required><Input type="number" min="1" value={form.target_value} onChange={(event) => setForm((current) => ({ ...current, target_value: event.target.value }))} required /></Field><Field label="ID Voucher"><Input type="number" min="1" value={form.voucher_id} onChange={(event) => setForm((current) => ({ ...current, voucher_id: event.target.value }))} /></Field></div>

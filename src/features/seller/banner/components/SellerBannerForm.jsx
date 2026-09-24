@@ -5,6 +5,8 @@ import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { ImageFilePicker } from "@/shared/components/form/ImageFilePicker";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getSellerBannerError, useCreateSellerBanner, useUpdateSellerBanner } from "@/features/seller/banner/services/sellerBannerService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(entity) {
   return { name: entity?.name || "", imageUrl: entity?.imageUrl || "", sortOrder: entity?.sortOrder || 0, isActive: entity?.isActive ?? true };
@@ -13,7 +15,8 @@ function initialValues(entity) {
 export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(entity));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(entity);
+  const dirty = useFormDirty(pristine, values);
   const createMutation = useCreateSellerBanner();
   const updateMutation = useUpdateSellerBanner();
   const mutation = entity ? updateMutation : createMutation;
@@ -22,7 +25,6 @@ export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
     if (open) {
       setValues(initialValues(entity));
       setErrors({});
-      setMessage("");
     }
   }, [entity, open]);
 
@@ -34,9 +36,10 @@ export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
     try {
       const saved = entity ? await updateMutation.mutateAsync({ id: entity.id, values }) : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(entity ? "Banner toko diperbarui." : "Banner toko ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getSellerBannerError(error));
+      toastError("Gagal menyimpan banner", getSellerBannerError(error));
     }
   };
 
@@ -46,7 +49,7 @@ export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
         <FormEditorLayout
           contentClassName="max-w-xl"
           actions={
-            <FormActionDock tone="emerald" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+            <FormActionDock tone="emerald" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending || !dirty} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
           }
         >
           <div className="space-y-4">
@@ -57,10 +60,9 @@ export function SellerBannerForm({ open, entity, onClose, onSaved, onDelete }) {
               <span className="text-sm font-bold text-slate-700">Status aktif</span>
               <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setValues((current) => ({ ...current, isActive }))} showLabel={false} />
             </div>
-            {message ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
           </div>
         </FormEditorLayout>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className="h-10 bg-emerald-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan"</button></div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan</button></div>
       </form>
     </CrudDialog>
   );

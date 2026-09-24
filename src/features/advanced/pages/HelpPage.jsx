@@ -16,6 +16,7 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const initialForm = {
   category: "other",
@@ -43,7 +44,6 @@ export default function HelpPage() {
   const [status, setStatus] = useState("");
   const [form, setForm] = useState(initialForm);
   const [reply, setReply] = useState("");
-  const [message, setMessage] = useState("");
   const listQuery = useTickets({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(status ? { status } : {}) });
   const ticketQuery = useTicket(selectedId);
   const contextQuery = useTicketContext(!admin);
@@ -74,7 +74,6 @@ export default function HelpPage() {
       ...initialForm,
       store_id: seller && contextStore?.id ? String(contextStore.id) : "",
     });
-    setMessage("");
   }, [contextStore?.id, editor.open, seller]);
 
   useEffect(() => {
@@ -131,12 +130,12 @@ export default function HelpPage() {
         order_id: form.order_id ? Number(form.order_id) : null,
         ...(!seller && form.store_id ? { store_id: Number(form.store_id) } : {}),
       });
+      toastSuccess("Buat Help", "Help berhasil diajukan.");
       editor.markListDirty();
       editor.completeSave();
       editor.close();
-      setMessage("Help berhasil diajukan.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Buat Help", advancedError(error));
     }
   }
 
@@ -147,9 +146,9 @@ export default function HelpPage() {
       await replyMutation.mutateAsync({ id: selectedId, values: { message: reply.trim() } });
       setReply("");
       ticketQuery.refetch();
-      setMessage("Balasan berhasil dikirim.");
+      toastSuccess("Kirim Balasan", "Balasan berhasil dikirim.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Kirim Balasan", advancedError(error));
     }
   }
 
@@ -157,9 +156,9 @@ export default function HelpPage() {
     try {
       await statusMutation.mutateAsync({ id: selectedId, values: { status: value } });
       ticketQuery.refetch();
-      setMessage("Status Help berhasil diperbarui.");
+      toastSuccess("Ubah Status Help", "Status Help berhasil diperbarui.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Ubah Status Help", advancedError(error));
     }
   }
 
@@ -177,7 +176,6 @@ export default function HelpPage() {
           createLabel="Buat Help"
           filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
-          {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <DataGrid
             columns={columns}
             rows={rows}
@@ -191,8 +189,6 @@ export default function HelpPage() {
       ) : null}
 
       <FormModal open={editor.open} title="Buat Help" subtitle="Identitas user dan toko ditentukan otomatis dari akun yang sedang login." onClose={editor.close} onSubmit={create} busy={createMutation.isPending} submitLabel="Kirim Help">
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
-        
         {contextQuery.error ? <p className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{advancedError(contextQuery.error)}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Pengaju"><Input value={contextUser?.name || user?.name || "User login"} disabled /></Field>
@@ -233,7 +229,6 @@ export default function HelpPage() {
             <button type="button" onClick={() => tabs?.closeActiveTab()} className="flex h-9 w-9 items-center justify-center text-slate-500 hover:bg-slate-200"><span className="material-symbols-outlined text-[20px]">close</span></button>
           </header>
           <div className="space-y-4 p-5">
-            {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
             {ticketQuery.isLoading ? null : (
               <>
                 <div className="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-2">

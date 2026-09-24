@@ -6,8 +6,8 @@ export function FormPageActions({ title = "Aksi", children }) {
   );
 }
 
-export function FormPageLayout({ title, subtitle, lead, actions, children }) {
-  const header = title ? (
+export function FormPageLayout({ title, subtitle, lead, header, actions, children }) {
+  const defaultHeader = title ? (
     <header className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-sm font-extrabold text-slate-950">{title}</h1>
@@ -17,9 +17,11 @@ export function FormPageLayout({ title, subtitle, lead, actions, children }) {
     </header>
   ) : null;
 
+  const headerEl = header !== undefined ? header : defaultHeader;
+
   const card = (
     <div className="w-full min-w-0 border border-slate-200 bg-white">
-      {header}
+      {headerEl}
       <div className="space-y-4 p-4">{children}</div>
     </div>
   );

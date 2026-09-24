@@ -7,6 +7,8 @@ import { ConfirmDialog } from "@/shared/components/crud";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError } from "@/shared/utils/userFeedback";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -18,9 +20,9 @@ const INITIAL_FORM = { name: "", email: "", is_active: true };
 
 function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [message, setMessage] = useState("");
+  const [pristine, setPristine] = useState(INITIAL_FORM);
+  const dirty = useFormDirty(pristine, form);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
@@ -30,8 +32,9 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
   const busy = saving || deleteMutation.isPending;
 
   useEffect(() => {
-    setMessage("");
-    setForm(customer ? { name: customer.name || "", email: customer.email || "", is_active: customer.is_active !== false } : INITIAL_FORM);
+    const initial = customer ? { name: customer.name || "", email: customer.email || "", is_active: customer.is_active !== false } : INITIAL_FORM;
+    setPristine(initial);
+    setForm(initial);
   }, [customer]);
 
   if (admin && !customer) return null;
@@ -44,7 +47,6 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
   ];
 
   const handleSave = async () => {
-    setMessage("");
     try {
       const payload = { name: form.name.trim(), email: form.email.trim(), is_active: form.is_active };
       if (editing) {
@@ -54,18 +56,17 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
       }
       onSaved?.();
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Simpan Pelanggan", advancedError(error));
     }
   };
 
   const handleDelete = async () => {
-    setDeleteError("");
     try {
       await deleteMutation.mutateAsync(customer.id);
       setDeleteOpen(false);
       onDeleted?.();
     } catch (error) {
-      setDeleteError(advancedError(error));
+      toastError("Hapus Pelanggan", advancedError(error));
     }
   };
 
@@ -75,7 +76,7 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
         aside={
           admin ? null : (
             <>
-              <OrderFormActionButton tone="emerald" variant="soft" icon={editing ? "save" : "person_add"} label={editing ? "Simpan" : "Simpan"} type="submit" disabled={busy || !form.name.trim()} onClick={handleSave} />
+              <OrderFormActionButton tone="emerald" variant="soft" icon={editing ? "save" : "person_add"} label={editing ? "Simpan" : "Simpan"} type="submit" disabled={busy || !dirty || !form.name.trim()} onClick={handleSave} />
               {editing ? <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus" onClick={() => setDeleteOpen(true)} /> : null}
             </>
           )
@@ -93,8 +94,6 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
             </div>
           }
         >
-          {message ? <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
-
           {editing ? (
             <>
               <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
@@ -160,7 +159,6 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
         onConfirm={handleDelete}
         onClose={() => setDeleteOpen(false)}
       />
-      {deleteError ? <p className="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{deleteError}</p> : null}
     </>
   );
 }

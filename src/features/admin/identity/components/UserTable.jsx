@@ -48,7 +48,7 @@ export const UserTable = memo(function UserTable({
   }, []);
 
   const filterTypes = useMemo(() => ({ user: "text", email: "text", avatar: "text", roles: "text", verified: "select", active: "select", bannedAt: "text" }), []);
-  const { rows: tableRows, columnFilters, changeFilter, sortBy, sortDirection, setSort, hasActiveFilters, resetFilters } = useColumnFilterState({ rows, getValue, filterTypes });
+  const { rows: tableRows, columnFilters, changeFilter, sortBy, sortDirection, setSort, resetFilters, resetSort } = useColumnFilterState({ rows, getValue, filterTypes });
 
   const interactiveProps = (column) => ({
     headerProps: layout.getHeaderProps(column.key),
@@ -58,6 +58,8 @@ export const UserTable = memo(function UserTable({
     onResetWidth: layout.resetWidth,
     dragging: layout.dragKey === column.key,
     dropTarget: layout.dropKey === column.key,
+    onClearAllFilters: resetFilters,
+    onResetSort: resetSort,
   });
 
   const renderHeader = (column) => {
@@ -82,5 +84,5 @@ export const UserTable = memo(function UserTable({
     return <td key={column.key} className="truncate px-4 py-3 text-slate-500">{formatTableValue(user.bannedAt)}</td>;
   };
 
-  return <div className="bg-white ring-1 ring-slate-200">{hasActiveFilters ? <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs"><span className="font-semibold text-slate-500">Filter aktif:</span><button type="button" onClick={resetFilters} className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300">Reset semua</button></div> : null}<table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 760), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead><tbody className="divide-y divide-slate-100">{tableRows.map((user) => { const inactive = isInactiveRow(user); return <tr key={user.id} onClick={() => onEdit(user)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`} title="Klik untuk edit">{inactive ? <BannedStamp overlay /> : null}<TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(user.id))} onToggle={() => onToggleRow?.(user.id)} />{layout.orderedColumns.map((column) => renderCell(column, user))}</tr>; })}</tbody></table></div>;
+  return <div className="bg-white ring-1 ring-slate-200"><table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 760), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead><tbody className="divide-y divide-slate-100">{tableRows.map((user) => { const inactive = isInactiveRow(user); return <tr key={user.id} onClick={() => onEdit(user)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`} title="Klik untuk edit">{inactive ? <BannedStamp overlay /> : null}<TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(user.id))} onToggle={() => onToggleRow?.(user.id)} />{layout.orderedColumns.map((column) => renderCell(column, user))}</tr>; })}</tbody></table></div>;
 });

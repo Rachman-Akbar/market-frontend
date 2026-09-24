@@ -33,6 +33,7 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
   const filterConfig = useMemo(() => {
     const config = {};
     layoutColumns.forEach((column) => {
+      if (column.filterable === false) return;
       config[column.key] = { type: column.filterType || "text", options: column.options || [] };
     });
     return config;
@@ -96,7 +97,7 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
       return undefined;
     }
     register({
-      columns: layoutColumns,
+      columns,
       visibleKeys: visibleState.visibleKeys,
       onToggle: visibleState.toggleColumn,
       onShowAll: visibleState.showAll,
@@ -104,7 +105,7 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
       onApplyDefault: visibleState.applyAsDefault,
     });
     return () => unregister();
-  }, [columns.length, layoutColumns, register, unregister, visibleState.applyAsDefault, visibleState.reset, visibleState.showAll, visibleState.toggleColumn, visibleState.visibleKeys]);
+  }, [columns.length, columns, layoutColumns, register, unregister, visibleState.applyAsDefault, visibleState.reset, visibleState.showAll, visibleState.toggleColumn, visibleState.visibleKeys]);
 
   return (
     <div className="w-full min-w-0 max-w-full">
@@ -131,7 +132,8 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
                       setSortBy(key);
                       setSortDirection(direction);
                     }}
-                    filterType={filterConfig[column.key]?.type}
+                    filterable={column.filterable !== false}
+                    filterType={column.filterable === false ? undefined : filterConfig[column.key]?.type}
                     filterValue={columnFilters[column.key]}
                     onFilterChange={(value) =>
                       setColumnFilters((current) => {
@@ -141,6 +143,8 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
                         return next;
                       })
                     }
+                    onClearAllFilters={() => { setColumnFilters({}); setSortBy(""); setSortDirection("asc"); }}
+                    onResetSort={() => { setSortBy(""); setSortDirection("asc"); }}
                     options={selectOptions[column.key] || filterConfig[column.key]?.options || []}
                     headerProps={layout.getHeaderProps(column.key)}
                     columnKey={column.key}
@@ -168,7 +172,7 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
                     {layout.orderedColumns.map((column) => {
                       const content = column.render ? column.render(row) : formatTableValue(resolveTableValue(row, column.key));
                       return (
-                        <td key={column.key} className="overflow-hidden px-3 py-2.5 align-top text-slate-700">
+                        <td key={column.key} className={cn("overflow-hidden px-3 py-2.5 align-top text-slate-700", column.align === "right" && "text-right", column.align === "center" && "text-center")}>
                           <div className={cn("truncate", inactive && "opacity-50 saturate-50")}>{content}</div>
                         </td>
                       );
@@ -183,14 +187,6 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
           ) : null}
         </div>
       ) : null}
-      <div className="min-h-2">
-        {activeFilterCount ? (
-          <button type="button" onClick={() => setColumnFilters({})} className="mt-2 inline-flex h-8 items-center gap-1.5 bg-amber-50 px-2.5 text-xs font-extrabold text-amber-800 hover:bg-amber-100">
-            <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
-            Hapus semua filter ({activeFilterCount})
-          </button>
-        ) : null}
-      </div>
     </div>
   );
 }

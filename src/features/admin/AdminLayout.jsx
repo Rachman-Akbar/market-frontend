@@ -11,6 +11,7 @@ import { RouteOutletBoundary } from "@/shared/layout/RouteOutletBoundary";
 export const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "dashboard", exact: true, hiddenInSidebar: true },
   { href: "/admin/products", label: "Product", icon: "inventory_2", group: "Persediaan" },
+  { href: "/admin/bahan-baku", label: "Bahan Baku", icon: "science", group: "Persediaan" },
   { href: "/admin/stock", label: "Stock", icon: "warehouse", group: "Persediaan" },
   { href: "/admin/vouchers", label: "Voucher", icon: "confirmation_number", group: "Penjualan" },
   { href: "/admin/promotions", label: "Promosi", icon: "campaign", group: "Penjualan" },
@@ -35,7 +36,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/game-content", label: "Game Content", icon: "stadia_controller", group: "Master Data" },
   { href: "/admin/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Master Data", iconColor: "#06b6d4" },
   { href: "/admin/announcements", label: "Announcement", icon: "campaign", group: "Master Data" },
-  { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan", iconColor: "#3b82f6" },
+  { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan", noChildTabs: true, iconColor: "#3b82f6" },
   { href: "/admin/help", label: "Help", icon: "support_agent", group: "Bantuan", iconColor: "#ec4899" },
   { href: "/admin/roles", label: "Role", icon: "admin_panel_settings", group: "Manajemen", hiddenInSidebar: true },
   { href: "/admin/store-context", label: "Monitoring Toko", icon: "monitor_heart", group: "Toko" },
@@ -99,7 +100,7 @@ function AdminLayoutContent() {
               modeHeader={<AdminModeSwitchButton />}
             />
             <PanelTabBar />
-            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" /></main>
+            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pt-0.5 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" /></main>
           </div>
         </div>
       </div>

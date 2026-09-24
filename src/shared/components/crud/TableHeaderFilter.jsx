@@ -3,12 +3,12 @@ import { createPortal } from "react-dom";
 import { cn } from "@/shared/utils/utils";
 
 function emptyValue(type) {
-  if (type === "range") return { min: "", max: "" };
+  if (type === "range") return { min: "", max: "", status: "" };
   return "";
 }
 
 function hasFilterValue(type, value) {
-  if (type === "range") return Boolean(value?.min !== "" || value?.max !== "");
+  if (type === "range") return Boolean(value?.min !== "" || value?.max !== "" || value?.status);
   return value !== "" && value !== null && value !== undefined;
 }
 
@@ -18,9 +18,13 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
   sortBy,
   sortDirection = "asc",
   onSortChange,
+  filterable = true,
   filterType,
   filterValue,
   onFilterChange,
+  onResetSort,
+  onClearAllFilters,
+  extraRangeFilter,
   options = [],
   placeholder = "Cari nilai",
   minPlaceholder = "Minimum",
@@ -54,8 +58,13 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
       const width = 280;
-      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-      setPosition({ top: rect.bottom + 5, left });
+      const margin = 8;
+      const left = Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin));
+      const menuHeight = menuRef.current?.getBoundingClientRect().height || 380;
+      const below = rect.bottom + 5;
+      const above = rect.top - 5 - menuHeight;
+      const top = below + menuHeight > window.innerHeight - margin && above > margin ? above : Math.max(margin, below);
+      setPosition({ top, left });
     };
 
     const close = (event) => {
@@ -102,6 +111,12 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
     setOpen(false);
   };
 
+  const clearAllFilters = () => {
+    onResetSort?.();
+    onClearAllFilters?.();
+    setOpen(false);
+  };
+
   const setSort = (direction) => {
     onSortChange?.(sortKey, direction);
     setOpen(false);
@@ -113,19 +128,22 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
       className="fixed z-[300] w-[280px] border border-slate-200 bg-white p-2 text-sm shadow-xl"
       style={{ top: position.top, left: position.left }}
     >
-      {sortKey ? (
-        <div className="space-y-1 border-b border-slate-100 pb-2">
+      <div className="border-b border-slate-100 pb-2">
+        {onClearAllFilters ? (
           <button
             type="button"
-            onClick={() => setSort("asc")}
-            className={cn(
-              "flex h-9 w-full items-center gap-2 px-2 text-left font-semibold text-slate-700 hover:bg-slate-50",
-              activeSort && sortDirection === "asc" && "bg-emerald-50 text-emerald-800",
-            )}
+            onClick={clearAllFilters}
+            title="Reset semua filter dan urutan"
+            className="flex h-8 w-full items-center justify-start gap-2 whitespace-nowrap rounded-md px-2 text-left text-[11px] font-extrabold text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
-            Urutkan naik
+            <span className="material-symbols-outlined text-[14px]">filter_alt_off</span>
+            Reset Filter
           </button>
+        ) : null}
+      </div>
+
+      {sortKey ? (
+        <div className="space-y-1 border-b border-slate-100 pb-2 pt-2">
           <button
             type="button"
             onClick={() => setSort("desc")}
@@ -135,7 +153,18 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
             )}
           >
             <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
-            Urutkan turun
+            Urutkan terbesar
+          </button>
+          <button
+            type="button"
+            onClick={() => setSort("asc")}
+            className={cn(
+              "flex h-9 w-full items-center gap-2 px-2 text-left font-semibold text-slate-700 hover:bg-slate-50",
+              activeSort && sortDirection === "asc" && "bg-emerald-50 text-emerald-800",
+            )}
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
+            Urutkan terkecil
           </button>
         </div>
       ) : null}
@@ -210,18 +239,36 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
             </div>
           ) : null}
 
+          {filterType === "range" && extraRangeFilter ? (
+            <div className="mt-2 border-t border-slate-100 pt-2">
+              <p className="px-1 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-slate-500">{extraRangeFilter.label}</p>
+              <select
+                value={String(draft?.status ?? "")}
+                onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}
+                className="h-9 w-full border border-slate-200 bg-white px-2 text-sm outline-none focus:border-emerald-500"
+              >
+                <option value="">Semua status</option>
+                {extraRangeFilter.options.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div className="mt-3 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={clearFilter}
-              className="h-9 px-3 text-xs font-extrabold text-slate-600 hover:bg-slate-100"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-extrabold text-red-600 transition-colors hover:border-red-300 hover:bg-red-100"
+              title={`Hapus filter dan reset urutan ${label}`}
             >
-              Hapus Filter
+              <span className="material-symbols-outlined text-[16px]">delete</span>
+              Hapus
             </button>
             <button
               type="button"
               onClick={applyFilter}
-              className="h-9 bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700"
+              className="h-9 rounded-lg bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700"
             >
               Terapkan
             </button>
@@ -230,6 +277,18 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
       ) : null}
     </div>
   ) : null;
+
+  if (!filterable) {
+    return (
+      <th
+        {...headerProps}
+        style={columnStyle}
+        className={cn("whitespace-nowrap bg-slate-100 px-4 py-3 text-left", align === "right" && "text-right", align === "center" && "text-center", className)}
+      >
+        <span className="block font-extrabold leading-4">{label}</span>
+      </th>
+    );
+  }
 
   return (
     <th
@@ -250,14 +309,9 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
         )}
         aria-expanded={open}
       >
-        <span className="material-symbols-outlined shrink-0 cursor-grab text-[16px] text-slate-300 opacity-0 transition-opacity group-hover:opacity-100">drag_indicator</span>
         <span className="min-w-0 flex-1 truncate">{label}</span>
-        {activeSort ? (
-          <span className="material-symbols-outlined text-[16px]">
-            {sortDirection === "asc" ? "arrow_upward" : "arrow_downward"}
-          </span>
-        ) : null}
-        <span className={cn("material-symbols-outlined text-[17px]", activeFilter ? "font-fill" : "")}>filter_alt</span>
+        {activeSort ? <span className="material-symbols-outlined font-fill text-[16px]">{sortDirection === "asc" ? "arrow_upward" : "arrow_downward"}</span> : null}
+        {activeFilter && !activeSort ? <span className="material-symbols-outlined font-fill text-[16px]">filter_alt</span> : null}
       </button>
       <button
         type="button"

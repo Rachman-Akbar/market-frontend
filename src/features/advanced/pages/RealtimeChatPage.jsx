@@ -213,10 +213,6 @@ export default function RealtimeChatPage() {
   }, [fullscreen]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
-  useEffect(() => {
     if (queryConversationId && Number(queryConversationId) !== Number(selectedId)) {
       setSelectedId(queryConversationId);
       return;
@@ -384,7 +380,6 @@ export default function RealtimeChatPage() {
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari percakapan" className="h-9" />
           </div>
           <div className={cn("overflow-y-auto", fullscreen ? "min-h-0 flex-1" : "max-h-[550px]")}>
-            
             {!listQuery.isLoading && !conversations.length ? <p className="p-5 text-sm text-slate-500">Percakapan belum tersedia.</p> : null}
             {conversations.map((row) => (
               <button key={row.id} type="button" onClick={() => selectConversation(row.id)} className={`w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${Number(selectedId) === Number(row.id) ? "border-l-2 border-l-orange-500 bg-orange-50" : ""}`}>
@@ -415,7 +410,6 @@ export default function RealtimeChatPage() {
                 </div>
               </header>
               <div className="flex-1 space-y-3 overflow-y-auto bg-slate-100 p-5">
-                
                 {messages.map((item) => {
                   const mine = String(item.sender_id) === String(user?.id);
                   return (

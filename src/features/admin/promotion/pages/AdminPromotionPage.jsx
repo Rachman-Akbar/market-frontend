@@ -109,8 +109,6 @@ export default function AdminPromotionPage() {
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
-            hasActiveFilters={Boolean(approvalStatus)}
-            onClearFilters={() => setApprovalStatus("")}
             filters={<SearchableSelect value={approvalStatus} onChange={setApprovalStatus} options={[{ value: "pending", label: "Pending" }, { value: "approved", label: "Approved" }, { value: "rejected", label: "Rejected" }]} placeholder="Semua approval" className="w-44" buttonClassName="h-9" />}
           />
           )}

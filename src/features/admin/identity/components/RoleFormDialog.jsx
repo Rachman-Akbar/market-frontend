@@ -13,6 +13,8 @@ import {
   useCreateAdminRole,
   useUpdateAdminRole,
 } from "@/features/admin/identity/services/adminIdentityService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(role) {
   return {
@@ -26,7 +28,8 @@ function initialValues(role) {
 export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(role));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(role);
+  const dirty = useFormDirty(pristine, values);
   const permissionsQuery = useAdminPermissions();
   const createMutation = useCreateAdminRole();
   const updateMutation = useUpdateAdminRole();
@@ -44,7 +47,6 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
 
     setValues(initialValues(role));
     setErrors({});
-    setMessage("");
   }, [open, role]);
 
   const setField = (field, value) => {
@@ -78,9 +80,10 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
         : await createMutation.mutateAsync(values);
 
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(role ? "Role berhasil diperbarui." : "Role berhasil ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Gagal menyimpan role", getAdminIdentityError(error));
     }
   };
 
@@ -95,7 +98,7 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
-            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Role" }} disabled={mutation.isPending} onDelete={role && onDelete ? () => onDelete(role) : undefined} />
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Role" }} disabled={mutation.isPending || !dirty} onDelete={role && onDelete ? () => onDelete(role) : undefined} />
           }
         >
           <div className="space-y-4">
@@ -147,19 +150,13 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
             </div>
             <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
           </div>
-
-          {message ? (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-              {message}
-            </p>
-          ) : null}
         </div>
         </FormEditorLayout>
 
         <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
           {role && onDelete ? <button type="button" onClick={() => onDelete(role)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Role"</button>
+          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan Role</button>
         </div>
       </form>
     </CrudDialog>

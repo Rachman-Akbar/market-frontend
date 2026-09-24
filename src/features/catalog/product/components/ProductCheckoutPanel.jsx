@@ -8,14 +8,13 @@ import { useCart } from "@/features/order/cart/context/CartContext";
 import { useWishlist } from "@/features/order/wishlist/context/WishlistContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getApiMessage } from "@/core/utils/apiClient";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 export function ProductCheckoutPanel({
   product,
   variant,
 }) {
   const [qty, setQty] = useState(1);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
   const addCartPendingRef = useRef(false);
 
   const navigate = useNavigate();
@@ -94,8 +93,7 @@ export function ProductCheckoutPanel({
     }
 
     if (hasVariants && !variantId) {
-      setMessageType("error");
-      setMessage("Pilih varian produk terlebih dahulu.");
+      toastError("Tambah ke Keranjang", "Pilih varian produk terlebih dahulu.");
       return;
     }
 
@@ -105,8 +103,6 @@ export function ProductCheckoutPanel({
 
     try {
       addCartPendingRef.current = true;
-      setMessage("");
-      setMessageType("");
 
       await addItem({
         productId,
@@ -121,18 +117,9 @@ export function ProductCheckoutPanel({
         storeName: product?.store_name || product?.store?.name || product?.brand || "Toko",
       });
 
-      setMessageType("success");
-      setMessage(
-        "Produk berhasil ditambahkan ke keranjang.",
-      );
+      toastSuccess("Keranjang", "Produk berhasil ditambahkan ke keranjang.");
     } catch (error) {
-      setMessageType("error");
-      setMessage(
-        getApiMessage(
-          error,
-          "Produk gagal ditambahkan ke keranjang.",
-        ),
-      );
+      toastError("Keranjang", getApiMessage(error, "Produk gagal ditambahkan ke keranjang."));
     } finally {
       addCartPendingRef.current = false;
     }
@@ -144,15 +131,11 @@ export function ProductCheckoutPanel({
     }
 
     if (hasVariants && !variantId) {
-      setMessageType("error");
-      setMessage("Pilih varian produk terlebih dahulu.");
+      toastError("Checkout", "Pilih varian produk terlebih dahulu.");
       return;
     }
 
     try {
-      setMessage("");
-      setMessageType("");
-
       navigate("/checkout", {
         state: {
           buyNow: true,
@@ -184,13 +167,7 @@ export function ProductCheckoutPanel({
         },
       });
     } catch (error) {
-      setMessageType("error");
-      setMessage(
-        getApiMessage(
-          error,
-          "Checkout langsung gagal diproses.",
-        ),
-      );
+      toastError("Checkout", getApiMessage(error, "Checkout langsung gagal diproses."));
     }
   };
 
@@ -200,9 +177,6 @@ export function ProductCheckoutPanel({
     }
 
     try {
-      setMessage("");
-      setMessageType("");
-
       await toggleItem({
         productId,
         variantId,
@@ -217,13 +191,7 @@ export function ProductCheckoutPanel({
         status: product?.status || "published",
       });
     } catch (error) {
-      setMessageType("error");
-      setMessage(
-        getApiMessage(
-          error,
-          "Wishlist gagal diperbarui.",
-        ),
-      );
+      toastError("Wishlist", getApiMessage(error, "Wishlist gagal diperbarui."));
     }
   };
 
@@ -317,18 +285,6 @@ export function ProductCheckoutPanel({
         >
           + Keranjang
         </button>
-
-        {message ? (
-          <p
-            className={`text-xs ${
-              messageType === "error"
-                ? "text-red-500"
-                : "text-[#047857]"
-            }`}
-          >
-            {message}
-          </p>
-        ) : null}
       </div>
 
       <div className="flex items-center justify-around text-xs font-bold">

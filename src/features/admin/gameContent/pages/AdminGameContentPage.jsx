@@ -110,8 +110,6 @@ export default function AdminGameContentPage() {
             })}
           </div>
         }
-        hasActiveFilters={Boolean(query)}
-        onClearFilters={() => setQuery("")}
         columns={columns}
         visibleColumns={columnVisibility.visibleKeys}
         onToggleColumn={columnVisibility.toggleColumn}

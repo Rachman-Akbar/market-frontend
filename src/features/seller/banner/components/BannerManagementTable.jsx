@@ -53,7 +53,7 @@ export const BannerManagementTable = memo(function BannerManagementTable({ rows,
 
   const storeOptions = useMemo(() => alsoSelectable(rows, "store"), [rows]);
   const filterTypes = useMemo(() => ({ banner: "text", store: "select", sortOrder: "range", active: "select" }), []);
-  const { rows: tableRows, columnFilters, changeFilter, sortBy, sortDirection, setSort, hasActiveFilters, resetFilters } = useColumnFilterState({ rows, getValue, filterTypes });
+  const { rows: tableRows, columnFilters, changeFilter, sortBy, sortDirection, setSort, resetFilters, resetSort } = useColumnFilterState({ rows, getValue, filterTypes });
 
   const interactiveProps = (column) => ({
     headerProps: layout.getHeaderProps(column.key),
@@ -63,6 +63,8 @@ export const BannerManagementTable = memo(function BannerManagementTable({ rows,
     onResetWidth: layout.resetWidth,
     dragging: layout.dragKey === column.key,
     dropTarget: layout.dropKey === column.key,
+    onClearAllFilters: resetFilters,
+    onResetSort: resetSort,
   });
 
   const renderHeader = (column) => {
@@ -83,5 +85,5 @@ export const BannerManagementTable = memo(function BannerManagementTable({ rows,
     return <td key={column.key} className="px-4 py-3" onClick={(event) => event.stopPropagation()}><InlineActiveSwitch checked={banner.isActive} pending={pendingId === banner.id} onChange={(checked) => onToggleActive?.(banner, checked)} compact /></td>;
   };
 
-  return <div className="bg-white ring-1 ring-slate-200">{hasActiveFilters ? <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs"><span className="font-semibold text-slate-500">Filter aktif:</span><button type="button" onClick={resetFilters} className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300">Reset semua</button></div> : null}<table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 720), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead><tbody className="divide-y divide-slate-100">{tableRows.map((banner) => { const inactive = isInactiveRow(banner); return <tr key={banner.id} onClick={() => onEdit(banner)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`}>{inactive ? <BannedStamp overlay /> : null}<TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(banner.id))} onToggle={() => onToggleRow?.(banner.id)} />{layout.orderedColumns.map((column) => renderCell(column, banner))}</tr>; })}</tbody></table></div>;
+  return <div className="bg-white ring-1 ring-slate-200"><table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 720), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead><tbody className="divide-y divide-slate-100">{tableRows.map((banner) => { const inactive = isInactiveRow(banner); return <tr key={banner.id} onClick={() => onEdit(banner)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`}>{inactive ? <BannedStamp overlay /> : null}<TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(banner.id))} onToggle={() => onToggleRow?.(banner.id)} />{layout.orderedColumns.map((column) => renderCell(column, banner))}</tr>; })}</tbody></table></div>;
 });

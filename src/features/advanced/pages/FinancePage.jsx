@@ -11,6 +11,7 @@ import { useEntityEditor, useRefreshOnListActivation, useTableSelection, useColu
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function nowInput() {
   const date = new Date();
@@ -46,7 +47,6 @@ export default function FinancePage({ mode = "cashflow" }) {
   const [type, setType] = useState(allowedTypes[0]);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(() => initialForm(allowedTypes[0], mode));
-  const [message, setMessage] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [localPaymentOpen, setLocalPaymentOpen] = useState(false);
   const [paymentRow, setPaymentRow] = useState(null);
@@ -79,7 +79,6 @@ export default function FinancePage({ mode = "cashflow" }) {
   useEffect(() => {
     if (!editor.open) return;
     const row = editor.entity;
-    setMessage("");
     setForm(row ? {
       type: row.type,
       title: row.title || "",
@@ -145,12 +144,12 @@ export default function FinancePage({ mode = "cashflow" }) {
           occurred_at: new Date(form.occurred_at).toISOString(),
         },
       });
-      setMessage(`${typeLabel(form.type)} berhasil disimpan.`);
+      toastSuccess("Simpan Data Keuangan", `${typeLabel(form.type)} berhasil disimpan.`);
       editor.markListDirty();
       editor.completeSave();
       editor.close();
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Simpan Data Keuangan", advancedError(error));
     }
   }
 
@@ -160,7 +159,6 @@ export default function FinancePage({ mode = "cashflow" }) {
     setPaymentMethod("transfer");
     setPaymentReference("");
     setPaymentNotes("");
-    setMessage("");
     if (panelTabs) {
       panelTabs.openOperationTab("finance-payment", { id: row.id, label: `Pembayaran ${row.reference_number || row.title}` });
       return;
@@ -183,12 +181,12 @@ export default function FinancePage({ mode = "cashflow" }) {
     if (!paymentRow) return;
     try {
       await paymentMutation.mutateAsync({ id: paymentRow.id, amount: Number(paymentAmount), payment_method: paymentMethod, reference_number: paymentReference || null, notes: paymentNotes || null });
-      setMessage("Pembayaran berhasil dicatat.");
+      toastSuccess("Catat Pembayaran", "Pembayaran berhasil dicatat.");
       editor.markListDirty();
       closePayment();
       listQuery.refetch();
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Catat Pembayaran", advancedError(error));
     }
   }
 
@@ -198,9 +196,9 @@ export default function FinancePage({ mode = "cashflow" }) {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
-      setMessage("Data keuangan berhasil dihapus.");
+      toastSuccess("Hapus Data Keuangan", "Data keuangan berhasil dihapus.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Hapus Data Keuangan", advancedError(error));
     }
   }
 
@@ -235,7 +233,6 @@ export default function FinancePage({ mode = "cashflow" }) {
           onResetColumns={columnVisibility.reset}
           onApplyDefaultColumns={columnVisibility.applyAsDefault}
         >
-          {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{[["list", "List"], ["grafik", "Grafik"]].map(([id, label]) => <button key={id} type="button" onClick={() => setListTab(id)} className={`h-9 px-4 text-sm font-bold ${listTab === id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{label}</button>)}</div>
           {listTab === "grafik" ? <FinanceChartPanel mode={mode} /> : (
             <>
@@ -272,7 +269,6 @@ export default function FinancePage({ mode = "cashflow" }) {
         busy={false}
         submitLabel="Simpan Cicilan"
       >
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Nominal Cicilan" required>
             <Input type="number" min="0.01" step="0.01" max={paymentRow?.outstanding_amount || undefined} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required />
@@ -321,7 +317,6 @@ export default function FinancePage({ mode = "cashflow" }) {
           </div>
         ) : undefined}
       >
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Jenis" required>
             <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))} className="h-10 border border-slate-300 bg-white px-3 text-sm" required>

@@ -12,6 +12,8 @@ import {
   useCreateAdminGameContent,
   useUpdateAdminGameContent,
 } from "@/features/admin/gameContent/services/adminGameContentService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(entity) {
   return {
@@ -31,7 +33,8 @@ function isPlainJsonString(value) {
 export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(entity));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(entity);
+  const dirty = useFormDirty(pristine, values);
   const createMutation = useCreateAdminGameContent();
   const updateMutation = useUpdateAdminGameContent();
   const mutation = entity ? updateMutation : createMutation;
@@ -43,7 +46,6 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
     if (open) {
       setValues(initialValues(entity));
       setErrors({});
-      setMessage("");
     }
   }, [entity, open]);
 
@@ -121,9 +123,10 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
     try {
       const saved = entity ? await updateMutation.mutateAsync({ id: entity.id, values }) : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(entity ? "Konten game berhasil diperbarui." : "Konten game berhasil ditambahkan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getAdminGameContentError(error));
+      toastError("Gagal menyimpan konten game", getAdminGameContentError(error));
     }
   };
 
@@ -132,7 +135,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
-            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete() : undefined} />
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending || !dirty} onDelete={entity && onDelete ? () => onDelete() : undefined} />
           }
         >
           <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
@@ -193,8 +196,6 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
               <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
             </div>
           </div>
-
-          {message ? <p className="md:col-span-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
         </FormEditorLayout>
         <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
@@ -209,7 +210,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
             <button type="button" onClick={onClose} className="h-10 select-none border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:border-slate-300">
               Batal
             </button>
-            <button type="submit" disabled={mutation.isPending} className="h-10 select-none bg-teal-600 px-5 text-sm font-extrabold text-white hover:bg-teal-700 disabled:opacity-60">
+            <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 select-none px-5 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white hover:bg-teal-700" : "bg-slate-100 text-slate-400"}`}>
               {mutation.isPending ? "Menyimpan..." : "Simpan"}
             </button>
           </div>

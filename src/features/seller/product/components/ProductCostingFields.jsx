@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { advancedError, useProductCosting, useRawMaterials, useSaveProductCosting, useSaveRawMaterial } from "@/features/advanced/services/advancedMarketplaceService";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const DEFAULT_COSTING = { materials: [], labor_cost: 0, overhead_cost: 0, other_cost: 0, margin_percent: 30, selling_price: 0, apply_to_variants: false };
 
@@ -22,8 +23,6 @@ export function ProductCostingFields({ productId, value, onChange }) {
   const save = useSaveProductCosting();
   const saveRawMaterial = useSaveRawMaterial();
   const [form, setForm] = useState(DEFAULT_COSTING);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [quickCreate, setQuickCreate] = useState({ code: "", name: "", unit: "pcs" });
   const data = costingQuery.data || {};
@@ -68,9 +67,8 @@ export function ProductCostingFields({ productId, value, onChange }) {
   async function createRawMaterial() {
     const code = quickCreate.code.trim();
     const name = quickCreate.name.trim();
-    if (!code || !name) {
-      setMessageType("error");
-      setMessage("Kode dan nama bahan baku wajib diisi.");
+    if (!name) {
+      toastError("Bahan baku belum lengkap", "Nama bahan baku wajib diisi.");
       return;
     }
     try {
@@ -87,11 +85,9 @@ export function ProductCostingFields({ productId, value, onChange }) {
       }
       setQuickCreateOpen(false);
       setQuickCreate({ code: "", name: "", unit: "pcs" });
-      setMessageType("success");
-      setMessage(`Bahan baku ${created?.data?.code || code} berhasil dibuat dan langsung dipilih pada resep.`);
+      toastSuccess("Bahan baku dibuat", `Bahan baku ${created?.data?.code || created?.code || code} berhasil dibuat dan langsung dipilih pada resep.`);
     } catch (error) {
-      setMessageType("error");
-      setMessage(advancedError(error, "Bahan baku gagal dibuat."));
+      toastError("Bahan baku gagal dibuat", advancedError(error, "Bahan baku gagal dibuat."));
     }
   }
 
@@ -100,35 +96,31 @@ export function ProductCostingFields({ productId, value, onChange }) {
     const rows = activeForm.materials.filter((row) => row.raw_material_id);
     const ids = rows.map((row) => Number(row.raw_material_id));
     if (ids.length !== new Set(ids).size) {
-      setMessageType("error");
-      setMessage("Bahan baku yang sama tidak boleh dipilih lebih dari satu kali.");
+      toastError("Bahan baku duplikat", "Bahan baku yang sama tidak boleh dipilih lebih dari satu kali.");
       return;
     }
     if (rows.some((row) => Number(row.quantity || 0) <= 0)) {
-      setMessageType("error");
-      setMessage("Jumlah pemakaian setiap bahan baku harus lebih besar dari nol.");
+      toastError("Jumlah pemakaian tidak valid", "Jumlah pemakaian setiap bahan baku harus lebih besar dari nol.");
       return;
     }
     try {
       await save.mutateAsync({ productId, values: { ...activeForm, materials: rows, selling_price: Number(activeForm.selling_price || suggested) } });
-      setMessageType("success");
-      setMessage("HPP dan harga jual berhasil disimpan menggunakan biaya bahan baku terbaru dari database.");
+      toastSuccess("HPP dan harga jual tersimpan", "HPP dan harga jual berhasil disimpan menggunakan biaya bahan baku terbaru dari database.");
       costingQuery.refetch();
     } catch (error) {
-      setMessageType("error");
-      setMessage(advancedError(error));
+      toastError("HPP gagal disimpan", advancedError(error));
     }
   }
 
   return <form onSubmit={submit} className="space-y-5">
-    {message ? <p className={`border px-4 py-3 text-sm font-semibold ${messageType === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{message}</p> : null}
-
-    <section className="border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Tahap 1</p>
-          <h3 className="text-sm font-black">Pilih bahan baku dan quantity per 1 produk</h3>
-          <p className="text-xs text-slate-500">Biaya satuan dikunci dari average cost bahan baku aktual sehingga HPP selalu sinkron dengan database.</p>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-slate-400">layers</span>
+            <h2 className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Tahap 1 · Pilih Bahan Baku</h2>
+          </div>
+          <p className="mt-0.5 text-xs text-slate-500">Biaya satuan dikunci dari average cost bahan baku aktual sehingga HPP selalu sinkron dengan database.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => setQuickCreateOpen((current) => !current)}>Bahan Baru</Button>
@@ -138,7 +130,7 @@ export function ProductCostingFields({ productId, value, onChange }) {
 
       {quickCreateOpen ? (
         <div className="mb-3 grid gap-2 border border-emerald-200 bg-emerald-50 p-3 md:grid-cols-[140px_minmax(0,1fr)_100px_120px_auto]">
-          <Input value={quickCreate.code} onChange={(event) => setQuickCreate((current) => ({ ...current, code: event.target.value }))} placeholder="Kode mis. RM-BOX" className="uppercase" />
+          <Input value={quickCreate.code} onChange={(event) => setQuickCreate((current) => ({ ...current, code: event.target.value }))} placeholder="Kode (opsional)" className="uppercase" />
           <Input value={quickCreate.name} onChange={(event) => setQuickCreate((current) => ({ ...current, name: event.target.value }))} placeholder="Nama bahan baku" />
           <select className="h-10 border border-slate-300 bg-white px-3 text-sm" value={quickCreate.unit} onChange={(event) => setQuickCreate((current) => ({ ...current, unit: event.target.value }))}>
             {COMMON_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
@@ -166,10 +158,12 @@ export function ProductCostingFields({ productId, value, onChange }) {
       </div>
     </section>
 
-    <section className="border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Tahap 2</p>
-      <h3 className="mb-3 text-sm font-black">Perhitungan HPP</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-slate-400">calculate</span>
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Tahap 2 · Perhitungan HPP</h2>
+      </div>
+      <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <label className="text-xs font-bold">Tenaga Kerja<Input type="number" min="0" value={activeForm.labor_cost} onChange={(event) => updateForm((current) => ({ ...current, labor_cost: event.target.value }))} /></label>
         <label className="text-xs font-bold">Overhead<Input type="number" min="0" value={activeForm.overhead_cost} onChange={(event) => updateForm((current) => ({ ...current, overhead_cost: event.target.value }))} /></label>
         <label className="text-xs font-bold">Biaya Lain<Input type="number" min="0" value={activeForm.other_cost} onChange={(event) => updateForm((current) => ({ ...current, other_cost: event.target.value }))} /></label>
@@ -177,10 +171,12 @@ export function ProductCostingFields({ productId, value, onChange }) {
       </div>
     </section>
 
-    <section className="border border-emerald-200 bg-emerald-50 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Tahap 3</p>
-      <h3 className="mb-3 text-sm font-black">Pembentukan harga jual</h3>
-      <div className="grid gap-3 sm:grid-cols-4">
+    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-slate-400">sell</span>
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Tahap 3 · Pembentukan Harga Jual</h2>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-4">
         <div><span className="text-xs text-slate-500">Modal / HPP</span><strong className="block text-lg">{money(hpp)}</strong></div>
         <label className="text-xs font-bold">Margin %<Input type="number" min="0" step="0.01" value={activeForm.margin_percent} onChange={(event) => updateForm((current) => ({ ...current, margin_percent: event.target.value }))} /></label>
         <div><span className="text-xs text-slate-500">Saran Harga Jual</span><strong className="block text-lg text-emerald-700">{money(suggested)}</strong></div>
@@ -189,10 +185,12 @@ export function ProductCostingFields({ productId, value, onChange }) {
       <label className="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={activeForm.apply_to_variants} onChange={(event) => updateForm((current) => ({ ...current, apply_to_variants: event.target.checked }))} /> Terapkan harga jual ke seluruh variant produk</label>
     </section>
 
-    <section className="border border-blue-200 bg-blue-50 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-blue-700">Tahap 4</p>
-      <h3 className="text-sm font-black">Produksi melalui Stock / Restock Produk</h3>
-      <p className="mt-1 text-sm text-blue-800">Setelah resep HPP disimpan, penambahan stok produk pada menu Persediaan otomatis mengurangi stok bahan baku sesuai quantity resep. Jika salah satu bahan tidak cukup, penambahan stok produk ditolak seluruhnya agar saldo tidak setengah berubah.</p>
+    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-slate-400">factory</span>
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Tahap 4 · Produksi melalui Stock / Restock Produk</h2>
+      </div>
+      <p className="mt-2 text-sm text-slate-600">Setelah resep HPP disimpan, penambahan stok produk pada menu Persediaan otomatis mengurangi stok bahan baku sesuai quantity resep. Jika salah satu bahan tidak cukup, penambahan stok produk ditolak seluruhnya agar saldo tidak setengah berubah.</p>
     </section>
 
     {createMode ? (

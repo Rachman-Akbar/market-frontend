@@ -42,6 +42,8 @@ export const SellerProductTable = memo(function SellerProductTable({
   onSortChange,
   columnFilters = {},
   onColumnFilterChange,
+  onClearAllFilters,
+  onResetSort,
   storeOptions = [],
 }) {
   const admin = portal === "admin";
@@ -58,6 +60,8 @@ export const SellerProductTable = memo(function SellerProductTable({
     onResetWidth: layout.resetWidth,
     dragging: layout.dragKey === column.key,
     dropTarget: layout.dropKey === column.key,
+    onClearAllFilters,
+    onResetSort,
   });
 
   const renderHeader = (column) => {
@@ -66,7 +70,7 @@ export const SellerProductTable = memo(function SellerProductTable({
     if (column.key === "store") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Toko" sortKey="store_name" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="select" filterValue={columnFilters.store || ""} onFilterChange={changeFilter("store")} options={storeOptions} />;
     if (column.key === "mode") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Mode" sortKey="mode" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="select" filterValue={columnFilters.mode || ""} onFilterChange={changeFilter("mode")} options={[{ value: "simple", label: "Tanpa Variant" }, { value: "variant", label: "Dengan Variant" }]} />;
     if (column.key === "price") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Harga" sortKey="price" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="range" filterValue={columnFilters.price || { min: "", max: "" }} onFilterChange={changeFilter("price")} minPlaceholder="Harga min" maxPlaceholder="Harga max" />;
-    if (column.key === "stock") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Stok" sortKey="stock" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="range" filterValue={columnFilters.stock || { min: "", max: "" }} onFilterChange={changeFilter("stock")} minPlaceholder="Stok min" maxPlaceholder="Stok max" />;
+    if (column.key === "stock") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Stok" sortKey="stock" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="range" filterValue={columnFilters.stock || { min: "", max: "", status: "" }} onFilterChange={changeFilter("stock")} minPlaceholder="Stok min" maxPlaceholder="Stok max" extraRangeFilter={{ label: "Status stok", options: [{ value: "low", label: "Stok rendah" }, { value: "safe", label: "Stok aman" }] }} />;
     if (column.key === "status") return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Status Admin" sortKey="status" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="select" filterValue={columnFilters.status || ""} onFilterChange={changeFilter("status")} options={[{ value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "archived", label: "Archived" }]} />;
     return <TableHeaderFilter key={column.key} {...interactiveProps(column)} label="Status Seller" sortKey="is_active" sortBy={sortBy} sortDirection={sortDirection} onSortChange={onSortChange} filterType="select" filterValue={columnFilters.active || ""} onFilterChange={changeFilter("active")} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Non-Active" }]} />;
   };

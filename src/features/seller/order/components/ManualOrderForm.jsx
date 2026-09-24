@@ -7,6 +7,7 @@ import { createManualOrder, getManualOrderError } from "@/features/seller/order/
 import { useCustomers } from "@/features/advanced/services/advancedMarketplaceService";
 import { formatPrice } from "@/shared/utils/utils";
 import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const COURIER_OPTIONS = [
   { value: "ambil_sendiri", label: "Ambil Sendiri" },
@@ -59,7 +60,6 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
   const [purchaseType, setPurchaseType] = useState("normal");
   const [preorderReleaseAt, setPreorderReleaseAt] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   const variantOptions = useMemo(() => {
@@ -119,7 +119,6 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
       setPurchaseType("normal");
       setPreorderReleaseAt("");
       setScheduledAt("");
-      setMessage("");
       setBusy(false);
     }
   }, [open]);
@@ -147,23 +146,22 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
   const submit = async (event) => {
     event.preventDefault();
     if (!validLines.length) {
-      setMessage("Pilih minimal satu produk untuk order manual.");
+      toastError("Order Manual", "Pilih minimal satu produk untuk order manual.");
       return;
     }
     if (!guestCustomer && !customerName.trim()) {
-      setMessage("Nama pelanggan wajib diisi.");
+      toastError("Order Manual", "Nama pelanggan wajib diisi.");
       return;
     }
     if (!guestCustomer && courier !== "ambil_sendiri" && !address.trim()) {
-      setMessage("Alamat pengiriman wajib diisi.");
+      toastError("Order Manual", "Alamat pengiriman wajib diisi.");
       return;
     }
     if (purchaseType === "booking" && !scheduledAt) {
-      setMessage("Tanggal kirim wajib diisi untuk metode pembelian booking.");
+      toastError("Order Manual", "Tanggal kirim wajib diisi untuk metode pembelian booking.");
       return;
     }
     setBusy(true);
-    setMessage("");
     try {
       const isPickup = courier === "ambil_sendiri";
       const payload = {
@@ -184,9 +182,10 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
       };
       const saved = await createManualOrder(payload);
       onSaved?.(saved);
+      toastSuccess("Order Manual", "Order manual berhasil dibuat.");
       onClose?.();
     } catch (error) {
-      setMessage(getManualOrderError(error));
+      toastError("Order Manual", getManualOrderError(error));
       setBusy(false);
     }
   };
@@ -338,8 +337,6 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
               Pembayaran dicatat lunas otomatis (kasir). Anda dapat mencetak nota setelah pesanan dibuat.
             </div>
           </section>
-
-          {message ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
 
           <section className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1.5 text-sm">
             <div className="flex justify-between text-slate-600"><span>Subtotal</span><span className="font-bold text-slate-800">{formatPrice(itemsTotal)}</span></div>

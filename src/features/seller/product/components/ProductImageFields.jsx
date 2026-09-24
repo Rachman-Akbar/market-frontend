@@ -53,10 +53,13 @@ export const ProductImageFields = memo(function ProductImageFields({ images, err
   return (
     <div className="space-y-3">
       <input ref={inputRef} type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={uploadFiles} className="hidden" />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-extrabold text-slate-800">Gambar produk</p>
-          <p className="text-xs text-slate-500">Pilih file JPG, PNG, atau WEBP. Gambar pertama menjadi gambar utama.</p>
+      <div className="flex flex-wrap items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-slate-400">image</span>
+          <div>
+            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Gambar Produk</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Pilih file JPG, PNG, atau WEBP. Gambar pertama menjadi gambar utama.</p>
+          </div>
         </div>
         <button
           type="button"

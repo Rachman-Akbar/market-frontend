@@ -21,6 +21,8 @@ import { useNotificationCenter } from "@/shared/notifications/NotificationCenter
 import { getRelationQuickCreateError, useQuickCreateCategory } from "@/shared/services/relationQuickCreateService";
 import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
 import { usePromotionPayments } from "@/features/advanced/services/advancedMarketplaceService";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function flattenCategories(rows = [], depth = 0, result = []) {
   rows.forEach((row) => {
@@ -61,7 +63,8 @@ function initialValues(entity) {
 export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => initialValues(entity));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(entity);
+  const dirty = useFormDirty(pristine, values);
   const isSeller = portal === "seller";
   const notifications = useNotificationCenter();
   const quickCreateCategoryMutation = useQuickCreateCategory();
@@ -93,7 +96,6 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
     if (open) {
       setValues(initialValues(entity));
       setErrors({});
-      setMessage("");
     }
   }, [entity, open]);
 
@@ -153,9 +155,10 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
         ? await updateMutation.mutateAsync({ id: entity.id, values })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess(entity ? "Promosi berhasil diperbarui." : (isSeller ? "Promosi berhasil diajukan." : "Promosi berhasil ditambahkan."));
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getPromotionError(error));
+      toastError("Gagal menyimpan promosi", getPromotionError(error));
     }
   };
 
@@ -164,7 +167,7 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
-            <FormActionDock tone={isSeller ? "emerald" : "teal"} save={{ icon: isSeller ? "send" : "save", label: isSeller ? "Ajukan Promosi" : "Simpan Promosi" }} disabled={mutation.isPending} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
+            <FormActionDock tone={isSeller ? "emerald" : "teal"} save={{ icon: isSeller ? "send" : "save", label: isSeller ? "Ajukan Promosi" : "Simpan Promosi" }} disabled={mutation.isPending || !dirty} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
           }
         >
         <div className="grid gap-4 md:grid-cols-2">
@@ -189,10 +192,9 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
             </div>
           </div>
           {values.imageUrl ? <picture className="md:col-span-2"><source media="(max-width: 640px)" srcSet={values.mobileImageUrl || values.imageUrl} /><img src={values.imageUrl} alt="Preview promosi" className="aspect-[4/1] w-full rounded-2xl bg-slate-100 object-cover" /></picture> : null}
-          {message ? <p className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
         </FormEditorLayout>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending} className={`h-10 px-4 text-sm font-extrabold text-white disabled:opacity-60 ${isSeller ? "bg-emerald-600" : "bg-teal-600"}`}>{isSeller ? "Ajukan Promosi" : "Simpan Promosi"}</button></div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? `${isSeller ? "bg-emerald-600" : "bg-teal-600"} text-white` : "bg-slate-100 text-slate-400"}`}>{isSeller ? "Ajukan Promosi" : "Simpan Promosi"}</button></div>
       </form>
     </CrudDialog>
   );

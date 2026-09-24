@@ -76,8 +76,6 @@ export default function AdminBannersPage() {
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
-            hasActiveFilters={Boolean(query)}
-            onClearFilters={() => setQuery("")}
           />
           )}
         >

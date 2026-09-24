@@ -14,7 +14,7 @@ import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOpera
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 
 const PER_PAGE = 20;
-const EMPTY_COLUMN_FILTERS = { product: "", mode: "", price: { min: "", max: "" }, stock: { min: "", max: "" }, status: "", active: "" };
+const EMPTY_COLUMN_FILTERS = { product: "", mode: "", price: { min: "", max: "" }, stock: { min: "", max: "", status: "" }, status: "", active: "" };
 
 export default function AdminProductsPage() {
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
@@ -37,6 +37,8 @@ export default function AdminProductsPage() {
     ...(columnFilters.stock.max !== "" ? { stock_max: columnFilters.stock.max } : {}),
     ...(columnFilters.status ? { status: columnFilters.status } : {}),
     ...(columnFilters.active ? { is_active: columnFilters.active === "active" } : {}),
+    ...(columnFilters.stock.status === "low" ? { low_stock: true } : {}),
+    ...(columnFilters.stock.status === "safe" ? { safe_stock: true } : {}),
   });
   const storesQuery = useAdminProductStores();
   const categoriesQuery = useAdminCategoryList();
@@ -52,7 +54,6 @@ export default function AdminProductsPage() {
   const columnVisibility = useColumnVisibility(columns, "admin-products");
   const selection = useTableSelection(displayRows);
   const spreadsheet = useSpreadsheetWorkspace({ module: "product", label: "Product", selectedRows: selection.selectedRows, onCompleted: () => { selection.clear(); productsQuery.refetch(); } });
-  const hasActiveFilters = useMemo(() => JSON.stringify(columnFilters) !== JSON.stringify(EMPTY_COLUMN_FILTERS), [columnFilters]);
 
   const toggleActive = (product, isActive) => {
     quickUpdateMutation.mutate(
@@ -99,6 +100,8 @@ export default function AdminProductsPage() {
             refreshing={productsQuery.isFetching}
             createLabel="Tambah Produk"
             placeholder="Cari nama, toko, SKU, brand, atau variant"
+            totalCount={productsQuery.data?.meta?.total}
+            totalLabel="Produk"
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}
@@ -109,8 +112,6 @@ export default function AdminProductsPage() {
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
-            hasActiveFilters={hasActiveFilters}
-            onClearFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
           />
           )}
         >
@@ -136,6 +137,8 @@ export default function AdminProductsPage() {
                 onSortChange={(by, direction) => setSort({ by, direction })}
                 columnFilters={columnFilters}
                 onColumnFilterChange={(key, value) => setColumnFilters((current) => ({ ...current, [key]: value }))}
+                onClearAllFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
+                onResetSort={() => setSort({ by: "created_at", direction: "desc" })}
                 storeOptions={[]}
               />
               <InfiniteScrollSentinel hasNextPage={productsQuery.hasNextPage} isFetchingNextPage={productsQuery.isFetchingNextPage} onLoadMore={() => productsQuery.fetchNextPage()} />

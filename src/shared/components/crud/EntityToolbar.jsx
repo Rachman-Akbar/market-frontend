@@ -11,6 +11,8 @@ export const EntityToolbar = memo(function EntityToolbar({
   refreshing = false,
   createLabel = "Tambah Data",
   placeholder = "Cari data lalu tekan Enter",
+  totalCount,
+  totalLabel = "Data",
   filters,
   hideCreate = false,
   selectionEnabled = false,
@@ -23,8 +25,6 @@ export const EntityToolbar = memo(function EntityToolbar({
   onShowAllColumns,
   onResetColumns,
   onApplyDefaultColumns,
-  hasActiveFilters = false,
-  onClearFilters,
 }) {
   const [draft, setDraft] = useState(query || "");
   const [spinning, setSpinning] = useState(false);
@@ -51,14 +51,16 @@ export const EntityToolbar = memo(function EntityToolbar({
     onQueryChange?.("");
   };
 
-  const clearAll = () => {
-    setDraft("");
-    onQueryChange?.("");
-    onClearFilters?.();
-  };
-
   return (
-    <div className="mb-3 flex min-w-0 flex-col gap-2 bg-white py-2 xl:flex-row xl:items-center">
+    <div className="mb-0.5 flex min-w-0 flex-col gap-1.5 bg-white px-2 py-2 xl:flex-row xl:items-center">
+      {Number(totalCount) >= 0 ? (
+        <span
+          className="shrink-0 whitespace-nowrap border-l-2 border-emerald-500 bg-emerald-50 px-5  py-2 text-xs font-extrabold text-emerald-800"
+          title="Total data di database"
+        >
+          {Number(totalCount).toLocaleString("id-ID")}{totalLabel ? ` ${totalLabel}` : ""}
+        </span>
+      ) : null}
       <form onSubmit={submitSearch} className="flex min-w-0 flex-1 items-center gap-2">
         <div className="flex min-w-0 flex-1 items-center bg-slate-50 px-3 ring-1 ring-inset ring-slate-200 focus-within:bg-white focus-within:ring-emerald-500">
           <span className="material-symbols-outlined shrink-0 text-[19px] text-slate-400">search</span>
@@ -71,11 +73,8 @@ export const EntityToolbar = memo(function EntityToolbar({
         </div>
       </form>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-px">
         {filters}
-        {(hasActiveFilters || query) && onClearFilters ? (
-          <ActionIconButton icon="filter_alt_off" title="Hapus filter" onClick={clearAll} />
-        ) : null}
         <ColumnVisibilityMenu
           columns={columns}
           visibleKeys={visibleColumns}

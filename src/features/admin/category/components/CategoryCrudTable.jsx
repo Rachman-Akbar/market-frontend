@@ -57,7 +57,7 @@ export const CategoryCrudTable = memo(function CategoryCrudTable({ rows, groupsB
   const groupOptions = useMemo(() => [...new Set(rows.map((row) => groupsById[row.catalogGroupId]).filter(Boolean))].filter((value, index, list) => list.indexOf(value) === index).map((value) => ({ value, label: toTitleCase(value) })).sort((a, b) => a.label.localeCompare(b.label, "id")), [groupsById, rows]);
 
   const filterTypes = useMemo(() => ({ structure: "text", level: "select", catalogGroup: "select", parent: "text", slug: "text", fullSlug: "text", sortOrder: "range", productsCount: "range", visibleMenu: "select", active: "select" }), []);
-  const { rows: tableRows, columnFilters, changeFilter, sortBy, sortDirection, setSort, hasActiveFilters, resetFilters } = useColumnFilterState({ rows, getValue, filterTypes });
+  const { rows: tableRows, columnFilters, changeFilter, sortBy, sortDirection, setSort, resetFilters, resetSort } = useColumnFilterState({ rows, getValue, filterTypes });
 
   useEffect(() => {
     setExpandedIds((current) => {
@@ -94,6 +94,8 @@ export const CategoryCrudTable = memo(function CategoryCrudTable({ rows, groupsB
     onResetWidth: layout.resetWidth,
     dragging: layout.dragKey === column.key,
     dropTarget: layout.dropKey === column.key,
+    onClearAllFilters: resetFilters,
+    onResetSort: resetSort,
   });
 
   const renderHeader = (column) => {
@@ -134,7 +136,6 @@ export const CategoryCrudTable = memo(function CategoryCrudTable({ rows, groupsB
   return (
     <div className="bg-white ring-1 ring-slate-200">
       <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-4 py-2.5"><div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">{[1, 2, 3].map((level) => <span key={level} className="bg-white px-2 py-1 ring-1 ring-inset ring-slate-200">Level {level}: {tableRows.filter((row) => getLevel(row) === level).length}</span>)}</div><div className="flex items-center gap-1"><button type="button" onClick={() => setExpandedIds(new Set(parentRows.map((row) => row.id)))} className="px-2 py-1 text-xs font-bold text-teal-700 hover:bg-teal-50">Buka Semua</button><button type="button" onClick={() => setExpandedIds(new Set())} className="px-2 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100">Tutup Semua</button></div></div>
-      {hasActiveFilters ? <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs"><span className="font-semibold text-slate-500">Filter aktif:</span><button type="button" onClick={resetFilters} className="rounded-full bg-slate-200 px-3 py-1 font-bold text-slate-600 hover:bg-slate-300">Reset semua</button></div> : null}
       <table className="table-fixed text-left text-sm" style={{ width: Math.max(tableWidth, 900), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} leadingWidth={selectionEnabled ? 44 : 0} /><thead className="sticky top-0 z-10 bg-slate-100 text-xs font-extrabold text-slate-600"><tr><TableSelectionHeader enabled={selectionEnabled} checked={allSelected} onToggle={onToggleAll} />{layout.orderedColumns.map(renderHeader)}</tr></thead><tbody className="divide-y divide-slate-100">{visibleRows.map((row) => { const inactive = isInactiveRow(row); return <tr key={row.id} onClick={() => onEdit(row)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`} title="Klik untuk edit">{inactive ? <BannedStamp overlay /> : null}<TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />{layout.orderedColumns.map((column) => renderCell(column, row))}</tr>; })}</tbody></table>
     </div>
   );

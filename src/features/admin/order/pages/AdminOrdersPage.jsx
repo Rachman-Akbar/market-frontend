@@ -10,6 +10,7 @@ import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSen
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
@@ -20,7 +21,6 @@ export default function AdminOrdersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
-  const [message, setMessage] = useState("");
   const [printRow, setPrintRow] = useState(null);
   const notifications = useNotificationCenter();
   const deferredQuery = useDeferredValue(query.trim());
@@ -53,11 +53,11 @@ export default function AdminOrdersPage() {
         await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
       }
       selection.clear();
-      setMessage(`Status pesanan terpilih diubah menjadi ${nextStatus}.`);
+      toastSuccess("Ubah Status Pesanan", `Status pesanan terpilih diubah menjadi ${nextStatus}.`);
       task.success(`${selection.selectedRows.length} pesanan diubah menjadi ${nextStatus}.`);
       ordersQuery.refetch();
     } catch (error) {
-      setMessage(getOrderManagementError(error));
+      toastError("Ubah Status Pesanan", getOrderManagementError(error));
       task.fail(getOrderManagementError(error));
     }
   };
@@ -128,7 +128,6 @@ export default function AdminOrdersPage() {
           />
           )}
         >
-          {message ? <p className="mb-3 border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={ordersQuery.isLoading} error={ordersQuery.error ? getOrderManagementError(ordersQuery.error) : ""} empty={!ordersQuery.isLoading && !rows.length} emptyText="Pesanan belum tersedia." />
           {rows.length ? (
             <OrderManagementTable
@@ -149,10 +148,10 @@ export default function AdminOrdersPage() {
                 try {
                   await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
                   task.success(`Pesanan ${row.orderNumber || `#${row.id}`} diubah menjadi ${nextStatus}.`);
-                  setMessage("Status pesanan berhasil diperbarui.");
+                  toastSuccess("Ubah Status Pesanan", "Status pesanan berhasil diperbarui.");
                   ordersQuery.refetch();
                 } catch (error) {
-                  setMessage(getOrderManagementError(error));
+                  toastError("Ubah Status Pesanan", getOrderManagementError(error));
                   task.fail(getOrderManagementError(error));
                 }
               }}

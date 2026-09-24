@@ -13,6 +13,7 @@ import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components
 import { AsyncState } from "@/shared/components/feedback";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 export default function AdminRolesPage() {
   const rolesQuery = useAdminRoles();
@@ -20,7 +21,6 @@ export default function AdminRolesPage() {
   const quickUpdateMutation = useUpdateAdminRole();
   const editor = useEntityEditor();
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [message, setMessage] = useState("");
   const rows = rolesQuery.data || [];
   const searchableRows = useMemo(() => rows.map((row) => ({ ...row, permissionNames: row.permissions.map((permission) => permission.name).join(" ") })), [rows]);
   const { query, setQuery, filteredRows } = useTableSearch(searchableRows, ["name", "description", "permissionNames"]);
@@ -34,9 +34,10 @@ export default function AdminRolesPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
       editor.close();
-      setMessage("Role berhasil dihapus.");
+      editor.markListDirty();
+      toastSuccess("Hapus Role", "Role berhasil dihapus.");
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Hapus Role", getAdminIdentityError(error));
     }
   };
 
@@ -45,9 +46,10 @@ export default function AdminRolesPage() {
     try {
       for (const role of selection.selectedRows) await deleteMutation.mutateAsync(role.id);
       selection.clear();
-      setMessage("Role terpilih berhasil dihapus.");
+      editor.markListDirty();
+      toastSuccess("Hapus Role", "Role terpilih berhasil dihapus.");
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Hapus Role", getAdminIdentityError(error));
     }
   };
 
@@ -58,9 +60,10 @@ export default function AdminRolesPage() {
         await quickUpdateMutation.mutateAsync({ id: role.id, values: { ...role, isActive, permissionIds: role.permissions.map((permission) => permission.id) } });
       }
       selection.clear();
-      setMessage(`Role terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
+      editor.markListDirty();
+      toastSuccess("Ubah Status Role", `Role terpilih berhasil ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
     } catch (error) {
-      setMessage(getAdminIdentityError(error));
+      toastError("Ubah Status Role", getAdminIdentityError(error));
     }
   };
 
@@ -94,7 +97,6 @@ export default function AdminRolesPage() {
           />
           )}
         >
-          {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={rolesQuery.isLoading} error={rolesQuery.error ? getAdminIdentityError(rolesQuery.error) : ""} empty={!rolesQuery.isLoading && !filteredRows.length} emptyText="Role belum tersedia." />
           {filteredRows.length ? (
             <RoleTable
@@ -105,8 +107,8 @@ export default function AdminRolesPage() {
                 quickUpdateMutation.mutate(
                   { id: row.id, values: { ...row, isActive, permissionIds: row.permissions.map((permission) => permission.id) } },
                   {
-                    onSuccess: () => setMessage("Status role berhasil diperbarui."),
-                    onError: (error) => setMessage(getAdminIdentityError(error)),
+                    onSuccess: () => { editor.markListDirty(); toastSuccess("Ubah Status Role", "Status role berhasil diperbarui."); },
+                    onError: (error) => toastError("Ubah Status Role", getAdminIdentityError(error)),
                   },
                 );
               }}
@@ -122,7 +124,7 @@ export default function AdminRolesPage() {
         </ListPageFrame>
       ) : null}
 
-      <RoleFormDialog open={editor.open} role={editor.entity} onDelete={setDeleteTarget} onClose={editor.close} onSaved={() => setMessage(`${editor.entity ? "Role berhasil diperbarui" : "Role berhasil ditambahkan"}.`)} />
+      <RoleFormDialog open={editor.open} role={editor.entity} onDelete={setDeleteTarget} onClose={editor.close} onSaved={() => editor.markListDirty()} />
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Role" message={`Role “${deleteTarget?.name || ""}” akan dihapus dari user dan permission terkait.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
     </AdminShell>
   );

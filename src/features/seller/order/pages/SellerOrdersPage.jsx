@@ -10,6 +10,7 @@ import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSen
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
@@ -22,7 +23,6 @@ export default function SellerOrdersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
-  const [message, setMessage] = useState("");
   const [printRow, setPrintRow] = useState(null);
   const [completionRows, setCompletionRows] = useState([]);
   const notifications = useNotificationCenter();
@@ -66,12 +66,12 @@ export default function SellerOrdersPage() {
         await updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber });
       }
       selection.clear();
-      setMessage(`Status pesanan terpilih diubah menjadi ${nextStatus}.`);
+      toastSuccess("Ubah Status Pesanan", `Status pesanan terpilih diubah menjadi ${nextStatus}.`);
       task.success(`${selection.selectedRows.length} pesanan diubah menjadi ${nextStatus}.`);
       ordersQuery.refetch();
     } catch (error) {
       task.fail(getOrderManagementError(error));
-      setMessage(getOrderManagementError(error));
+      toastError("Ubah Status Pesanan", getOrderManagementError(error));
     }
   };
 
@@ -91,7 +91,7 @@ export default function SellerOrdersPage() {
             row={editor.entity}
             onSaved={() => ordersQuery.refetch()}
             onDeleted={() => {
-              setMessage("Pesanan berhasil dihapus.");
+              toastSuccess("Hapus Pesanan", "Pesanan berhasil dihapus.");
               editor.close();
               ordersQuery.refetch();
             }}
@@ -100,7 +100,7 @@ export default function SellerOrdersPage() {
           <ManualOrderForm
             onClose={editor.close}
             onSaved={() => {
-              setMessage("Order manual berhasil dibuat.");
+              toastSuccess("Order Manual", "Order manual berhasil dibuat.");
               ordersQuery.refetch();
             }}
           />
@@ -160,7 +160,6 @@ export default function SellerOrdersPage() {
           />
           )}
         >
-          {message ? <p className="mb-3 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <AsyncState loading={ordersQuery.isLoading} error={ordersQuery.error ? getOrderManagementError(ordersQuery.error) : ""} empty={!ordersQuery.isLoading && !rows.length} emptyText="Pesanan toko belum tersedia." />
           {rows.length ? (
             <OrderManagementTable
@@ -185,12 +184,12 @@ export default function SellerOrdersPage() {
                 updateMutation.mutateAsync({ id: row.id, status: nextStatus, trackingNumber: row.trackingNumber })
                   .then(() => {
                     task.success(`Pesanan ${row.orderNumber || `#${row.id}`} diubah menjadi ${nextStatus}.`);
-                    setMessage("Status pesanan berhasil diperbarui.");
+                    toastSuccess("Ubah Status Pesanan", "Status pesanan berhasil diperbarui.");
                     ordersQuery.refetch();
                   })
                   .catch((error) => {
                     task.fail(getOrderManagementError(error));
-                    setMessage(getOrderManagementError(error));
+                    toastError("Ubah Status Pesanan", getOrderManagementError(error));
                   });
               }}
             />
@@ -209,7 +208,6 @@ export default function SellerOrdersPage() {
           selection.clear();
           const task = notifications.startTask({ title: "Selesaikan Pesanan", message: `Mencatat pemasukan untuk ${count} pesanan...` });
           task.success(count > 1 ? `${count} pesanan berhasil diselesaikan dengan pemasukan dicatat.` : "Pesanan berhasil diselesaikan dengan pemasukan dicatat.");
-          setMessage(count > 1 ? `${count} pesanan berhasil diselesaikan dengan pemasukan dicatat.` : "Pesanan berhasil diselesaikan dengan pemasukan dicatat.");
           ordersQuery.refetch();
         }}
       />

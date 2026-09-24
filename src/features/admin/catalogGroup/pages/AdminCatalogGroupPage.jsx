@@ -59,7 +59,7 @@ export default function AdminCatalogGroupPage() {
         <ListPageFrame
           toolbar={(
           <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => groupsQuery.refetch()} refreshing={groupsQuery.isFetching} createLabel="Tambah Group" selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
-          onApplyDefaultColumns={columnVisibility.applyAsDefault} hasActiveFilters={Boolean(query)} onClearFilters={() => setQuery("")} />
+          onApplyDefaultColumns={columnVisibility.applyAsDefault} />
           )}
         >
           <AsyncState loading={groupsQuery.isLoading} error={groupsQuery.error ? getCatalogGroupError(groupsQuery.error) : ""} empty={!groupsQuery.isLoading && !filteredRows.length} emptyText="Catalog Group belum tersedia." />

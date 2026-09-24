@@ -7,6 +7,7 @@ import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Input } from "@/shared/components/ui/Input";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialForm() {
   return { package_name: "Paket Promosi Seller", amount: "", payment_method: "transfer_bank", proof_url: "", paid_at: new Date().toISOString().slice(0, 16) };
@@ -22,7 +23,6 @@ export default function PromotionPaymentsPage() {
   const [status, setStatus] = useState("");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(initialForm());
-  const [message, setMessage] = useState("");
   const [localReviewOpen, setLocalReviewOpen] = useState(false);
   const [reviewRow, setReviewRow] = useState(null);
   const [reviewAction, setReviewAction] = useState("");
@@ -41,7 +41,6 @@ export default function PromotionPaymentsPage() {
   useEffect(() => {
     if (editor.open) {
       setForm(initialForm());
-      setMessage("");
     }
   }, [editor.open]);
 
@@ -61,12 +60,12 @@ export default function PromotionPaymentsPage() {
     event.preventDefault();
     try {
       await createMutation.mutateAsync({ ...form, amount: Number(form.amount), paid_at: form.paid_at ? new Date(form.paid_at).toISOString() : null });
+      toastSuccess("Ajukan Pembayaran Promosi", "Bukti pembayaran promosi berhasil diajukan.");
       editor.markListDirty();
       editor.completeSave();
       editor.close();
-      setMessage("Bukti pembayaran promosi berhasil diajukan.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Ajukan Pembayaran Promosi", advancedError(error));
     }
   }
 
@@ -74,7 +73,6 @@ export default function PromotionPaymentsPage() {
     setReviewRow(row);
     setReviewAction(action);
     setReviewReason("");
-    setMessage("");
     if (panelTabs) {
       panelTabs.openOperationTab("promotion-payment-review", {
         id: `${row.id}-${action}`,
@@ -102,16 +100,16 @@ export default function PromotionPaymentsPage() {
     event.preventDefault();
     if (!activeReviewRow || !["approve", "reject"].includes(activeReviewAction)) return;
     if (activeReviewAction === "reject" && !reviewReason.trim()) {
-      setMessage("Alasan penolakan wajib diisi.");
+      toastError("Tinjau Pembayaran Promosi", "Alasan penolakan wajib diisi.");
       return;
     }
     try {
       await reviewMutation.mutateAsync({ id: activeReviewRow.id, status: activeReviewAction, reason: reviewReason.trim() });
       editor.markListDirty();
-      setMessage(activeReviewAction === "approve" ? "Pembayaran disetujui." : "Pembayaran ditolak.");
+      toastSuccess("Tinjau Pembayaran Promosi", activeReviewAction === "approve" ? "Pembayaran disetujui." : "Pembayaran ditolak.");
       closeReview();
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Tinjau Pembayaran Promosi", advancedError(error));
     }
   }
 
@@ -129,7 +127,6 @@ export default function PromotionPaymentsPage() {
           createLabel="Ajukan Pembayaran"
           filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
-          {message ? <p className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
           <DataGrid
             columns={columns}
             rows={rows}
@@ -152,7 +149,6 @@ export default function PromotionPaymentsPage() {
         submitLabel={activeReviewAction === "approve" ? "Setujui Pembayaran" : "Tolak Pembayaran"}
         dangerAction={activeReviewAction === "approve" && activeReviewRow ? <button type="button" onClick={() => openReview(activeReviewRow, "reject")} className="h-8 select-none bg-red-50 px-4 text-xs font-extrabold text-red-600 hover:bg-red-100">Tolak {'\u00b7'} isi alasan</button> : undefined}
       >
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-1.5 text-sm font-bold text-slate-700">
             <span>Nomor</span>
@@ -187,7 +183,6 @@ export default function PromotionPaymentsPage() {
       </FormModal>
 
       <FormModal open={!admin && editor.open} title="Ajukan Pembayaran Promosi" subtitle="Data pengajuan tampil pada tab baru agar tetap konsisten dengan Product." onClose={editor.close} onSubmit={submit} busy={createMutation.isPending} submitLabel="Ajukan">
-        {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
         <Field label="Nama Paket" required><Input value={form.package_name} onChange={(event) => setForm((current) => ({ ...current, package_name: event.target.value }))} required /></Field>
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nominal" required><Input type="number" min="1" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required /></Field><Field label="Metode"><Input value={form.payment_method} onChange={(event) => setForm((current) => ({ ...current, payment_method: event.target.value }))} /></Field></div>
         <Field label="URL Bukti Pembayaran" required><Input type="url" value={form.proof_url} onChange={(event) => setForm((current) => ({ ...current, proof_url: event.target.value }))} required /></Field>

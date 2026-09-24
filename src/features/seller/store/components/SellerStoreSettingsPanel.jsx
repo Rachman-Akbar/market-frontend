@@ -9,6 +9,8 @@ import { toTitleCase } from "@/shared/utils/textFormatter";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 import { DayPicker, TimePicker } from "@/shared/components/form";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const emptyForm = {
   store_name: "",
@@ -74,9 +76,10 @@ export function SellerStoreSettingsPanel({ store }) {
   const storeAddressQuery = useSellerStoreAddress();
   const storeAddress = storeAddressQuery.data || null;
   const [form, setForm] = useState(() => fromStore(store, storeAddress));
+  const [pristine, setPristine] = useState(() => fromStore(store, storeAddress));
   const [logo, setLogo] = useState(null);
   const [banner, setBanner] = useState(null);
-  const [message, setMessage] = useState("");
+  const dirty = useFormDirty(pristine, form) || Boolean(logo) || Boolean(banner);
   const logoObjectUrl = useObjectUrl(logo);
   const bannerObjectUrl = useObjectUrl(banner);
   const logoPreviewUrl = logoObjectUrl || resolveMediaUrl(store?.logo || "");
@@ -86,7 +89,11 @@ export function SellerStoreSettingsPanel({ store }) {
   const pending = updateMutation.isPending || saveAddressMutation.isPending;
 
   useEffect(
-    () => setForm(fromStore(store, storeAddress)),
+    () => {
+      const fresh = fromStore(store, storeAddress);
+      setPristine(fresh);
+      setForm(fresh);
+    },
     [store, storeAddress],
   );
 
@@ -146,7 +153,6 @@ export function SellerStoreSettingsPanel({ store }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    setMessage("");
 
     const address = buildAddress();
     const requiredAddress = [
@@ -163,7 +169,7 @@ export function SellerStoreSettingsPanel({ store }) {
     ];
 
     if (requiredAddress.some((value) => String(value ?? "").trim() === "")) {
-      setMessage("Lengkapi seluruh data alamat toko dan koordinat.");
+      toastError("Simpan Pengaturan Toko", "Lengkapi seluruh data alamat toko dan koordinat.");
       return;
     }
 
@@ -179,9 +185,7 @@ export function SellerStoreSettingsPanel({ store }) {
     if (banner) data.append("banner", banner);
 
     if (!store?.id) {
-      setMessage(
-        "Data toko tidak ditemukan. Selesaikan onboarding seller terlebih dahulu.",
-      );
+      toastError("Simpan Pengaturan Toko", "Data toko tidak ditemukan. Selesaikan onboarding seller terlebih dahulu.");
       return;
     }
 
@@ -189,11 +193,11 @@ export function SellerStoreSettingsPanel({ store }) {
       await updateMutation.mutateAsync({ id: store.id, formData: data });
       await saveAddressMutation.mutateAsync(address);
 
-      setMessage("Perubahan toko dan alamat berhasil disimpan.");
+      toastSuccess("Simpan Pengaturan Toko", "Perubahan toko dan alamat berhasil disimpan.");
       setLogo(null);
       setBanner(null);
     } catch (error) {
-      setMessage(getSellerStoreError(error));
+      toastError("Simpan Pengaturan Toko", getSellerStoreError(error));
     }
   };
 
@@ -330,13 +334,10 @@ export function SellerStoreSettingsPanel({ store }) {
             </label>
           </div>
         </div>
-        {message ? (
-          <p className="mt-4 text-sm font-semibold text-slate-600">{message}</p>
-        ) : null}
         <div className="mt-4 flex justify-end">
           <button
-            disabled={pending}
-            className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+            disabled={pending || !dirty}
+            className={`rounded-2xl px-4 py-2 text-sm font-bold transition disabled:opacity-60 ${dirty ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-100 text-slate-400"}`}
           >
             Simpan Perubahan
           </button>

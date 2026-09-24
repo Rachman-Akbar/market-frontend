@@ -10,6 +10,7 @@ import {
 } from "@/features/advanced/services/advancedMarketplaceService";
 import { profileLayout } from "@/features/profile/components/profileLayoutClasses";
 import { Pagination } from "@/shared/components/ui/Pagination";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const CATEGORY_OPTIONS = [
   { value: "order", label: "Pesanan", icon: Package },
@@ -61,7 +62,6 @@ export default function BuyerHelpPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [form, setForm] = useState(initialForm());
   const [reply, setReply] = useState("");
-  const [message, setMessage] = useState("");
 
   const listQuery = useTickets({ page, per_page: 12, ...(status ? { status } : {}), ...(query.trim() ? { search: query.trim() } : {}) });
   const contextQuery = useTicketContext(mode === "create");
@@ -85,20 +85,17 @@ export default function BuyerHelpPage() {
   }), [meta.total, rows]);
 
   function openCreate() {
-    setMessage("");
     setForm(initialForm());
     setMode("create");
   }
 
   function openDetail(id) {
-    setMessage("");
     setSelectedId(id);
     setReply("");
     setMode("detail");
   }
 
   function backToList() {
-    setMessage("");
     setMode("list");
     setSelectedId(null);
     listQuery.refetch();
@@ -116,7 +113,6 @@ export default function BuyerHelpPage() {
 
   async function createHelp(event) {
     event.preventDefault();
-    setMessage("");
     try {
       const created = await createMutation.mutateAsync({
         category: form.category,
@@ -128,25 +124,24 @@ export default function BuyerHelpPage() {
       });
       setSelectedId(created?.id || null);
       setForm(initialForm());
-      setMessage("Permintaan bantuan berhasil dikirim.");
+      toastSuccess("Kirim Help", "Permintaan bantuan berhasil dikirim.");
       if (created?.id) setMode("detail");
       else backToList();
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Kirim Help", advancedError(error));
     }
   }
 
   async function sendReply(event) {
     event.preventDefault();
     if (!reply.trim() || !selectedId) return;
-    setMessage("");
     try {
       await replyMutation.mutateAsync({ id: selectedId, values: { message: reply.trim() } });
       setReply("");
       await ticketQuery.refetch();
-      setMessage("Balasan berhasil dikirim.");
+      toastSuccess("Kirim Balasan", "Balasan berhasil dikirim.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Kirim Balasan", advancedError(error));
     }
   }
 
@@ -163,7 +158,6 @@ export default function BuyerHelpPage() {
             <p className="mt-2 text-sm leading-6 text-slate-500">Identitas akun diambil otomatis. Pilih pesanan atau toko hanya jika bantuan berkaitan dengan transaksi tertentu.</p>
           </div>
 
-          {message ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">{message}</div> : null}
           {contextQuery.error ? <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{advancedError(contextQuery.error)}</div> : null}
 
           <form onSubmit={createHelp} className="mt-8 max-w-3xl space-y-6">
@@ -241,7 +235,6 @@ export default function BuyerHelpPage() {
             <ArrowLeft size={17} /> Kembali ke daftar
           </button>
 
-          {message ? <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">{message}</div> : null}
           {ticketQuery.error ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{advancedError(ticketQuery.error)}</div> : null}
 
           {ticket ? (

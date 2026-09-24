@@ -7,6 +7,7 @@ import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -36,7 +37,6 @@ function mediaItems(media) {
 function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
   const { activeRole } = useAuth();
   const admin = activeRole === "admin";
-  const [message, setMessage] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [active, setActive] = useState(Boolean(row?.is_active));
   const [busy, setBusy] = useState(false);
@@ -53,7 +53,6 @@ function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
 
   const handleSave = async () => {
     setBusy(true);
-    setMessage("");
     try {
       await updateMutation.mutateAsync({
         id: row.id,
@@ -64,10 +63,10 @@ function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
           is_active: active,
         },
       });
-      setMessage("Review berhasil diperbarui.");
       onSaved?.();
+      toastSuccess("Simpan Review", "Review berhasil diperbarui.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Simpan Review", advancedError(error));
     } finally {
       setBusy(false);
     }
@@ -82,11 +81,11 @@ function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
     try {
       await deleteMutation.mutateAsync(row.id);
       setConfirmOpen(false);
-      setMessage("Review berhasil dihapus.");
       onDeleted?.();
       onClose?.();
+      toastSuccess("Hapus Review", "Review berhasil dihapus.");
     } catch (error) {
-      setMessage(advancedError(error));
+      toastError("Hapus Review", advancedError(error));
     }
   };
 
@@ -114,8 +113,6 @@ function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
             ) : undefined
           }
         >
-          {message ? <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{message}</p> : null}
-
           <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
             <div className="flex flex-wrap items-center gap-4">
               {productThumb ? (

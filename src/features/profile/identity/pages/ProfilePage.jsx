@@ -37,6 +37,7 @@ import AddressMapTracker from "@/features/profile/address/components/AddressMapT
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { cn } from "@/shared/utils/utils";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const TABS = [
   { key: "biodata", label: "Biodata" },
@@ -93,10 +94,10 @@ function BiodataTab({ user, refreshMe }) {
     },
     onSuccess: async () => {
       await refreshMe?.();
-      setMessage("Biodata berhasil diperbarui.");
+      toastSuccess("Biodata", "Biodata berhasil diperbarui.");
     },
     onError: (error) =>
-      setMessage(getApiMessage(error, "Biodata gagal diperbarui.")),
+      toastError("Biodata", getApiMessage(error, "Biodata gagal diperbarui.")),
   });
 
   const handleSave = () => {
@@ -317,9 +318,10 @@ function AddressForm({ initialValue, onClose }) {
         await createMutation.mutateAsync(values);
       }
 
+      toastSuccess("Simpan Alamat", isEdit ? "Alamat berhasil diperbarui." : "Alamat berhasil ditambahkan.");
       onClose();
     } catch (error) {
-      setMessage(getAddressError(error));
+      toastError("Simpan Alamat", getAddressError(error));
     }
   };
 
@@ -773,14 +775,12 @@ function KeamananTab({ onLogout, onAddPassword }) {
     new_password_confirmation: "",
   });
   const [message, setMessage] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   const [verifyOpen, setVerifyOpen] = useState(false);
 
   const currentDevice = `${navigator.userAgent.includes("Windows") ? "Windows" : "Perangkat"} • ${navigator.language}`;
 
   const handleChangePassword = () => {
     setMessage("");
-    setSuccessMsg("");
 
     if (!form.current_password) {
       setMessage("Password saat ini wajib diisi.");
@@ -871,9 +871,6 @@ function KeamananTab({ onLogout, onAddPassword }) {
             {message && (
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p>
             )}
-            {successMsg && (
-              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{successMsg}</p>
-            )}
 
             <button
               type="button"
@@ -926,8 +923,8 @@ function KeamananTab({ onLogout, onAddPassword }) {
         }}
         onVerified={() => {
           setVerifyOpen(false);
-          setSuccessMsg("Password berhasil diubah! Semua sesi lain telah logout.");
           setForm({ current_password: "", new_password: "", new_password_confirmation: "" });
+          toastSuccess("Ubah Password", "Password berhasil diubah! Semua sesi lain telah logout.");
         }}
       />
     </div>

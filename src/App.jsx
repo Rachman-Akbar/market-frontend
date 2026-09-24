@@ -1,79 +1,81 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry } from "@/core/utils/lazyWithRetry";
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "@/shared/layout/AppLayout";
 import BuyerLayout from "@/shared/layout/BuyerLayout";
 import AuthLayout from "@/features/auth/AuthLayout";
 import SellerLayout from "@/features/seller/SellerLayout";
-const AdminLayout = lazy(() => import("@/features/admin/AdminLayout"));
+const AdminLayout = lazyWithRetry(() => import("@/features/admin/AdminLayout"));
 import ProfileLayout from "@/features/profile/ProfileLayout";
 import ProtectedRoute from "@/features/auth/routes/ProtectedRoute";
 import SellerOnboardingGuard from "@/features/auth/routes/SellerOnboardingGuard";
 import GuestRoute from "@/features/auth/routes/GuestRoute";
 import ErrorBoundary from "@/shared/components/feedback/ErrorBoundary";
 
-const HomePage = lazy(() => import("@/features/catalog/HomePage"));
-const SearchPage = lazy(() => import("@/features/catalog/product/pages/SearchPage"));
-const ProductDetailPage = lazy(() => import("@/features/catalog/product/pages/ProductDetailPage"));
-const CategoryPage = lazy(() => import("@/features/catalog/category/pages/CategoryPage"));
-const PromotionPage = lazy(() => import("@/features/catalog/promotion/pages/PromotionPage"));
-const StoreDirectoryPage = lazy(() => import("@/features/catalog/store/pages/StoreDirectoryPage"));
-const StoreDetailPage = lazy(() => import("@/features/catalog/store/pages/StoreDetailPage"));
-const CartPage = lazy(() => import("@/features/order/cart/pages/CartPage"));
-const CheckoutPage = lazy(() => import("@/features/order/ordering/pages/CheckoutPage"));
-const OrderDetailPage = lazy(() => import("@/features/order/ordering/pages/OrderDetailPage"));
-const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
-const AdminLoginPage = lazy(() => import("@/features/auth/pages/AdminLoginPage"));
-const RegisterPage = lazy(() => import("@/features/auth/pages/RegisterPage"));
-const ForgotPasswordPage = lazy(() => import("@/features/auth/pages/ForgotPasswordPage"));
-const ResetPasswordPage = lazy(() => import("@/features/auth/pages/ResetPasswordPage"));
-const RoleSwitchPage = lazy(() => import("@/features/auth/pages/RoleSwitchPage"));
-const SellerOnboardingPage = lazy(() => import("@/features/auth/pages/SellerOnboardingPage"));
-const SellerDashboardPage = lazy(() => import("@/features/seller/dashboard/pages/SellerDashboardPage"));
-const SellerProductsPage = lazy(() => import("@/features/seller/product/pages/SellerProductsPage"));
-const SellerBannerPage = lazy(() => import("@/features/seller/banner/pages/SellerBannerPage"));
-const SellerVoucherPage = lazy(() => import("@/features/seller/voucher/pages/SellerVoucherPage"));
-const SellerPromotionPage = lazy(() => import("@/features/seller/promotion/pages/SellerPromotionPage"));
-const SellerStorePage = lazy(() => import("@/features/seller/store/pages/SellerStorePage"));
-const SellerStorePreviewPage = lazy(() => import("@/features/seller/store/pages/SellerStorePreviewPage"));
-const SellerOrdersPage = lazy(() => import("@/features/seller/order/pages/SellerOrdersPage"));
-const SchedulePage = lazy(() => import("@/features/seller/planner/pages/SchedulePage"));
-const AdminHomePage = lazy(() => import("@/features/admin/dashboard/pages/AdminHomePage"));
-const AdminProductsPage = lazy(() => import("@/features/admin/product/pages/AdminProductsPage"));
-const AdminCatalogGroupPage = lazy(() => import("@/features/admin/catalogGroup/pages/AdminCatalogGroupPage"));
-const AdminCategoryPage = lazy(() => import("@/features/admin/category/pages/AdminCategoryPage"));
-const AdminVoucherPage = lazy(() => import("@/features/admin/voucher/pages/AdminVoucherPage"));
-const AdminPromotionPage = lazy(() => import("@/features/admin/promotion/pages/AdminPromotionPage"));
-const AdminUsersPage = lazy(() => import("@/features/admin/identity/pages/AdminUsersPage"));
-const AdminRolesPage = lazy(() => import("@/features/admin/identity/pages/AdminRolesPage"));
-const AdminStoresPage = lazy(() => import("@/features/admin/store/pages/AdminStoresPage"));
-const AdminBannersPage = lazy(() => import("@/features/admin/banner/pages/AdminBannersPage"));
-const AdminGameContentPage = lazy(() => import("@/features/admin/gameContent/pages/AdminGameContentPage"));
-const AdminOrdersPage = lazy(() => import("@/features/admin/order/pages/AdminOrdersPage"));
-const AdminPpobPage = lazy(() => import("@/features/admin/ppob/pages/AdminPpobPage"));
-const AdminStoreContextPage = lazy(() => import("@/features/admin/storeContext/pages/AdminStoreContextPage"));
-const AdminFeeConfigPage = lazy(() => import("@/features/admin/finance/pages/AdminFeeConfigPage"));
-const AdminWithdrawalsPage = lazy(() => import("@/features/admin/finance/pages/AdminWithdrawalsPage"));
-const ProfilePage = lazy(() => import("@/features/profile/identity/pages/ProfilePage"));
-const AddressesPage = lazy(() => import("@/features/profile/address/pages/AddressesPage"));
-const GroupChatPage = lazy(() => import("@/features/profile/chat/pages/GroupChatPage"));
-const NotificationsPage = lazy(() => import("@/features/profile/notifications/pages/NotificationsPage"));
-const PaymentsPage = lazy(() => import("@/features/profile/payments/pages/PaymentsPage"));
-const VouchersPage = lazy(() => import("@/features/profile/vouchers/pages/VouchersPage"));
-const ModulePlaceholderPage = lazy(() => import("@/shared/pages/ModulePlaceholderPage"));
-const FinancePage = lazy(() => import("@/features/advanced/pages/FinancePage"));
-const StockPage = lazy(() => import("@/features/advanced/pages/StockPage"));
-const CustomersPage = lazy(() => import("@/features/advanced/pages/CustomersPage"));
-const ShowcasePage = lazy(() => import("@/features/advanced/pages/ShowcasePage"));
-const HelpPage = lazy(() => import("@/features/advanced/pages/HelpPage"));
-const MissionsPage = lazy(() => import("@/features/advanced/pages/MissionsPage"));
-const BuyerHelpPage = lazy(() => import("@/features/profile/help/pages/BuyerHelpPage"));
-const BuyerMissionsPage = lazy(() => import("@/features/profile/missions/pages/BuyerMissionsPage"));
-const PpobPage = lazy(() => import("@/features/ppob/pages/PpobPage"));
-const PpobReceiptPage = lazy(() => import("@/features/ppob/pages/PpobReceiptPage"));
-const PromotionPaymentsPage = lazy(() => import("@/features/advanced/pages/PromotionPaymentsPage"));
-const AnnouncementPage = lazy(() => import("@/features/advanced/pages/AnnouncementPage"));
-const ReviewsPage = lazy(() => import("@/features/advanced/pages/ReviewsPage"));
-const RealtimeChatPage = lazy(() => import("@/features/advanced/pages/RealtimeChatPage"));
+const HomePage = lazyWithRetry(() => import("@/features/catalog/HomePage"));
+const SearchPage = lazyWithRetry(() => import("@/features/catalog/product/pages/SearchPage"));
+const ProductDetailPage = lazyWithRetry(() => import("@/features/catalog/product/pages/ProductDetailPage"));
+const CategoryPage = lazyWithRetry(() => import("@/features/catalog/category/pages/CategoryPage"));
+const PromotionPage = lazyWithRetry(() => import("@/features/catalog/promotion/pages/PromotionPage"));
+const StoreDirectoryPage = lazyWithRetry(() => import("@/features/catalog/store/pages/StoreDirectoryPage"));
+const StoreDetailPage = lazyWithRetry(() => import("@/features/catalog/store/pages/StoreDetailPage"));
+const CartPage = lazyWithRetry(() => import("@/features/order/cart/pages/CartPage"));
+const CheckoutPage = lazyWithRetry(() => import("@/features/order/ordering/pages/CheckoutPage"));
+const OrderDetailPage = lazyWithRetry(() => import("@/features/order/ordering/pages/OrderDetailPage"));
+const LoginPage = lazyWithRetry(() => import("@/features/auth/pages/LoginPage"));
+const AdminLoginPage = lazyWithRetry(() => import("@/features/auth/pages/AdminLoginPage"));
+const RegisterPage = lazyWithRetry(() => import("@/features/auth/pages/RegisterPage"));
+const ForgotPasswordPage = lazyWithRetry(() => import("@/features/auth/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazyWithRetry(() => import("@/features/auth/pages/ResetPasswordPage"));
+const RoleSwitchPage = lazyWithRetry(() => import("@/features/auth/pages/RoleSwitchPage"));
+const SellerOnboardingPage = lazyWithRetry(() => import("@/features/auth/pages/SellerOnboardingPage"));
+const SellerDashboardPage = lazyWithRetry(() => import("@/features/seller/dashboard/pages/SellerDashboardPage"));
+const SellerProductsPage = lazyWithRetry(() => import("@/features/seller/product/pages/SellerProductsPage"));
+const SellerBannerPage = lazyWithRetry(() => import("@/features/seller/banner/pages/SellerBannerPage"));
+const SellerVoucherPage = lazyWithRetry(() => import("@/features/seller/voucher/pages/SellerVoucherPage"));
+const SellerPromotionPage = lazyWithRetry(() => import("@/features/seller/promotion/pages/SellerPromotionPage"));
+const SellerStorePage = lazyWithRetry(() => import("@/features/seller/store/pages/SellerStorePage"));
+const SellerStorePreviewPage = lazyWithRetry(() => import("@/features/seller/store/pages/SellerStorePreviewPage"));
+const SellerOrdersPage = lazyWithRetry(() => import("@/features/seller/order/pages/SellerOrdersPage"));
+const SchedulePage = lazyWithRetry(() => import("@/features/seller/planner/pages/SchedulePage"));
+const AdminHomePage = lazyWithRetry(() => import("@/features/admin/dashboard/pages/AdminHomePage"));
+const AdminProductsPage = lazyWithRetry(() => import("@/features/admin/product/pages/AdminProductsPage"));
+const AdminCatalogGroupPage = lazyWithRetry(() => import("@/features/admin/catalogGroup/pages/AdminCatalogGroupPage"));
+const AdminCategoryPage = lazyWithRetry(() => import("@/features/admin/category/pages/AdminCategoryPage"));
+const AdminVoucherPage = lazyWithRetry(() => import("@/features/admin/voucher/pages/AdminVoucherPage"));
+const AdminPromotionPage = lazyWithRetry(() => import("@/features/admin/promotion/pages/AdminPromotionPage"));
+const AdminUsersPage = lazyWithRetry(() => import("@/features/admin/identity/pages/AdminUsersPage"));
+const AdminRolesPage = lazyWithRetry(() => import("@/features/admin/identity/pages/AdminRolesPage"));
+const AdminStoresPage = lazyWithRetry(() => import("@/features/admin/store/pages/AdminStoresPage"));
+const AdminBannersPage = lazyWithRetry(() => import("@/features/admin/banner/pages/AdminBannersPage"));
+const AdminGameContentPage = lazyWithRetry(() => import("@/features/admin/gameContent/pages/AdminGameContentPage"));
+const AdminOrdersPage = lazyWithRetry(() => import("@/features/admin/order/pages/AdminOrdersPage"));
+const AdminPpobPage = lazyWithRetry(() => import("@/features/admin/ppob/pages/AdminPpobPage"));
+const AdminStoreContextPage = lazyWithRetry(() => import("@/features/admin/storeContext/pages/AdminStoreContextPage"));
+const AdminFeeConfigPage = lazyWithRetry(() => import("@/features/admin/finance/pages/AdminFeeConfigPage"));
+const AdminWithdrawalsPage = lazyWithRetry(() => import("@/features/admin/finance/pages/AdminWithdrawalsPage"));
+const ProfilePage = lazyWithRetry(() => import("@/features/profile/identity/pages/ProfilePage"));
+const AddressesPage = lazyWithRetry(() => import("@/features/profile/address/pages/AddressesPage"));
+const GroupChatPage = lazyWithRetry(() => import("@/features/profile/chat/pages/GroupChatPage"));
+const NotificationsPage = lazyWithRetry(() => import("@/features/profile/notifications/pages/NotificationsPage"));
+const PaymentsPage = lazyWithRetry(() => import("@/features/profile/payments/pages/PaymentsPage"));
+const VouchersPage = lazyWithRetry(() => import("@/features/profile/vouchers/pages/VouchersPage"));
+const ModulePlaceholderPage = lazyWithRetry(() => import("@/shared/pages/ModulePlaceholderPage"));
+const FinancePage = lazyWithRetry(() => import("@/features/advanced/pages/FinancePage"));
+const StockPage = lazyWithRetry(() => import("@/features/advanced/pages/StockPage"));
+const RawMaterialsPage = lazyWithRetry(() => import("@/features/advanced/pages/RawMaterialsPage"));
+const CustomersPage = lazyWithRetry(() => import("@/features/advanced/pages/CustomersPage"));
+const ShowcasePage = lazyWithRetry(() => import("@/features/advanced/pages/ShowcasePage"));
+const HelpPage = lazyWithRetry(() => import("@/features/advanced/pages/HelpPage"));
+const MissionsPage = lazyWithRetry(() => import("@/features/advanced/pages/MissionsPage"));
+const BuyerHelpPage = lazyWithRetry(() => import("@/features/profile/help/pages/BuyerHelpPage"));
+const BuyerMissionsPage = lazyWithRetry(() => import("@/features/profile/missions/pages/BuyerMissionsPage"));
+const PpobPage = lazyWithRetry(() => import("@/features/ppob/pages/PpobPage"));
+const PpobReceiptPage = lazyWithRetry(() => import("@/features/ppob/pages/PpobReceiptPage"));
+const PromotionPaymentsPage = lazyWithRetry(() => import("@/features/advanced/pages/PromotionPaymentsPage"));
+const AnnouncementPage = lazyWithRetry(() => import("@/features/advanced/pages/AnnouncementPage"));
+const ReviewsPage = lazyWithRetry(() => import("@/features/advanced/pages/ReviewsPage"));
+const RealtimeChatPage = lazyWithRetry(() => import("@/features/advanced/pages/RealtimeChatPage"));
 
 
 function LoadingScreen() {
@@ -160,6 +162,7 @@ function renderSellerRoutes() {
         <Route element={<SellerLayout />}>
           <Route path="/seller" element={<SellerDashboardPage />} />
           <Route path="/seller/products" element={<SellerProductsPage />} />
+          <Route path="/seller/bahan-baku" element={<RawMaterialsPage />} />
           <Route path="/seller/stock" element={<StockPage />} />
           <Route path="/seller/vouchers" element={<SellerVoucherPage />} />
           <Route path="/seller/promotions" element={<SellerPromotionPage />} />
@@ -188,6 +191,7 @@ function renderAdminRoutes() {
       <Route element={<AdminLayout />}>
         <Route path="/admin" element={<AdminHomePage />} />
         <Route path="/admin/products" element={<AdminProductsPage />} />
+        <Route path="/admin/bahan-baku" element={<RawMaterialsPage />} />
         <Route path="/admin/stock" element={<StockPage />} />
         <Route path="/admin/vouchers" element={<AdminVoucherPage />} />
         <Route path="/admin/promotions" element={<AdminPromotionPage />} />

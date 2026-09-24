@@ -6,6 +6,8 @@ import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch"
 import { required, validateFields } from "@/core/utils/formValidation";
 import { getAdminStoreError, useUpdateAdminStore } from "@/features/admin/store/services/adminStoreService";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(store) {
   return {
@@ -22,14 +24,14 @@ function initialValues(store) {
 export function AdminStoreEditor({ open, store, onClose, onSaved }) {
   const [values, setValues] = useState(() => initialValues(store));
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const pristine = initialValues(store);
+  const dirty = useFormDirty(pristine, values);
   const mutation = useUpdateAdminStore();
 
   useEffect(() => {
     if (open) {
       setValues(initialValues(store));
       setErrors({});
-      setMessage("");
     }
   }, [open, store]);
 
@@ -50,9 +52,10 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
     try {
       const saved = await mutation.mutateAsync({ id: store.id, values });
       onSaved?.(saved);
-      onClose?.();
+      toastSuccess("Perubahan toko berhasil disimpan.");
+      window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
-      setMessage(getAdminStoreError(error));
+      toastError("Gagal menyimpan toko", getAdminStoreError(error));
     }
   };
 
@@ -61,7 +64,7 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
-            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Perubahan" }} disabled={mutation.isPending} />
+            <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan Perubahan" }} disabled={mutation.isPending || !dirty} />
           }
         >
         <div className="grid gap-4 md:grid-cols-2">
@@ -87,12 +90,11 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
               />
             </div>
           </div>
-          {message ? <p className="md:col-span-2 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{message}</p> : null}
         </div>
         </FormEditorLayout>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
           <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          <button type="submit" disabled={mutation.isPending} className="h-10 bg-teal-600 px-5 text-sm font-extrabold text-white disabled:opacity-60">"Simpan Perubahan"</button>
+          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-5 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan Perubahan</button>
         </div>
       </form>
     </CrudDialog>

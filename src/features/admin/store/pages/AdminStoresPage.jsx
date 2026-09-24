@@ -12,6 +12,7 @@ import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSen
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const PER_PAGE = 20;
 
@@ -19,7 +20,6 @@ export default function AdminStoresPage() {
   const [draftQuery, setDraftQuery] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [message, setMessage] = useState("");
   const [moderation, setModeration] = useState({ open: false, action: "", stores: [] });
   const editor = useEntityEditor();
   const storesQuery = useAdminStores({ per_page: PER_PAGE, ...(search ? { search } : {}), ...(status ? { status } : {}) });
@@ -45,9 +45,10 @@ export default function AdminStoresPage() {
         });
       }
       selection.clear();
-      setMessage(`Status toko terpilih diubah menjadi ${nextStatus}.`);
+      editor.markListDirty();
+      toastSuccess("Ubah Status Toko", `Status toko terpilih diubah menjadi ${nextStatus}.`);
     } catch (error) {
-      setMessage(getAdminStoreError(error));
+      toastError("Ubah Status Toko", getAdminStoreError(error));
     } finally {
       setModeration({ open: false, action: "", stores: [] });
     }
@@ -85,14 +86,13 @@ export default function AdminStoresPage() {
           />
           )}
         >
-          {message ? <p className="mb-3 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">{message}</p> : null}
           <AsyncState loading={storesQuery.isLoading} error={storesQuery.error ? getAdminStoreError(storesQuery.error) : ""} empty={!storesQuery.isLoading && !rows.length} emptyText="Toko belum tersedia." />
           {rows.length ? <AdminStoreTable rows={rows} columns={columns} onEdit={editor.edit} pendingId={statusMutation.variables?.id} visibleSet={columnVisibility.visibleSet} selectionEnabled={selection.enabled} selectedIds={selection.selectedIds} allSelected={selection.allSelected} onToggleRow={selection.toggleRow} onToggleAll={selection.toggleAll} onToggleActive={(store, isActive) => {
             statusMutation.mutate(
               { id: store.id, status: store.status, isActive },
               {
-                onSuccess: () => setMessage("Status operasional toko berhasil diperbarui."),
-                onError: (error) => setMessage(getAdminStoreError(error)),
+                onSuccess: () => { editor.markListDirty(); toastSuccess("Ubah Status Toko", "Status operasional toko berhasil diperbarui."); },
+                onError: (error) => toastError("Ubah Status Toko", getAdminStoreError(error)),
               },
             );
           }} /> : null}
@@ -107,7 +107,7 @@ export default function AdminStoresPage() {
         onConfirm={(chatMessage) => bulkStatus(moderation.action, chatMessage)}
         onClose={() => setModeration({ open: false, action: "", stores: [] })}
       />
-      <AdminStoreEditor open={editor.open} store={editor.entity} onClose={editor.close} onSaved={() => setMessage("Toko berhasil diperbarui.")} />
+      <AdminStoreEditor open={editor.open} store={editor.entity} onClose={editor.close} onSaved={() => editor.markListDirty()} />
     </AdminShell>
   );
 }

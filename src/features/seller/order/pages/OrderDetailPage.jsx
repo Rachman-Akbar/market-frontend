@@ -10,6 +10,7 @@ import { getOrderManagementError, useDeleteOrder, useUpdateOrder } from "@/featu
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
 import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
+import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Menunggu" },
@@ -82,7 +83,6 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
   const [printOpen, setPrintOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [statusOverride, setStatusOverride] = useState(null);
   const deleteMutation = useDeleteOrder();
@@ -136,7 +136,6 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
 
   const handleSave = async (event) => {
     if (event) event.preventDefault();
-    setMessage("");
     setBusy(true);
     try {
       const result = await updateMutation.mutateAsync({
@@ -154,10 +153,10 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
         },
       });
       setStatusOverride({ status: result?.data?.status || status, trackingNumber: result?.data?.tracking_number || tracking });
-      setMessage("Detail pesanan berhasil diperbarui.");
       onSaved?.({ status: result?.data?.status || status, trackingNumber: result?.data?.tracking_number || tracking });
+      toastSuccess("Ubah Detail Pesanan", "Detail pesanan berhasil diperbarui.");
     } catch (error) {
-      setMessage(getOrderManagementError(error));
+      toastError("Ubah Detail Pesanan", getOrderManagementError(error));
     } finally {
       setBusy(false);
     }
@@ -184,8 +183,6 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
             </div>
           }
         >
-          {message ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
-
           <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-slate-400">inventory_2</span>
