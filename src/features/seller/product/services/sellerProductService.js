@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getCategories } from "@/features/catalog/category/services/categoryService";
@@ -249,6 +249,7 @@ export function useSellerProducts(params = {}) {
     params: scopedParams,
     enabled: Boolean(isAuthenticated && activeRole === "seller" && storeId),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 

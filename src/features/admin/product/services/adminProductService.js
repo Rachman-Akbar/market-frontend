@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { apiClient, getApiMessage, unwrapApiData, unwrapCollection } from "@/core/utils/apiClient";
 import { normalizeSellerProduct, serializeSellerProduct } from "@/features/seller/product/services/sellerProductService";
 import { normalizeAdminStore } from "@/features/admin/store/services/adminStoreService";
@@ -62,6 +62,7 @@ export function useAdminProducts(params = {}) {
     queryFn: (queryParams) => getAdminProducts(queryParams),
     params,
     staleTime: 30000,
+    placeholderData: keepPreviousData,
   });
 }
 

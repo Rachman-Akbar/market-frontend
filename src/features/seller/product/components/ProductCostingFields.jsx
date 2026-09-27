@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
 import { advancedError, useProductCosting, useRawMaterials, useSaveProductCosting, useSaveRawMaterial } from "@/features/advanced/services/advancedMarketplaceService";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { useFormDirty } from "@/shared/hooks/useFormDirty";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const DEFAULT_COSTING = { materials: [], labor_cost: 0, overhead_cost: 0, other_cost: 0, margin_percent: 30, selling_price: 0, apply_to_variants: false };
+
+const COSTING_NUMERIC_KEYS = ["quantity", "labor_cost", "overhead_cost", "other_cost", "margin_percent", "selling_price"];
 
 const COMMON_UNITS = ["pcs", "pack", "box", "kg", "gram", "liter", "ml", "meter", "roll", "sak", "lembar"];
 
@@ -16,20 +19,22 @@ function qty(value) {
   return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(Number(value || 0));
 }
 
-export function ProductCostingFields({ productId, value, onChange }) {
+export const ProductCostingFields = forwardRef(function ProductCostingFields({ productId, value, onChange, onDirtyChange }, ref) {
   const createMode = !productId && typeof onChange === "function";
   const materialsQuery = useRawMaterials({ per_page: 100 });
   const costingQuery = useProductCosting(productId, Boolean(productId));
   const save = useSaveProductCosting();
   const saveRawMaterial = useSaveRawMaterial();
   const [form, setForm] = useState(DEFAULT_COSTING);
+  const [baseline, setBaseline] = useState(DEFAULT_COSTING);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [quickCreate, setQuickCreate] = useState({ code: "", name: "", unit: "pcs" });
   const data = costingQuery.data || {};
+  const hasLoadedCosting = Boolean(data.costing) || (data.materials && data.materials.length > 0);
 
   useEffect(() => {
     if (createMode || (!data.costing && !data.materials)) return;
-    setForm({
+    const loaded = {
       materials: (data.materials || []).map((row) => ({ raw_material_id: row.raw_material_id, quantity: row.quantity })),
       labor_cost: data.costing?.labor_cost || 0,
       overhead_cost: data.costing?.overhead_cost || 0,
@@ -37,10 +42,18 @@ export function ProductCostingFields({ productId, value, onChange }) {
       margin_percent: data.costing?.margin_percent || 30,
       selling_price: data.costing?.selling_price || 0,
       apply_to_variants: false,
-    });
+    };
+    setForm(loaded);
+    setBaseline(loaded);
   }, [createMode, data.costing, data.materials]);
 
-  const activeForm = createMode ? { ...DEFAULT_COSTING, ...(value || {}) } : form;
+  const activeForm = useMemo(() => (createMode ? { ...DEFAULT_COSTING, ...(value || {}) } : form), [createMode, form, value]);
+  const dirty = useFormDirty(baseline, activeForm, { numericKeys: COSTING_NUMERIC_KEYS });
+
+  useEffect(() => {
+    if (createMode) return;
+    onDirtyChange?.(dirty);
+  }, [createMode, dirty, onDirtyChange]);
 
   function updateForm(updater) {
     if (createMode) {
@@ -57,6 +70,38 @@ export function ProductCostingFields({ productId, value, onChange }) {
   }, 0), [activeForm.materials, materialOptions]);
   const hpp = materialCost + Number(activeForm.labor_cost || 0) + Number(activeForm.overhead_cost || 0) + Number(activeForm.other_cost || 0);
   const suggested = hpp * (1 + Number(activeForm.margin_percent || 0) / 100);
+
+  function hasContent(current) {
+    const hasMaterials = (current.materials || []).some((row) => String(row.raw_material_id || "").trim() !== "");
+    const hasVariableCost = [current.labor_cost, current.overhead_cost, current.other_cost].some((value) => Number(value || 0) > 0);
+    return hasMaterials || hasVariableCost || String(current.selling_price || "").trim() !== "";
+  }
+
+  useImperativeHandle(ref, () => ({
+    save: async () => {
+      if (createMode || !productId) return true;
+      if (!hasLoadedCosting && !hasContent(activeForm)) return true;
+      const rows = activeForm.materials.filter((row) => String(row.raw_material_id || "").trim() !== "");
+      const ids = rows.map((row) => Number(row.raw_material_id));
+      if (ids.length !== new Set(ids).size) {
+        toastError("Bahan baku duplikat", "Bahan baku yang sama tidak boleh dipilih lebih dari satu kali.");
+        return false;
+      }
+      if (rows.some((row) => Number(row.quantity || 0) <= 0)) {
+        toastError("Jumlah pemakaian tidak valid", "Jumlah pemakaian setiap bahan baku harus lebih besar dari nol.");
+        return false;
+      }
+      try {
+        await save.mutateAsync({ productId, values: { ...activeForm, materials: rows, selling_price: Number(activeForm.selling_price || suggested) } });
+        toastSuccess("HPP dan harga jual tersimpan", "HPP dan harga jual berhasil disimpan menggunakan biaya bahan baku terbaru dari database.");
+        costingQuery.refetch();
+        return true;
+      } catch (error) {
+        toastError("HPP gagal disimpan", advancedError(error));
+        return false;
+      }
+    },
+  }), [activeForm, costingQuery, createMode, hasLoadedCosting, productId, save, suggested]);
 
   if (!productId && !createMode) return <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Simpan produk terlebih dahulu. Setelah produk memiliki ID, tab HPP dapat digunakan.</div>;
 
@@ -91,28 +136,7 @@ export function ProductCostingFields({ productId, value, onChange }) {
     }
   }
 
-  async function submit(event) {
-    event.preventDefault();
-    const rows = activeForm.materials.filter((row) => row.raw_material_id);
-    const ids = rows.map((row) => Number(row.raw_material_id));
-    if (ids.length !== new Set(ids).size) {
-      toastError("Bahan baku duplikat", "Bahan baku yang sama tidak boleh dipilih lebih dari satu kali.");
-      return;
-    }
-    if (rows.some((row) => Number(row.quantity || 0) <= 0)) {
-      toastError("Jumlah pemakaian tidak valid", "Jumlah pemakaian setiap bahan baku harus lebih besar dari nol.");
-      return;
-    }
-    try {
-      await save.mutateAsync({ productId, values: { ...activeForm, materials: rows, selling_price: Number(activeForm.selling_price || suggested) } });
-      toastSuccess("HPP dan harga jual tersimpan", "HPP dan harga jual berhasil disimpan menggunakan biaya bahan baku terbaru dari database.");
-      costingQuery.refetch();
-    } catch (error) {
-      toastError("HPP gagal disimpan", advancedError(error));
-    }
-  }
-
-  return <form onSubmit={submit} className="space-y-5">
+  return <div className="space-y-5">
     <section className="rounded-2xl p-5 ring-1 ring-slate-200">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -193,10 +217,6 @@ export function ProductCostingFields({ productId, value, onChange }) {
       <p className="mt-2 text-sm text-slate-600">Setelah resep HPP disimpan, penambahan stok produk pada menu Persediaan otomatis mengurangi stok bahan baku sesuai quantity resep. Jika salah satu bahan tidak cukup, penambahan stok produk ditolak seluruhnya agar saldo tidak setengah berubah.</p>
     </section>
 
-    {createMode ? (
-      <p className="rounded-lg bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-700">Resep, HPP, dan harga jual disimpan bersamaan saat produk dibuat pada tab ini.</p>
-    ) : (
-      <div className="flex justify-end"><Button type="submit" disabled={save.isPending}>Simpan Pembentukan Harga</Button></div>
-    )}
-  </form>;
-}
+    <p className="rounded-lg bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-700">{createMode ? "Resep, HPP, dan harga jual disimpan" : "Perubahan HPP dan harga jual tersimpan"} bersamaan saat produk disimpan lewat tombol Simpan di sisi kanan.</p>
+  </div>;
+});

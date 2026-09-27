@@ -9,10 +9,6 @@ export const ProductImageFields = memo(function ProductImageFields({ images, err
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  const update = (index, field, value) => {
-    onChange(images.map((image, imageIndex) => imageIndex === index ? { ...image, [field]: value } : image));
-  };
-
   const remove = (index) => onChange(images.filter((_, imageIndex) => imageIndex !== index));
 
   const makePrimary = (index) => {
@@ -76,26 +72,37 @@ export const ProductImageFields = memo(function ProductImageFields({ images, err
       {images.filter((image) => image.url).length ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {images.filter((image) => image.url).map((image, index) => (
-            <div key={image.id || image.clientId || `image-${index}`} className="overflow-hidden border border-slate-200 bg-white">
+            <div key={image.id || image.clientId || `image-${index}`} className="group relative aspect-square overflow-hidden border border-slate-200 bg-slate-100">
               <button
                 type="button"
                 onClick={() => setPreviewUrl(resolveMediaUrl(image.url))}
-                className="relative block aspect-square w-full overflow-hidden bg-slate-100 text-slate-400"
+                className="block h-full w-full"
                 title="Klik untuk memperbesar"
               >
                 <img src={resolveMediaUrl(image.url)} alt={image.altText || `Gambar produk ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
-                {index === 0 ? <span className="absolute left-2 top-2 bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white">Utama</span> : null}
               </button>
-              <div className="space-y-2 p-3">
-                <input value={image.altText || ""} onChange={(event) => update(images.indexOf(image), "altText", event.target.value)} className="h-10 w-full border border-slate-200 px-3 text-sm outline-none focus:border-emerald-500" placeholder="Alt text gambar" />
-                <div className="flex items-center justify-between gap-2">
-                  {index !== 0 ? (
-                    <button type="button" onClick={() => makePrimary(images.indexOf(image))} className="h-8 px-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Jadikan Utama</button>
-                  ) : <span />}
-                  <button type="button" onClick={() => remove(images.indexOf(image))} className="flex h-8 w-8 items-center justify-center text-red-600 hover:bg-red-50" aria-label="Hapus gambar">
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
+              {index === 0 ? <span className="absolute left-2 top-2 bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white">Utama</span> : null}
+              <div className="absolute right-2 top-1.5 flex gap-1.5">
+                {index !== 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => makePrimary(images.indexOf(image))}
+                    title="Jadikan utama"
+                    aria-label="Jadikan utama"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-emerald-700 shadow ring-1 ring-slate-200 transition-colors hover:bg-white"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">star</span>
                   </button>
-                </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => remove(images.indexOf(image))}
+                  title="Hapus gambar"
+                  aria-label="Hapus gambar"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-red-600 shadow ring-1 ring-slate-200 transition-colors hover:bg-white"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
               </div>
             </div>
           ))}

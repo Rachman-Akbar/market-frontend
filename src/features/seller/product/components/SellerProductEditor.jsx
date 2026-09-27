@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
-import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { ProductFormActionButton } from "@/features/seller/product/components/ProductFormActionButton";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName, textAreaClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -82,6 +84,8 @@ function createInitialValues(product) {
   };
 }
 
+const NUMERIC_FIELD_KEYS = ["price", "stock", "poStock", "maxOrderQty", "minStock", "quantity", "labor_cost", "overhead_cost", "other_cost", "margin_percent", "selling_price"];
+
 function getCategoryDepth(category) {
   if (Number.isFinite(Number(category?.depth))) return Number(category.depth);
   if (Number.isFinite(Number(category?.level))) return Math.max(0, Number(category.level) - 1);
@@ -105,10 +109,10 @@ function getCategoryPath(category) {
 
 function getErrorTabs(errors) {
   const tabs = [];
-  if (errors.storeId || errors.name || errors.categoryId) tabs.push("general");
+  if (errors.storeId || errors.name || errors.categoryId || errors.price) tabs.push("general");
   if (errors.variants) tabs.push("variant");
   if (errors.images || errors.thumbnail) tabs.push("images");
-  if (errors.price || errors.stock || errors.poStock || errors.maxOrderQty || errors.minStock || errors.variantStock) tabs.push("stock");
+  if (errors.stock || errors.poStock || errors.maxOrderQty || errors.minStock || errors.variantStock) tabs.push("stock");
   return tabs;
 }
 
@@ -122,14 +126,18 @@ export function SellerProductEditor({
   useCreateMutation = useCreateSellerProduct,
   useUpdateMutation = useUpdateSellerProduct,
   getError = getSellerProductError,
+  initialSection = "general",
   onClose,
   onSaved,
   onDelete,
+  suppressEscape = false,
 }) {
   const [values, setValues] = useState(() => createInitialValues(product));
   const [errors, setErrors] = useState({});
   const [pristine, setPristine] = useState(() => createInitialValues(product));
-  const dirty = useFormDirty(pristine, values, { volatileKeys: ["clientId"] });
+  const [costingDirty, setCostingDirty] = useState(false);
+  const dirty = useFormDirty(pristine, values, { volatileKeys: ["clientId"], numericKeys: NUMERIC_FIELD_KEYS });
+  const formDirty = dirty || costingDirty;
   const [activeSection, setActiveSection] = useState("general");
   const notifications = useNotificationCenter();
   const openRelationCreateTab = useRelationCreateTab();
@@ -142,16 +150,26 @@ export function SellerProductEditor({
   const createMutation = useCreateMutation();
   const updateMutation = useUpdateMutation();
   const saveProductCosting = useSaveProductCosting();
+  const costingRef = useRef(null);
+  const navigate = useNavigate();
   const isAdmin = portal === "admin";
+  const initialSectionRef = useRef(initialSection);
+  initialSectionRef.current = initialSection;
+
+  const openStock = (row) => {
+    const href = isAdmin ? "/admin/stock" : "/seller/stock";
+    const needle = row?.sku || row?.name || "";
+    navigate(href + (needle ? `?q=${encodeURIComponent(needle)}` : ""));
+  };
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || suppressEscape) return undefined;
     const handler = (event) => {
       if (event.key === "Escape") onClose?.();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose, open]);
+  }, [onClose, open, suppressEscape]);
 
   useEffect(() => {
     if (open) {
@@ -159,7 +177,8 @@ export function SellerProductEditor({
       setPristine(initial);
       setValues(initial);
       setErrors({});
-      setActiveSection("general");
+      setCostingDirty(false);
+      setActiveSection(initialSectionRef.current);
     }
   }, [open, product]);
 
@@ -326,6 +345,11 @@ export function SellerProductEditor({
         }
       }
 
+      if (product && costingRef.current) {
+        const costingSaved = await costingRef.current.save();
+        if (costingSaved === false) return;
+      }
+
       onSaved?.(saved);
       toastSuccess(product ? "Produk berhasil diperbarui." : "Produk berhasil ditambahkan.");
       window.setTimeout(() => onClose?.(), 350);
@@ -346,26 +370,28 @@ export function SellerProductEditor({
     <>
       <form onSubmit={submit}>
         <OrderFormLayout
+          compact
           aside={
             <>
-              <OrderFormActionButton
+              <ProductFormActionButton
                 tone={isAdmin ? "teal" : "emerald"}
-                variant="soft"
                 icon={product ? "save" : "add"}
                 label={product ? "Simpan" : "Tambah"}
                 type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !dirty}
+                disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !formDirty}
               />
               {product && onDelete ? (
-                <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus" onClick={() => onDelete(product)} />
+                <ProductFormActionButton tone="rose" icon="delete" label="Hapus" onClick={() => onDelete(product)} />
               ) : null}
             </>
           }
         >
           <FormPageLayout
             header={
-              <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-                <ProductEditorTabs activeTab={activeSection} onChange={setActiveSection} errorTabs={getErrorTabs(errors)} />
+              <div className="sticky top-0 z-30 -mx-3 -mt-px bg-slate-50 sm:-mx-4">
+                <div className="px-3 pt-2 sm:px-4">
+                  <ProductEditorTabs activeTab={activeSection} onChange={setActiveSection} errorTabs={getErrorTabs(errors)} />
+                </div>
               </div>
             }
           >
@@ -422,6 +448,10 @@ export function SellerProductEditor({
                     />
                   </FormField>
 
+                  <FormField label="Status Aktif" hint="Produk aktif tampil dan dapat dibeli oleh pelanggan.">
+                    <InlineActiveSwitch checked={values.isActive} onChange={(checked) => setField("isActive", checked)} />
+                  </FormField>
+
                   {isAdmin ? (
                     <FormField label="Status publikasi" hint="Draft belum tampil, Published tampil jika aktif, Archived disimpan sebagai arsip.">
                       <SearchableSelect
@@ -436,11 +466,7 @@ export function SellerProductEditor({
                         placeholder="Pilih status"
                       />
                     </FormField>
-                  ) : (
-                    <div className="flex items-center bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                      Status publikasi ditentukan Admin. Seller hanya mengatur Active / Non-Active.
-                    </div>
-                  )}
+                  ) : null}
 
                   {selectedCategory ? (
                     <div className="md:col-span-2 rounded-lg bg-slate-50 px-3 py-2.5">
@@ -463,28 +489,16 @@ export function SellerProductEditor({
                       <FormField label="Harga" error={errors.price} required>
                         <input type="number" min="0" value={values.price} onChange={(event) => setField("price", event.target.value)} className={inputClassName} placeholder="0" />
                       </FormField>
-                      <FormField label="Stok" error={errors.stock} required>
-                        <input type="number" min="0" value={values.stock} onChange={(event) => setField("stock", event.target.value)} className={inputClassName} placeholder="0" />
+                      <FormField label="Stok">
+                        <input type="number" min="0" value={values.stock} disabled className={`${inputClassName} cursor-not-allowed bg-slate-100 text-slate-500`} placeholder="0" />
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">Stok hanya dapat dilihat. Restock dan penyesuaian dilakukan di menu Stok (Persediaan).</p>
                       </FormField>
                     </div>
                   ) : (
                     <div className="md:col-span-2 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600">
-                      Harga dan stok setiap variant diatur pada tab Stok.
+                      Harga diatur pada tab Stok. Saldo stok hanya dapat dilihat dan dikelola melalui menu Stok (Persediaan).
                     </div>
                   )}
-                </div>
-              </section>
-
-              <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-slate-400">task_alt</span>
-                    <div>
-                      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Status Aktif</h2>
-                      <p className="mt-0.5 text-xs text-slate-500">Produk aktif tampil dan dapat dibeli oleh pelanggan.</p>
-                    </div>
-                  </div>
-                  <InlineActiveSwitch checked={values.isActive} onChange={(checked) => setField("isActive", checked)} showLabel={false} />
                 </div>
               </section>
             </div>
@@ -527,7 +541,7 @@ export function SellerProductEditor({
                   <div>
                     <span className="material-symbols-outlined text-3xl text-slate-400">inventory_2</span>
                     <p className="mt-2 text-sm font-extrabold text-slate-700">Produk tanpa variant</p>
-                    <p className="mt-1 text-xs text-slate-500">SKU dan harga dapat diatur pada tab Stok. Saldo stok dikelola melalui menu Persediaan.</p>
+                    <p className="mt-1 text-xs text-slate-500">Harga dan batas stok diisi pada tab Stok. Saldo stok dikelola melalui menu Persediaan.</p>
                   </div>
                 </div>
               )}
@@ -552,15 +566,17 @@ export function SellerProductEditor({
           ) : null}
 
           {activeSection === "stock" ? (
-            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} poStock={values.poStock} maxOrderQty={values.maxOrderQty} minStock={values.minStock} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} />
+            <ProductStockFields mode={values.mode} sku={values.sku} price={values.price} stock={values.stock} minStock={values.minStock} maxOrderQty={values.maxOrderQty} variants={values.variants} errors={errors} onSimpleChange={setField} onVariantsChange={(variants) => setField("variants", variants)} onOpenStock={openStock} />
           ) : null}
 
-          {activeSection === "costing" ? (
-            product ? (
-              <ProductCostingFields productId={product.id} />
-            ) : (
-              <ProductCostingFields productId={null} value={values.costing} onChange={(costing) => setField("costing", costing)} />
-            )
+          {activeSection === "costing" || product ? (
+            <div className={activeSection === "costing" ? "" : "hidden"}>
+              {product ? (
+                <ProductCostingFields ref={costingRef} productId={product.id} onDirtyChange={setCostingDirty} />
+              ) : (
+                <ProductCostingFields productId={null} value={values.costing} onChange={(costing) => setField("costing", costing)} />
+              )}
+            </div>
           ) : null}
 
         </div>
@@ -571,7 +587,7 @@ export function SellerProductEditor({
           {product && onDelete ? (
             <button type="button" onClick={() => onDelete(product)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600 hover:bg-red-100">Hapus</button>
           ) : null}
-          <button type="submit" disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !dirty} className={`h-10 px-5 text-sm font-extrabold ${dirty ? `${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white` : "bg-slate-100 text-slate-400"}`}>
+          <button type="submit" disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !formDirty} className={`h-10 px-5 text-sm font-extrabold ${formDirty ? `${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white` : "bg-slate-100 text-slate-400"}`}>
             {product ? "Simpan Perubahan" : "Tambah Produk"}
           </button>
         </div>

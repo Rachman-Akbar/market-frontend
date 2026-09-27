@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 const DEFAULT_WIDTH = 160;
 const MIN_WIDTH = 88;
 const MAX_WIDTH = 720;
+const EMPTY_ORDER = [];
 
 function clamp(value, min = MIN_WIDTH, max = MAX_WIDTH) {
   return Math.min(max, Math.max(min, Math.round(Number(value) || DEFAULT_WIDTH)));
@@ -41,7 +42,7 @@ function normalizeColumns(columns) {
     }));
 }
 
-export function useTableColumnLayout({ storageKey, columns }) {
+export function useTableColumnLayout({ storageKey, columns, preferredOrder = EMPTY_ORDER }) {
   const normalizedColumns = useMemo(() => normalizeColumns(columns), [columns]);
   const columnMap = useMemo(() => new Map(normalizedColumns.map((column) => [column.key, column])), [normalizedColumns]);
   const validKeys = useMemo(() => normalizedColumns.map((column) => column.key), [normalizedColumns]);
@@ -50,7 +51,8 @@ export function useTableColumnLayout({ storageKey, columns }) {
   if (!initialRef.current) {
     const saved = safeRead(storageKey) || {};
     const savedOrder = Array.isArray(saved.order) ? saved.order.map(String) : [];
-    const order = [...savedOrder.filter((key) => validKeys.includes(key)), ...validKeys.filter((key) => !savedOrder.includes(key))];
+    const preferred = Array.isArray(preferredOrder) && preferredOrder.length ? preferredOrder.map(String) : savedOrder;
+    const order = [...preferred.filter((key) => validKeys.includes(key)), ...validKeys.filter((key) => !preferred.includes(key))];
     const widths = {};
     normalizedColumns.forEach((column) => {
       widths[column.key] = clamp(saved.widths?.[column.key] ?? column.width, column.minWidth || MIN_WIDTH, column.maxWidth || MAX_WIDTH);
@@ -102,6 +104,12 @@ export function useTableColumnLayout({ storageKey, columns }) {
       return next;
     });
   }, []);
+
+  const applyOrder = useCallback((nextOrder = []) => {
+    const requested = [...new Set((Array.isArray(nextOrder) ? nextOrder : []).map(String))].filter((key) => validKeys.includes(key));
+    if (!requested.length) return;
+    setOrder((current) => (current.length === requested.length && current.every((key, index) => key === requested[index]) ? current : requested));
+  }, [validKeys]);
 
   const getHeaderProps = useCallback((key) => ({
     draggable: true,
@@ -197,6 +205,7 @@ export function useTableColumnLayout({ storageKey, columns }) {
     startResize,
     resetWidth,
     resetLayout,
+    applyOrder,
     totalWidth,
   };
 }

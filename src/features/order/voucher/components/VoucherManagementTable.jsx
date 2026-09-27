@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
-import { BannedStamp, isInactiveRow } from "@/shared/components/feedback/BannedStamp";
+import { isInactiveRow } from "@/shared/components/feedback/inactiveRow";
 import { TableSelectionCell, TableSelectionHeader } from "@/shared/components/crud/TableSelectionCell";
 import { TableHeaderFilter } from "@/shared/components/crud/TableHeaderFilter";
 import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
@@ -124,7 +124,6 @@ export const VoucherManagementTable = memo(function VoucherManagementTable({
               const inactive = isInactiveRow(row);
               return (
                 <tr key={row.id} onClick={() => onEdit(row)} className={`relative ${inactive ? "bg-slate-50 opacity-60 saturate-50" : ""} cursor-pointer hover:bg-slate-50`} title="Klik untuk edit">
-                  {inactive ? <BannedStamp overlay /> : null}
                   <TableSelectionCell enabled={selectionEnabled} checked={selectedIds.has(String(row.id))} onToggle={() => onToggleRow?.(row.id)} />
                   {layout.orderedColumns.map((column) => renderCell(column, row))}
                 </tr>

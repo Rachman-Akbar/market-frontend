@@ -152,7 +152,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
               activeSort && sortDirection === "desc" && "bg-emerald-50 text-emerald-800",
             )}
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
+            <span className={cn("material-symbols-outlined text-[18px]", activeSort && sortDirection === "desc" && "font-fill")}>arrow_downward</span>
             Urutkan terbesar
           </button>
           <button
@@ -163,7 +163,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
               activeSort && sortDirection === "asc" && "bg-emerald-50 text-emerald-800",
             )}
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
+            <span className={cn("material-symbols-outlined text-[18px]", activeSort && sortDirection === "asc" && "font-fill")}>arrow_upward</span>
             Urutkan terkecil
           </button>
         </div>
@@ -310,7 +310,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
         aria-expanded={open}
       >
         <span className="min-w-0 flex-1 truncate">{label}</span>
-        {activeSort ? <span className="material-symbols-outlined font-fill text-[16px]">{sortDirection === "asc" ? "arrow_upward" : "arrow_downward"}</span> : null}
+        {activeSort ? <span className={cn("material-symbols-outlined text-[16px]", sortDirection === "asc" && "rotate-180")}>arrow_drop_down</span> : null}
         {activeFilter && !activeSort ? <span className="material-symbols-outlined font-fill text-[16px]">filter_alt</span> : null}
       </button>
       <button

@@ -12,20 +12,30 @@ export const InteractiveTableHeader = memo(function InteractiveTableHeader({
   dropTarget = false,
   className,
   align = "left",
+  onClick,
+  onKeyDown,
+  tabIndex,
+  title = "Tarik header untuk mengubah urutan kolom. Tarik garis kanan untuk mengubah lebar.",
 }) {
   return (
     <th
       {...headerProps}
       style={style}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      tabIndex={tabIndex}
+      role={onClick ? "button" : undefined}
+      aria-label={onClick ? `${typeof children === "string" ? children : columnKey}. Klik untuk membuka atau menutup semua baris` : undefined}
       className={cn(
         "group relative select-none whitespace-nowrap bg-slate-100 px-4 py-3 font-extrabold",
         align === "right" && "text-right",
         align === "center" && "text-center",
+        onClick && "cursor-pointer",
         dragging && "opacity-45",
         dropTarget && !dragging && "bg-emerald-50",
         className,
       )}
-      title="Tarik header untuk mengubah urutan kolom. Tarik garis kanan untuk mengubah lebar."
+      title={title}
     >
       <div className={cn("flex min-w-0 items-center gap-1.5", align === "right" && "justify-end", align === "center" && "justify-center")}>
         <div className="min-w-0 flex-1 truncate">{children}</div>
@@ -34,6 +44,7 @@ export const InteractiveTableHeader = memo(function InteractiveTableHeader({
         type="button"
         aria-label={`Ubah lebar kolom ${columnKey}`}
         onPointerDown={(event) => onResizeStart?.(event, columnKey)}
+        onClick={(event) => event.stopPropagation()}
         onDoubleClick={(event) => {
           event.preventDefault();
           event.stopPropagation();

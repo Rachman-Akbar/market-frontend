@@ -1,4 +1,5 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect, useDeferredValue, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AdminShell } from "@/features/admin/dashboard/components/AdminShell";
 import { useAdminCategoryList } from "@/features/admin/category/services/adminCategoryService";
 import { getAdminProductError, useAdminProducts, useAdminProductStores, useCreateAdminProduct, useDeleteAdminProduct, useUpdateAdminProduct } from "@/features/admin/product/services/adminProductService";
@@ -8,6 +9,7 @@ import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components
 import { AsyncState } from "@/shared/components/feedback";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
+import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
@@ -21,9 +23,13 @@ export default function AdminProductsPage() {
   const [sort, setSort] = useState({ by: "created_at", direction: "desc" });
   const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [initialSection, setInitialSection] = useState("general");
   const deferredQuery = useDeferredValue(query.trim());
   const editor = useEntityEditor();
+  const tabs = usePanelTabs();
   const notifications = useNotificationCenter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const productsQuery = useAdminProducts({
     per_page: PER_PAGE,
     sort_by: sort.by,
@@ -44,6 +50,7 @@ export default function AdminProductsPage() {
   const categoriesQuery = useAdminCategoryList();
   const deleteMutation = useDeleteAdminProduct();
   const quickUpdateMutation = useUpdateAdminProduct();
+  const isInitialLoading = productsQuery.isLoading && !productsQuery.data;
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
   const rows = productsQuery.data?.rows || [];
   const displayRows = useMemo(() => {
@@ -81,11 +88,26 @@ export default function AdminProductsPage() {
       await deleteMutation.mutateAsync(deleteTarget.id);
       editor.markListDirty();
       setDeleteTarget(null);
+      editor.close();
       notifications.push({ type: "success", title: "Product", message: "Product berhasil dihapus." });
     } catch (error) {
       notifications.push({ type: "error", title: "Product", message: getAdminProductError(error) });
     }
   };
+
+  const pendingEntity = location.state?.editProduct || null;
+  useEffect(() => {
+    if (!pendingEntity) return;
+    if (tabs?.activeParentId !== "/admin/products") return;
+    editor.edit(pendingEntity);
+    setInitialSection(location.state?.initialSection || "general");
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEntity, tabs?.activeParentId]);
+
+  useEffect(() => {
+    if (!editor.open) setInitialSection("general");
+  }, [editor.open]);
 
   return (
     <AdminShell title="Manajemen Product" subtitle="Kelola product seluruh toko, import/export Excel, gambar, filter header, dan active/non-active.">
@@ -112,14 +134,16 @@ export default function AdminProductsPage() {
             onShowAllColumns={columnVisibility.showAll}
             onResetColumns={columnVisibility.reset}
             onApplyDefaultColumns={columnVisibility.applyAsDefault}
+            onMoveColumn={columnVisibility.moveColumn}
           />
           )}
         >
-          <AsyncState loading={productsQuery.isLoading} error={productsQuery.error ? getAdminProductError(productsQuery.error) : ""} />
-          {!productsQuery.isLoading ? (
+          <AsyncState loading={isInitialLoading} error={productsQuery.error ? getAdminProductError(productsQuery.error) : ""} />
+          {!isInitialLoading ? (
             <>
               <SellerProductTable
                 rows={displayRows}
+                isLoading={productsQuery.isFetching && !productsQuery.isFetchingNextPage}
                 onEdit={editor.edit}
                 onToggleActive={toggleActive}
                 onStatusChange={changeStatus}
@@ -140,6 +164,7 @@ export default function AdminProductsPage() {
                 onClearAllFilters={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
                 onResetSort={() => setSort({ by: "created_at", direction: "desc" })}
                 storeOptions={[]}
+                columnOrder={columnVisibility.visibleKeys}
               />
               <InfiniteScrollSentinel hasNextPage={productsQuery.hasNextPage} isFetchingNextPage={productsQuery.isFetchingNextPage} onLoadMore={() => productsQuery.fetchNextPage()} />
             </>
@@ -152,6 +177,8 @@ export default function AdminProductsPage() {
       <SellerProductEditor
         open={editor.open}
         product={editor.entity}
+        initialSection={initialSection}
+        suppressEscape={Boolean(deleteTarget)}
         portal="admin"
         stores={storesQuery.data || []}
         categories={categoriesQuery.data || []}
@@ -159,7 +186,7 @@ export default function AdminProductsPage() {
         useUpdateMutation={useUpdateAdminProduct}
         getError={getAdminProductError}
         onClose={editor.close}
-        onDelete={(product) => { setDeleteTarget(product); editor.close(); }}
+        onDelete={(product) => { setDeleteTarget(product); }}
         onSaved={() => {
           editor.markListDirty();
           notifications.push({ type: "success", title: "Product", message: editor.entity ? "Product berhasil diperbarui." : "Product berhasil ditambahkan." });

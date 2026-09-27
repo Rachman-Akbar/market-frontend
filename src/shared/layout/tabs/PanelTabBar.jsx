@@ -150,7 +150,7 @@ export const PanelTabBar = memo(function PanelTabBar() {
         <TabDropdown tabs={context.parentTabs} activeId={context.activeParentId} onActivate={context.activateParent} onClose={context.closeParent} onCloseAll={context.closeAllParents} closeAllLabel="Tutup Semua Menu" label="Semua menu terbuka" accent="parent" />
       </div>
       {context.tabs.length ? (
-        <div className="flex min-w-0 items-center gap-1 bg-slate-50 px-1 py-1.5">
+        <div className="flex min-w-0 items-center gap-1 bg-slate-50 px-1 pt-0.5">
           <ScrollableTabs tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} variant="child" />
           <TabDropdown tabs={context.tabs} activeId={context.activeTabId} onActivate={context.activateTab} onClose={context.closeTab} onCloseAll={context.closeAllChildren} closeAllLabel="Tutup Semua Halaman" label="Semua halaman data" accent="child" />
         </div>

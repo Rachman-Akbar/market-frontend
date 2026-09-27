@@ -1,6 +1,8 @@
 import { useDeferredValue, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { advancedError, useAdjustRawMaterial, useAdjustStock, useDeleteRawMaterial, useManageableProducts, useProductCosting, useRawMaterialCostImpacts, useRawMaterialMovements, useRawMaterials, useSaveRawMaterial, useStockMovements } from "@/features/advanced/services/advancedMarketplaceService";
+import { normalizeSellerProduct } from "@/features/seller/product/services/sellerProductService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import StockChartTab from "@/features/advanced/components/StockChartTab";
@@ -27,8 +29,10 @@ function money(value) {
 
 export default function StockPage() {
   const { activeRole } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState("product");
-  const [query, setQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
   const deferred = useDeferredValue(query.trim());
   const [productAdjust, setProductAdjust] = useState(null);
   const [materialForm, setMaterialForm] = useState(null);
@@ -103,7 +107,19 @@ export default function StockPage() {
     return [...map.values()];
   }, [products.data?.rows]);
 
-  const variants = useMemo(() => (products.data?.rows || []).flatMap((product) => (product.variants || []).map((variant) => ({ ...variant, product_name: product.name, product_id: product.id }))), [products.data?.rows]);
+  const variants = useMemo(() => {
+    const rows = (products.data?.rows || []).flatMap((product) => (product.variants || []).map((variant) => ({ ...variant, product_name: product.name, product_id: product.id })));
+    if (!deferred) return rows;
+    const needle = deferred.toLowerCase();
+    return rows.filter((row) => [row.product_name, row.name, row.sku].some((value) => String(value || "").toLowerCase().includes(needle)));
+  }, [deferred, products.data?.rows]);
+
+  const openProductDetail = (row) => {
+    const raw = (products.data?.rows || []).find((product) => Number(product.id) === Number(row.product_id));
+    if (!raw) return;
+    const href = activeRole === "admin" ? "/admin/products" : "/seller/products";
+    navigate(href, { state: { editProduct: normalizeSellerProduct(raw), initialSection: "stock" } });
+  };
   const productionMaterials = useMemo(() => productionCosting.data?.materials || [], [productionCosting.data?.materials]);
   const productionQuantity = Math.max(0, Number(delta || 0));
   const productionPreview = useMemo(() => productionMaterials.map((recipe) => {
@@ -114,6 +130,17 @@ export default function StockPage() {
 
   const productColumns = [
     { key: "product_name", label: "Produk" }, { key: "name", label: "Varian" }, { key: "sku", label: "SKU" }, { key: "stock", label: "Stok" },
+    {
+      key: "actions",
+      label: "Aksi",
+      filterable: false,
+      width: 96,
+      render: (row) => (
+        <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+          <button type="button" title="Stock / Restock" onClick={() => { setProductAdjust(row); setDelta(""); }} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"><span className="material-symbols-outlined text-[17px]">add_box</span></button>
+        </div>
+      ),
+    },
   ];
   const materialColumns = [
     { key: "code", label: "Kode", filterType: "text" },
@@ -244,7 +271,7 @@ export default function StockPage() {
       bulkActions={spreadsheetActions}
     >
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{tabs.map(([id, label]) => <button key={id} type="button" onClick={() => setTab(id)} className={`h-9 px-4 text-sm font-bold ${tab === id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{label}</button>)}</div>
-      {tab === "product" ? <DataGrid storageKey="inventory.product-stock" columns={productColumns} rows={variants} emptyText="Produk belum tersedia." onRowClick={(row) => { setProductAdjust(row); setDelta(""); }} /> : null}
+      {tab === "product" ? <DataGrid storageKey="inventory.product-stock" columns={productColumns} rows={variants} emptyText="Produk belum tersedia." onRowClick={openProductDetail} /> : null}
       {tab === "materials" ? <DataGrid storageKey="inventory.raw-materials" columns={materialColumns} rows={materialRows} emptyText="Bahan baku belum tersedia." onRowClick={(row) => (row.id ? setMaterialForm({ ...row }) : undefined)} selectionEnabled selectedIds={materialSelected} allSelected={materialAllSelected} onToggleRow={toggleMaterialRow} onToggleAll={toggleMaterialAll} /> : null}
       {tab === "grafik" ? <StockChartTab variants={variants} /> : null}
       {tab === "product-history" ? <DataGrid storageKey="inventory.product-history" columns={productHistoryColumns} rows={productMovements.data?.rows || []} emptyText="Riwayat stok produk belum tersedia." /> : null}

@@ -36,6 +36,7 @@ export function useInfiniteList({
   perPage,
   getNextPageParam,
   initialPage = 1,
+  placeholderData,
 }) {
   const page = Number(params?.page) || initialPage;
   const restParams = useMemo(() => {
@@ -60,6 +61,7 @@ export function useInfiniteList({
     enabled,
     staleTime,
     gcTime,
+    placeholderData,
   });
 
   const data = useMemo(() => {

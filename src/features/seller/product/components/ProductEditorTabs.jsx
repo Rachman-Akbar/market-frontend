@@ -12,7 +12,7 @@ export const ProductEditorTabs = memo(function ProductEditorTabs({ activeTab, on
   const errorSet = new Set(errorTabs);
 
   return (
-    <div className="overflow-x-auto bg-slate-100 px-4 pt-0.5 sm:px-5">
+    <div className="overflow-x-auto bg-slate-100">
       <div className="flex min-w-max items-end gap-0.5">
         {TABS.map((tab) => {
           const active = activeTab === tab.id;

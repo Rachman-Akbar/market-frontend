@@ -10,6 +10,10 @@ function getDefaultStorageKey(key) {
   return key ? `ziip:table-columns-default:${key}` : "";
 }
 
+function getKnownStorageKey(key) {
+  return key ? `ziip:table-columns-known:${key}` : "";
+}
+
 function readStored(storageKey) {
   if (!storageKey || typeof window === "undefined") return null;
   try {
@@ -52,11 +56,15 @@ function uniqueKeys(keys) {
 export function useColumnVisibility(columns = [], key = "") {
   const storageKey = getStorageKey(key);
   const defaultStorageKey = getDefaultStorageKey(key);
+  const knownStorageKey = getKnownStorageKey(key);
   const columnKeys = useMemo(() => columns.map((column) => column.key), [columns]);
+  const columnMap = useMemo(() => new Map(columns.map((column) => [column.key, column])), [columns]);
   const defaultKeys = useMemo(
     () => columns.filter((column) => column.defaultVisible !== false).map((column) => column.key),
     [columns],
   );
+
+  const [knownKeys, setKnownKeys] = useState(() => readStored(knownStorageKey) || []);
 
   const sanitize = useCallback((keys) => {
     const allowed = new Set(columnKeys);
@@ -101,6 +109,37 @@ export function useColumnVisibility(columns = [], key = "") {
     return () => window.removeEventListener(COLUMNS_CHANGED_EVENT, handler);
   }, [storageKey, sanitize]);
 
+  useEffect(() => {
+    if (!knownStorageKey || typeof window === "undefined") return;
+    persistStored(knownStorageKey, knownKeys);
+  }, [knownKeys, knownStorageKey]);
+
+  useEffect(() => {
+    if (!columnKeys.length) return;
+    const known = new Set(knownKeys);
+    const added = columnKeys.filter((columnKey) => !known.has(columnKey));
+    if (!added.length) return;
+    setKnownKeys(columnKeys);
+    setVisibleKeys((current) => {
+      const next = [...current];
+      added.forEach((columnKey) => {
+        if (columnMap.get(columnKey)?.defaultVisible === false) return;
+        if (next.includes(columnKey)) return;
+        const definitionIndex = columnKeys.indexOf(columnKey);
+        let insertAt = next.length;
+        for (let index = definitionIndex - 1; index >= 0; index -= 1) {
+          const position = next.indexOf(columnKeys[index]);
+          if (position >= 0) {
+            insertAt = position + 1;
+            break;
+          }
+        }
+        next.splice(insertAt, 0, columnKey);
+      });
+      return equalKeys(current, next) ? current : next;
+    });
+  }, [columnKeys, columnMap, knownKeys]);
+
   const toggleColumn = useCallback((columnKey) => {
     setVisibleKeys((current) => {
       if (current.includes(columnKey)) {
@@ -108,6 +147,24 @@ export function useColumnVisibility(columns = [], key = "") {
         return current.filter((keyValue) => keyValue !== columnKey);
       }
       return [...current, columnKey];
+    });
+  }, []);
+
+  const setColumnOrder = useCallback((nextKeys) => {
+    const sanitized = sanitize(Array.isArray(nextKeys) ? nextKeys : visibleKeys);
+    setVisibleKeys(sanitized);
+  }, [sanitize, visibleKeys]);
+
+  const moveColumn = useCallback((sourceKey, targetKey) => {
+    if (!sourceKey || !targetKey || sourceKey === targetKey) return;
+    setVisibleKeys((current) => {
+      const indexSource = current.indexOf(sourceKey);
+      const indexTarget = current.indexOf(targetKey);
+      if (indexSource < 0 || indexTarget < 0) return current;
+      const next = [...current];
+      next.splice(indexSource, 1);
+      next.splice(indexTarget, 0, sourceKey);
+      return next;
     });
   }, []);
 
@@ -131,5 +188,10 @@ export function useColumnVisibility(columns = [], key = "") {
 
   const visibleSet = useMemo(() => new Set(visibleKeys), [visibleKeys]);
 
-  return { visibleKeys, visibleSet, toggleColumn, showAll, applyAsDefault, reset };
+  const orderedColumns = useMemo(
+    () => visibleKeys.map((key) => columnMap.get(key)).filter(Boolean),
+    [columnMap, visibleKeys],
+  );
+
+  return { visibleKeys, visibleSet, orderedColumns, toggleColumn, setColumnOrder, moveColumn, showAll, applyAsDefault, reset };
 }

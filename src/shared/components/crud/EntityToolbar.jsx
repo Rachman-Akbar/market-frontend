@@ -25,6 +25,7 @@ export const EntityToolbar = memo(function EntityToolbar({
   onShowAllColumns,
   onResetColumns,
   onApplyDefaultColumns,
+  onMoveColumn,
 }) {
   const [draft, setDraft] = useState(query || "");
   const [spinning, setSpinning] = useState(false);
@@ -82,6 +83,7 @@ export const EntityToolbar = memo(function EntityToolbar({
           onShowAll={onShowAllColumns}
           onReset={onResetColumns}
           onApplyDefault={onApplyDefaultColumns}
+          onMoveColumn={onMoveColumn}
           selectionEnabled={selectionEnabled}
           selectedCount={selectedCount}
           onToggleSelection={onToggleSelection}

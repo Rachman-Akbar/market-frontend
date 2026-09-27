@@ -1,69 +1,113 @@
 import { memo, useMemo } from "react";
-import { FormField, inputClassName } from "@/shared/components/form/FormField";
-import { InteractiveColGroup, InteractiveTableHeader } from "@/shared/components/table/InteractiveTableHeader";
-import { useTableColumnLayout } from "@/shared/hooks/useTableColumnLayout";
+import { inputClassName } from "@/shared/components/form/FormField";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("id-ID");
 }
 
-export const ProductStockFields = memo(function ProductStockFields({ mode, sku, price, stock, poStock, maxOrderQty, minStock, variants, errors, onSimpleChange, onVariantsChange }) {
+const STOCK_CELL_CLASS = "inline-flex items-center gap-1.5 rounded-lg py-1 pr-1.5 pl-2 font-extrabold text-emerald-700 ring-1 ring-inset ring-emerald-200 transition-colors hover:bg-emerald-50 hover:ring-emerald-300";
+
+export const ProductStockFields = memo(function ProductStockFields({
+  mode,
+  sku,
+  price,
+  stock,
+  minStock,
+  maxOrderQty,
+  variants,
+  errors,
+  onSimpleChange,
+  onVariantsChange,
+  onOpenStock,
+}) {
   const totals = useMemo(() => mode === "variant"
-    ? variants.reduce(
-        (total, variant) => ({
-          stock: total.stock + Number(variant.stock || 0),
-          poStock: total.poStock + Number(variant.poStock || 0),
-        }),
-        { stock: 0, poStock: 0 },
-      )
-    : { stock: Number(stock || 0), poStock: Number(poStock || 0) }, [mode, stock, poStock, variants]);
-  const variantColumns = useMemo(() => [
-    { key: "variant", label: "Variant", width: 240 },
-    { key: "sku", label: "SKU", width: 190 },
-    { key: "price", label: "Harga", width: 170 },
-    { key: "stock", label: "Stok", width: 130 },
-    { key: "minStock", label: "Minimal Stok", width: 150 },
-    { key: "maxOrderQty", label: "Batas Order", width: 150 },
-    { key: "poStock", label: "Stok PO (opsional)", width: 160 },
-  ], []);
-  const layout = useTableColumnLayout({ storageKey: "seller.product-editor.variant-stock", columns: variantColumns });
+    ? variants.reduce((total, variant) => ({ stock: total.stock + Number(variant.stock || 0) }), { stock: 0 })
+    : { stock: Number(stock || 0) }, [mode, stock, variants]);
 
-  const updateVariant = (index, field, value) => {
-    onVariantsChange(variants.map((variant, variantIndex) => variantIndex === index ? { ...variant, [field]: value } : variant));
-  };
+  const updateSimple = (field, value) => onSimpleChange(field, value);
+  const updateVariant = (index, field, value) => onVariantsChange(variants.map((variant, variantIndex) => variantIndex === index ? { ...variant, [field]: value } : variant));
 
-  const renderCell = (column, variant, index) => {
-    if (column.key === "variant") return <td key={column.key} className="px-4 py-3"><p className="truncate font-bold text-slate-900">{toTitleCase(variant.name) || `Variant ${index + 1}`}</p>{index === 0 ? <span className="mt-1 inline-flex rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700">Default</span> : null}</td>;
-    if (column.key === "sku") return <td key={column.key} className="truncate px-4 py-3 font-mono text-xs text-slate-600">{variant.sku || "-"}</td>;
-    if (column.key === "price") return <td key={column.key} className="px-4 py-3"><input type="number" min="0" value={variant.price} onChange={(event) => updateVariant(index, "price", event.target.value)} className={inputClassName} aria-label={`Harga ${variant.name || `variant ${index + 1}`}`} /></td>;
-    if (column.key === "stock") return <td key={column.key} className="px-4 py-3"><input type="number" min="0" value={variant.stock} disabled className={`${inputClassName} cursor-not-allowed bg-slate-100 text-slate-500`} aria-label={`Stok ${variant.name || `variant ${index + 1}`}`} /><p className="mt-0.5 text-[10px] font-semibold text-slate-400">Saldo riil dikelola di Persediaan</p></td>;
-    if (column.key === "minStock") return <td key={column.key} className="px-4 py-3"><input type="number" min="0" value={variant.minStock || 0} onChange={(event) => updateVariant(index, "minStock", event.target.value)} className={inputClassName} title="Batas stok minimum untuk pengingat restock. Ditandai stok rendah saat stok ≤ nilai ini." aria-label={`Minimal stok ${variant.name || `variant ${index + 1}`}`} /><p className="mt-0.5 text-[10px] font-semibold text-slate-400">Pengingat stok rendah</p></td>;
-    if (column.key === "maxOrderQty") return <td key={column.key} className="px-4 py-3"><input type="number" min="1" value={variant.maxOrderQty || 999999} onChange={(event) => updateVariant(index, "maxOrderQty", event.target.value)} className={inputClassName} title="Maksimal jumlah item yang boleh di-order dalam satu transaksi" aria-label={`Batas order ${variant.name || `variant ${index + 1}`}`} /><p className="mt-0.5 text-[10px] font-semibold text-slate-400">Maks per transaksi; &gt; 1 berarti bebas</p></td>;
-    return <td key={column.key} className="px-4 py-3"><input type="number" min="0" value={variant.poStock} onChange={(event) => updateVariant(index, "poStock", event.target.value)} className={inputClassName} title="Kuota stok untuk pesanan Pre-Order (PO)" aria-label={`Stok PO ${variant.name || `variant ${index + 1}`}`} /><p className="mt-0.5 text-[10px] font-semibold text-slate-400">Legacy; preorder kini otomatis & tanpa kuota</p></td>;
-  };
+  const stockCell = (row) => (
+    <button
+      type="button"
+      onClick={() => onOpenStock?.(row)}
+      title="Buka Stock / Restock di menu Persediaan"
+      className={STOCK_CELL_CLASS}
+    >
+      {formatNumber(row.stock)}
+      <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+    </button>
+  );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400">payments</span>
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Pengaturan Harga & Stok</h2>
+            <span className="material-symbols-outlined text-slate-400">warehouse</span>
+            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Stok</h2>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">Harga dapat diubah di sini. Stok marketplace (Stok) berubah melalui Persediaan agar histori dan bahan baku sinkron. Preorder dibuat otomatis saat stok habis tanpa kuota; gunakan Batas Order untuk mencegah jumlah pesanan terlalu besar.</p>
+          <p className="mt-0.5 text-xs text-slate-500">Stok hanya sebagai informasi. Tekan angka stok untuk membuka Stock / Restock di menu Persediaan.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-white px-4 py-2 text-right ring-1 ring-inset ring-slate-200"><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Tersedia marketplace</p><p className="text-lg font-extrabold text-slate-900">{formatNumber(totals.stock)}</p></div>
-          <div className="rounded-lg bg-white px-4 py-2 text-right ring-1 ring-inset ring-slate-200"><p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Total stok</p><p className="text-lg font-extrabold text-slate-900">{formatNumber(totals.stock + totals.poStock)}</p></div>
+        <div className="rounded-lg bg-white px-4 py-2 text-right ring-1 ring-inset ring-slate-200">
+          <p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Tersedia marketplace</p>
+          <p className="text-lg font-extrabold text-slate-900">{formatNumber(totals.stock)}</p>
         </div>
       </div>
-      {mode === "simple" ? <div className="grid gap-4 md:grid-cols-3"><FormField label="SKU"><input value={sku} onChange={(event) => onSimpleChange("sku", event.target.value)} className={inputClassName} placeholder="Kosongkan untuk otomatis" /></FormField><FormField label="Harga" error={errors.price} required><input type="number" min="0" value={price} onChange={(event) => onSimpleChange("price", event.target.value)} className={inputClassName} /></FormField><FormField label="Stok"><input type="number" min="0" value={stock} disabled className={`${inputClassName} cursor-not-allowed bg-slate-100 text-slate-500`} /><p className="mt-1 text-[11px] font-semibold text-slate-500">Gunakan menu Persediaan → Stok Produk untuk Stock/Restock.</p></FormField><FormField label="Minimal stok landasan rendah" error={errors.minStock} hint="Produk ditandai stok rendah saat stok ≤ nilai ini sebagai peringatan restock. 0 = nonaktif." title="Batas stok minimum untuk pengingat restock"><input type="number" min="0" value={minStock} onChange={(event) => onSimpleChange("minStock", event.target.value)} className={inputClassName} /></FormField><FormField label="Batas item per pesanan" error={errors.maxOrderQty} hint="Maks item dalam satu transaksi. Kosongkan 999999 untuk bebas."><input type="number" min="1" value={maxOrderQty} onChange={(event) => onSimpleChange("maxOrderQty", event.target.value)} className={inputClassName} /></FormField><FormField label="Stok PO" hint="Legacy kuota preorder. Preorder kini otomatis tanpa kuota."><input type="number" min="0" value={poStock} onChange={(event) => onSimpleChange("poStock", event.target.value)} className={inputClassName} /></FormField></div> : (
-        <div className="overflow-hidden rounded-xl border border-slate-200">
-          <div className="overflow-x-auto"><table className="table-fixed text-left text-sm" style={{ width: Math.max(layout.totalWidth, 820), minWidth: "100%" }}><InteractiveColGroup columns={layout.orderedColumns} getColumnStyle={layout.getColumnStyle} /><thead className="bg-slate-100 text-xs font-extrabold text-slate-600"><tr>{layout.orderedColumns.map((column) => <InteractiveTableHeader key={column.key} columnKey={column.key} headerProps={layout.getHeaderProps(column.key)} style={layout.getColumnStyle(column.key)} onResizeStart={layout.startResize} onResetWidth={layout.resetWidth} dragging={layout.dragKey === column.key} dropTarget={layout.dropKey === column.key}>{column.label}</InteractiveTableHeader>)}</tr></thead><tbody className="divide-y divide-slate-100 bg-white">{variants.map((variant, index) => <tr key={variant.id || variant.clientId || `stock-${index}`}>{layout.orderedColumns.map((column) => renderCell(column, variant, index))}</tr>)}</tbody></table></div>
-          {errors.variantStock ? <p className="border-t border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{errors.variantStock}</p> : null}
+
+      <div className="overflow-hidden rounded-xl border border-slate-200">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-100 text-xs font-extrabold text-slate-600">
+              <tr>
+                <th className="px-4 py-3">Varian</th>
+                <th className="px-4 py-3">SKU</th>
+                <th className="px-4 py-3">Harga</th>
+                <th className="px-4 py-3">Stok</th>
+                <th className="px-4 py-3">Minimal Stok</th>
+                <th className="px-4 py-3">Batas Order</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {mode === "simple" ? (
+                <tr className="hover:bg-slate-50/60">
+                  <td className="px-4 py-3 font-bold text-slate-900">Default</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{sku || "-"}</td>
+                  <td className="px-4 py-3">
+                    <input type="number" min="0" value={price} onChange={(event) => updateSimple("price", event.target.value)} className={inputClassName} aria-label="Harga" />
+                  </td>
+                  <td className="px-4 py-3">{stockCell({ name: "Default", sku, stock })}</td>
+                  <td className="px-4 py-3">
+                    <input type="number" min="0" value={minStock || 0} onChange={(event) => updateSimple("minStock", event.target.value)} className={inputClassName} title="Batas stok minimum untuk pengingat restock" aria-label="Minimal stok" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input type="number" min="1" value={maxOrderQty ?? 999999} onChange={(event) => updateSimple("maxOrderQty", event.target.value)} className={inputClassName} title="Maksimal jumlah item dalam satu transaksi" aria-label="Batas order" />
+                  </td>
+                </tr>
+              ) : (
+                variants.map((variant, index) => (
+                  <tr key={variant.id || variant.clientId || `stock-${index}`} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-3 font-bold text-slate-900">{toTitleCase(variant.name) || `Variant ${index + 1}`}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{variant.sku || "-"}</td>
+                    <td className="px-4 py-3">
+                      <input type="number" min="0" value={variant.price} onChange={(event) => updateVariant(index, "price", event.target.value)} className={inputClassName} aria-label={`Harga ${variant.name || `variant ${index + 1}`}`} />
+                    </td>
+                    <td className="px-4 py-3">{stockCell({ ...variant, name: variant.name || `Variant ${index + 1}` })}</td>
+                    <td className="px-4 py-3">
+                      <input type="number" min="0" value={variant.minStock || 0} onChange={(event) => updateVariant(index, "minStock", event.target.value)} className={inputClassName} title="Batas stok minimum untuk pengingat restock" aria-label={`Minimal stok ${variant.name || `variant ${index + 1}`}`} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input type="number" min="1" value={variant.maxOrderQty ?? 999999} onChange={(event) => updateVariant(index, "maxOrderQty", event.target.value)} className={inputClassName} title="Maksimal jumlah item dalam satu transaksi" aria-label={`Batas order ${variant.name || `variant ${index + 1}`}`} />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+        {errors.variantStock ? <p className="border-t border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{errors.variantStock}</p> : null}
+      </div>
     </div>
   );
 });

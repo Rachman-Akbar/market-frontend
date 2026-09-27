@@ -3,17 +3,22 @@ import { createPortal } from "react-dom";
 import { ActionIconButton } from "@/shared/components/crud/ActionIconButton";
 import { cn } from "@/shared/utils/utils";
 
-export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns = [], visibleKeys = [], onToggle, onShowAll, onReset, onApplyDefault, selectionEnabled = false, selectedCount = 0, onToggleSelection }) {
+export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns = [], visibleKeys = [], onToggle, onShowAll, onReset, onApplyDefault, onMoveColumn, selectionEnabled = false, selectedCount = 0, onToggleSelection }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [dragKey, setDragKey] = useState("");
+  const [dropKey, setDropKey] = useState("");
   const rootRef = useRef(null);
   const menuRef = useRef(null);
   const visibleSet = new Set(visibleKeys);
   const selectableColumns = columns;
   const hasColumns = selectableColumns.length > 0;
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredColumns = normalizedQuery ? selectableColumns.filter((column) => String(column.label).toLowerCase().includes(normalizedQuery)) : selectableColumns;
+  const orderedColumns = [...visibleKeys, ...columns.map((column) => column.key).filter((key) => !visibleSet.has(key))]
+    .map((key) => columns.find((column) => column.key === key))
+    .filter(Boolean);
+  const filteredColumns = normalizedQuery ? orderedColumns.filter((column) => String(column.label).toLowerCase().includes(normalizedQuery)) : orderedColumns;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -35,10 +40,16 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
       if (rootRef.current?.contains(event.target)) return;
       if (menuRef.current?.contains(event.target)) return;
       setOpen(false);
+      setDragKey("");
+      setDropKey("");
     };
 
     const escape = (event) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        setDragKey("");
+        setDropKey("");
+      }
     };
 
     updatePosition();
@@ -108,20 +119,63 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
                 </label>
               </div>
               <div className="max-h-80 overflow-y-auto p-2">
-                {filteredColumns.length ? filteredColumns.map((column) => (
-                  <label key={column.key} className="flex cursor-pointer items-center gap-3 px-2 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                    <input
-                      type="checkbox"
-                      checked={visibleSet.has(column.key)}
-                      onChange={() => onToggle?.(column.key)}
-                      className="h-4 w-4 accent-emerald-600"
-                    />
-                    <span className="min-w-0 flex-1 truncate">{column.label}</span>
-                  </label>
-                )) : (
+                {filteredColumns.length ? filteredColumns.map((column) => {
+                  const dragging = dragKey === column.key;
+                  const dropTarget = dropKey === column.key && !dragging;
+                  return (
+                    <div
+                      key={column.key}
+                      draggable={Boolean(onMoveColumn)}
+                      onDragStart={(event) => {
+                        if (!onMoveColumn) return;
+                        setDragKey(column.key);
+                        setDropKey(column.key);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", column.key);
+                      }}
+                      onDragOver={(event) => {
+                        if (!onMoveColumn) return;
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                        setDropKey(column.key);
+                      }}
+                      onDrop={(event) => {
+                        if (!onMoveColumn) return;
+                        event.preventDefault();
+                        const source = event.dataTransfer.getData("text/plain") || dragKey;
+                        onMoveColumn(source, column.key);
+                        setDragKey("");
+                        setDropKey("");
+                      }}
+                      onDragEnd={() => {
+                        setDragKey("");
+                        setDropKey("");
+                      }}
+                      title={onMoveColumn ? "Seret untuk mengubah urutan kolom" : undefined}
+                      className={cn(
+                        "flex select-none items-center gap-2 px-2 py-2",
+                        onMoveColumn && "cursor-grab active:cursor-grabbing",
+                        dragging && "opacity-45",
+                        dropTarget && "bg-emerald-50",
+                        !dragging && !dropTarget && "hover:bg-slate-50",
+                      )}
+                    >
+                      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-sm text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={visibleSet.has(column.key)}
+                          onChange={() => onToggle?.(column.key)}
+                          className="h-4 w-4 accent-emerald-600"
+                        />
+                        <span className="min-w-0 flex-1 truncate">{column.label}</span>
+                      </label>
+                    </div>
+                  );
+                }) : (
                   <p className="px-2 py-6 text-center text-xs font-semibold text-slate-400">Kolom tidak ditemukan.</p>
                 )}
               </div>
+              {onMoveColumn ? <p className="border-t border-slate-100 px-3 py-2 text-[11px] font-semibold text-slate-500">Seret daftar untuk mengatur urutan kolom tabel dari kiri ke kanan.</p> : null}
               {onApplyDefault ? (
                 <div className="border-t border-slate-100 p-2">
                   <button

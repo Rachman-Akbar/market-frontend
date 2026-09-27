@@ -34,11 +34,11 @@ const SOFT_ICON_TONES = {
   indigo: "bg-indigo-100 text-indigo-700",
 };
 
-export function OrderFormLayout({ aside, children }) {
+export function OrderFormLayout({ aside, children, compact = false }) {
   return (
     <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start">
       <div className="w-full min-w-0 flex-1">{children}</div>
-      <aside className="hidden w-40 shrink-0 flex-col gap-3 lg:sticky lg:top-4 lg:flex">{aside}</aside>
+      <aside className={`hidden shrink-0 flex-col lg:sticky lg:top-4 lg:flex ${compact ? "w-28 gap-2" : "w-40 gap-3"}`}>{aside}</aside>
     </div>
   );
 }

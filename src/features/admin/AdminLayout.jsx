@@ -100,7 +100,7 @@ function AdminLayoutContent() {
               modeHeader={<AdminModeSwitchButton />}
             />
             <PanelTabBar />
-            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pt-0.5 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" /></main>
+            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" /></main>
           </div>
         </div>
       </div>
