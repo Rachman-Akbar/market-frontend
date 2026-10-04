@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { FormField, inputClassName, textAreaClassName } from "@/shared/components/form/FormField";
 import { required, validateFields } from "@/core/utils/formValidation";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
@@ -96,7 +96,6 @@ export function ScheduleForm({ open, entity, defaultValues = null, extraCreatePa
     <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Jadwal" : "Jadwal Baru"} size="max-w-3xl">
       <form onSubmit={submit}>
         <FormEditorLayout
-          contentClassName="max-w-3xl"
           actions={(
             <FormActionDock
               tone="emerald"
@@ -158,7 +157,7 @@ export function ScheduleForm({ open, entity, defaultValues = null, extraCreatePa
               </FormField>
             </div>
 
-            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+            <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
               <span className="text-sm font-bold text-slate-700">Sepanjang hari</span>
               <input
                 type="checkbox"
@@ -189,7 +188,7 @@ export function ScheduleForm({ open, entity, defaultValues = null, extraCreatePa
 
             <div>
               <span className="mb-1.5 block text-xs font-extrabold text-slate-700">Warna khusus</span>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-[5px]">
                 {["", ...TYPE_OPTIONS.map((option) => option.color)].map((color) => (
                   <button
                     key={color || "default"}
@@ -219,23 +218,14 @@ export function ScheduleForm({ open, entity, defaultValues = null, extraCreatePa
           </div>
         </FormEditorLayout>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">
-            Batal
-          </button>
-          {entity && onDelete ? (
-            <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">
-              Hapus
-            </button>
-          ) : null}
-          <button
-            type="submit"
-            disabled={saveDisabled}
-            className={cn("h-10 px-4 text-sm font-extrabold", dirty ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400")}
-          >
-            {entity ? "Simpan" : "Buat Jadwal"}
-          </button>
-        </div>
+        <FormEditorFooter
+          onCancel={onClose}
+          submitLabel={entity ? "Simpan" : "Buat Jadwal"}
+          submitIcon="save"
+          disabled={saveDisabled}
+          tone="emerald"
+          onDelete={entity && onDelete ? () => onDelete(entity) : undefined}
+        />
       </form>
     </CrudDialog>
   );

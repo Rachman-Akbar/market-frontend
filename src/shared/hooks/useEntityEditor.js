@@ -7,11 +7,11 @@ export function useEntityEditor(options = {}) {
 
   const create = useCallback(() => {
     if (tabs) {
-      tabs.openCreateTab({ label: options.createLabel });
+      tabs.openCreateTab();
       return;
     }
     setLocalState({ open: true, entity: null });
-  }, [options.createLabel, tabs]);
+  }, [tabs]);
 
   const edit = useCallback((entity) => {
     if (tabs) {
@@ -31,6 +31,7 @@ export function useEntityEditor(options = {}) {
 
   const completeSave = useCallback(() => {
     if (tabs?.activeTab && (tabs.activeTab.type === "create" || tabs.activeTab.type === "edit")) {
+      tabs.markTabClean?.(tabs.activeTab.id);
       tabs.closeActiveTab();
       return;
     }

@@ -1,32 +1,15 @@
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
-import { Button } from "@/shared/components/ui/Button";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 
-export function FormModal({ open, title, subtitle, children, onClose, onSubmit, busy, submitLabel = "Simpan", dangerAction, tone = "emerald", saveIcon = "save", extraActions = [] }) {
+export function FormModal({ open, title, subtitle, children, onClose, onSubmit, busy, submitLabel = "Simpan", onDelete, deleteLabel = "Hapus", tone = "emerald", saveIcon = "save", extraActions = [] }) {
   return (
     <CrudDialog presentation="page" open={open} title={title} subtitle={subtitle} onClose={onClose}>
-      <form onSubmit={onSubmit} className="border border-slate-200 bg-white">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <div>
-            <h2 className="text-base font-extrabold text-slate-950">{title}</h2>
-            {subtitle ? <p className="mt-1 text-xs text-slate-500">{subtitle}</p> : null}
-          </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center text-slate-500 hover:bg-slate-200" aria-label="Tutup halaman data">
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-        </div>
+      <form onSubmit={onSubmit}>
         <FormEditorLayout
-          asCard={false}
-          actions={<FormActionDock tone={tone} save={{ icon: saveIcon, label: submitLabel }} disabled={busy} onDelete={dangerAction ? () => dangerAction.props.onClick?.() : undefined} extraActions={extraActions} />}
+          actions={<FormActionDock tone={tone} save={{ icon: saveIcon, label: submitLabel }} disabled={busy} onDelete={onDelete} deleteLabel={deleteLabel} extraActions={extraActions} />}
         >
           <div className="grid gap-4">{children}</div>
         </FormEditorLayout>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:hidden">
-          <div>{dangerAction}</div>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
-            <Button type="submit" disabled={busy}>{submitLabel}</Button>
-          </div>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel={submitLabel} submitIcon={saveIcon} disabled={busy} tone={tone} onDelete={onDelete} deleteLabel={deleteLabel} />
       </form>
     </CrudDialog>
   );

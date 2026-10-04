@@ -5,9 +5,10 @@ import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { useSellerProducts } from "@/features/seller/product/services/sellerProductService";
 import { createManualOrder, getManualOrderError } from "@/features/seller/order/services/manualOrderService";
 import { useCustomers } from "@/features/advanced/services/advancedMarketplaceService";
-import { formatPrice } from "@/shared/utils/utils";
-import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { cn, formatPrice } from "@/shared/utils/utils";
+import { inputClassName } from "@/shared/components/form/FormField";
+import { FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
+import { toastError } from "@/shared/utils/userFeedback";
 
 const COURIER_OPTIONS = [
   { value: "ambil_sendiri", label: "Ambil Sendiri" },
@@ -52,6 +53,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
   const [customerEmail, setCustomerEmail] = useState("");
   const [address, setAddress] = useState("");
   const [guestCustomer, setGuestCustomer] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
   const [courier, setCourier] = useState("manual");
   const [service, setService] = useState("");
   const [shippingCost, setShippingCost] = useState("0");
@@ -115,6 +117,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
       setService("");
       setShippingCost("0");
       setPaymentMethod("tunai_toko");
+      setOrderNumber("");
       setStatus("processing");
       setPurchaseType("normal");
       setPreorderReleaseAt("");
@@ -165,6 +168,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
     try {
       const isPickup = courier === "ambil_sendiri";
       const payload = {
+        order_number: orderNumber.trim().toUpperCase() || null,
         customer_name: customerName.trim() || "Pelanggan Umum",
         customer_phone: customerPhone.trim(),
         customer_email: customerEmail.trim() || null,
@@ -182,8 +186,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
       };
       const saved = await createManualOrder(payload);
       onSaved?.(saved);
-      toastSuccess("Order Manual", "Order manual berhasil dibuat.");
-      onClose?.();
+            onClose?.();
     } catch (error) {
       toastError("Order Manual", getManualOrderError(error));
       setBusy(false);
@@ -193,18 +196,16 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
   return (
     <CrudDialog open={open} onClose={onClose} title="Tambah Order Manual" subtitle="Order dicatat langsung sebagai kasir — produk, customer, ongkir, dan metode bayar ditentukan di sini." size="max-w-3xl">
       <form onSubmit={submit}>
-        <OrderFormLayout
-          aside={
-            <>
-              <OrderFormActionButton tone="emerald" variant="soft" icon="add" label="Buat Order" type="submit" disabled={busy} />
-            </>
+        <FormEditorLayout
+          actions={
+            <FormActionDock tone="emerald" save={{ icon: "add", label: "Buat Order" }} disabled={busy} />
           }
         >
-          <div className="space-y-5 p-6">
+          <div className="space-y-5">
           <section className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Produk</p>
             {lines.map((line) => (
-              <div key={line.key} className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_96px_40px]">
+              <div key={line.key} className="grid grid-cols-1 gap-[5px] rounded-[10px] border border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_96px_40px]">
                 <SearchableSelect
                   value={line.variantId}
                   onChange={(value) => selectVariant(line.key, value)}
@@ -215,7 +216,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
                   className="w-full"
                   buttonClassName="h-10 !text-xs"
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-[5px]">
                   <label className="sr-only" htmlFor={undefined}>Qty</label>
                   <input
                     type="number"
@@ -223,7 +224,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
                     max={line.stock || 999999}
                     value={line.quantity}
                     onChange={(event) => changeLine(line.key, { quantity: Math.max(1, Number(event.target.value || 0)) })}
-                    className="h-10 w-full rounded-lg border border-slate-200 px-3 text-center text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+                    className={cn(inputClassName, "text-center font-bold")}
                   />
                   {line.variantId ? <p className="w-20 text-right text-[10px] font-bold text-slate-400">stok {line.stock}</p> : null}
                 </div>
@@ -232,7 +233,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
                 </button>
               </div>
             ))}
-            <button type="button" onClick={() => setLines((current) => [...current, emptyLine()])} className="inline-flex h-10 items-center gap-2 rounded-lg border border-emerald-200 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50">
+            <button type="button" onClick={() => setLines((current) => [...current, emptyLine()])} className="inline-flex h-10 items-center gap-[5px] rounded-lg border border-emerald-200 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50">
               <span className="material-symbols-outlined text-[18px]">add</span>
               Tambah Produk
             </button>
@@ -240,7 +241,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
 
           <section className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Customer</p>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 px-3 py-2.5">
+            <div className="rounded-[10px] border border-emerald-100 bg-emerald-50/50 px-3 py-2.5">
               <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-wide text-emerald-700">Pilih penerima tersimpan (seperti checkout)</div>
               <SearchableSelect
                 value={guestCustomer ? "guest" : null}
@@ -259,7 +260,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
               ) : null}
             </div>
             {guestCustomer ? (
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+              <div className="flex items-center gap-[5px] rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
                 <span className="material-symbols-outlined text-[18px] text-slate-400">person</span>
                 Data otomatis terisi "Pelanggan Umum" — Nama, No. HP, Email, dan Alamat tidak diwajibkan.
               </div>
@@ -279,7 +280,7 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
                   <span className="text-xs font-normal text-slate-500">Jika diisi dan sudah terdaftar, order dikaitkan ke akun tersebut.</span>
                 </label>
                 {courier === "ambil_sendiri" ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-sm font-semibold text-emerald-700 sm:col-span-2">
+                  <div className="flex items-center gap-[5px] rounded-[10px] border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-sm font-semibold text-emerald-700 sm:col-span-2">
                     <span className="material-symbols-outlined text-[18px]">storefront</span>
                     Ambil sendiri di toko — alamat pengiriman tidak digunakan.
                   </div>
@@ -296,6 +297,11 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
           <section className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Pengiriman & Pembayaran</p>
             <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-bold text-slate-700 sm:col-span-2">
+                <span>No. Pesanan</span>
+                <Input value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} placeholder="Kosongkan agar sistem membuat nomor otomatis (mis. MAN-20260927-1A2B3C)" />
+                <span className="text-[11px] font-medium text-slate-500">Isi nomor manual bila toko sudah punya nomor sendiri, atau kosongkan untuk nomor otomatis.</span>
+              </label>
               <label className="grid gap-1.5 text-sm font-bold text-slate-700">
                 <span>Kurir</span>
                 <SearchableSelect value={courier} onChange={setCourier} options={COURIER_OPTIONS} clearable={false} buttonClassName="h-10" />
@@ -333,23 +339,20 @@ export function ManualOrderForm({ open = true, onClose, onSaved }) {
                 </label>
               ) : null}
             </div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-xs font-semibold text-emerald-700">
+            <div className="rounded-[10px] border border-emerald-100 bg-emerald-50/50 px-4 py-3 text-xs font-semibold text-emerald-700">
               Pembayaran dicatat lunas otomatis (kasir). Anda dapat mencetak nota setelah pesanan dibuat.
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1.5 text-sm">
+          <section className="rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3 space-y-1.5 text-sm">
             <div className="flex justify-between text-slate-600"><span>Subtotal</span><span className="font-bold text-slate-800">{formatPrice(itemsTotal)}</span></div>
             <div className="flex justify-between text-slate-600"><span>Ongkir</span><span className="font-bold text-slate-800">{formatPrice(shippingTotal)}</span></div>
             <div className="flex justify-between border-t border-slate-300 pt-2 text-base font-black text-slate-900"><span>Total</span><span>{formatPrice(grandTotal)}</span></div>
           </section>
         </div>
-        </OrderFormLayout>
+        </FormEditorLayout>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          <button type="submit" disabled={busy} className="h-10 bg-emerald-600 px-4 text-sm font-extrabold text-white disabled:opacity-60">Buat Order</button>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel="Buat Order" submitIcon="add" disabled={busy} tone="emerald" />
       </form>
     </CrudDialog>
   );

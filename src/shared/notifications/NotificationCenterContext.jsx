@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 const NotificationCenterContext = createContext(null);
+const QUEUE_STATUSES = ["processing", "waiting", "brief"];
 
 function createItem(input = {}) {
   return {
@@ -15,6 +16,11 @@ function createItem(input = {}) {
     onAction: input.onAction || null,
     secondaryActionLabel: input.secondaryActionLabel || "",
     onSecondaryAction: input.onSecondaryAction || null,
+    brief: Boolean(input.brief),
+    briefKey: input.briefKey || "",
+    count: Number.isFinite(input.count) ? input.count : 1,
+    expiresAt: input.expiresAt || null,
+    briefTotal: Number.isFinite(input.briefTotal) ? input.briefTotal : 0,
   };
 }
 
@@ -22,6 +28,8 @@ export function NotificationCenterProvider({ children }) {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("queue");
+  const [openMode, setOpenMode] = useState("modal");
+  const [panelOpenToken, setPanelOpenToken] = useState(0);
 
   const push = useCallback((input) => {
     const item = createItem(input);
@@ -43,9 +51,27 @@ export function NotificationCenterProvider({ children }) {
       return;
     }
     setItems((current) => current.filter((item) => {
-      const queued = ["processing", "waiting"].includes(item.status);
-      return tab === "queue" ? !queued : queued;
+      const queued = QUEUE_STATUSES.includes(item.status);
+      if (tab === "queue") return item.status === "processing";
+      return queued;
     }));
+  }, []);
+
+  const requestOpen = useCallback((next) => {
+    if (next) setOpenMode("modal");
+    setOpen(next);
+  }, []);
+
+  const openPanel = useCallback((tab = "queue") => {
+    setOpenMode("panel");
+    setActiveTab(tab);
+    setOpen(true);
+    setPanelOpenToken((current) => current + 1);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setOpenMode((mode) => (mode === "panel" ? "modal" : mode));
+    setOpen(false);
   }, []);
 
   const startTask = useCallback((input = {}) => {
@@ -65,23 +91,32 @@ export function NotificationCenterProvider({ children }) {
     };
   }, [push, update]);
 
-  const queueItems = useMemo(() => items.filter((item) => ["processing", "waiting"].includes(item.status)), [items]);
-  const infoItems = useMemo(() => items.filter((item) => !["processing", "waiting"].includes(item.status)), [items]);
+  const queueItems = useMemo(() => items.filter((item) => QUEUE_STATUSES.includes(item.status)), [items]);
+  const infoItems = useMemo(() => items.filter((item) => !QUEUE_STATUSES.includes(item.status)), [items]);
+  const clearableCount = useMemo(() => (activeTab === "queue"
+    ? queueItems.filter((item) => item.status !== "processing").length
+    : infoItems.length), [activeTab, infoItems.length, queueItems]);
 
   const value = useMemo(() => ({
     items,
     queueItems,
     infoItems,
+    clearableCount,
     open,
     activeTab,
-    setOpen,
+    openMode,
+    setOpen: requestOpen,
+    setOpenMode,
     setActiveTab,
+    openPanel,
+    closePanel,
+    panelOpenToken,
     push,
     update,
     remove,
     clear,
     startTask,
-  }), [activeTab, clear, infoItems, items, open, push, queueItems, remove, startTask, update]);
+  }), [activeTab, clear, clearableCount, closePanel, infoItems, items, open, openMode, openPanel, panelOpenToken, push, queueItems, remove, requestOpen, startTask, update]);
 
   return <NotificationCenterContext.Provider value={value}>{children}</NotificationCenterContext.Provider>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import {
   FormField,
@@ -120,11 +120,11 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
 
           <div>
             <p className="text-sm font-extrabold text-slate-800">Permissions</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div className="mt-2 grid gap-[5px] sm:grid-cols-2">
               {visiblePermissions.map((permission) => (
                 <label
                   key={permission.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700"
+                  className="flex cursor-pointer items-center gap-[5px] rounded-[10px] border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700"
                 >
                   <input
                     type="checkbox"
@@ -143,7 +143,7 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
             </div>
           </div>
 
-          <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+          <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
             <div>
               <span className="block text-sm font-bold text-slate-700">Status aktif</span>
               <span className="block text-[11px] text-slate-400">Role nonaktif tidak dapat dipakai untuk login atau assignment baru.</span>
@@ -153,11 +153,7 @@ export function RoleFormDialog({ open, role, onClose, onSaved, onDelete }) {
         </div>
         </FormEditorLayout>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          {role && onDelete ? <button type="button" onClick={() => onDelete(role)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan Role</button>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel="Simpan Role" submitIcon="save" disabled={mutation.isPending || !dirty} tone="teal" onDelete={role && onDelete ? () => onDelete(role) : undefined} />
       </form>
     </CrudDialog>
   );

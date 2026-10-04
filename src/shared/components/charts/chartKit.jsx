@@ -58,7 +58,7 @@ function focusOpacity(focus, key, dim = 0.18) {
 export function InteractiveLegend({ series = [], hidden, focus, onToggle, onFocus }) {
   const hiddenSet = hidden instanceof Set ? hidden : new Set(hidden || []);
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-[5px]">
       {series.map((item) => {
         const isHidden = hiddenSet.has(item.key);
         const isDim = !isHidden && focus && focus !== item.key;
@@ -586,7 +586,7 @@ export function StatCard({ label, value, tone = "slate", hint }) {
     sky: "bg-sky-50 ring-sky-200 text-sky-800",
   };
   return (
-    <div className={`rounded-xl px-4 py-3 ring-1 ring-inset ${tones[tone] || tones.slate}`}>
+    <div className={`rounded-[10px] px-4 py-3 ring-1 ring-inset ${tones[tone] || tones.slate}`}>
       <p className="text-[10px] font-extrabold uppercase tracking-wide opacity-70">{label}</p>
       <p className="mt-1 truncate text-lg font-black">{value}</p>
       {hint ? <p className="mt-0.5 text-[11px] font-semibold opacity-60">{hint}</p> : null}
@@ -682,7 +682,7 @@ export function DonutChart({
             onMouseLeave={() => setFocus(null)}
             onFocus={() => setFocus(segment.key)}
             onBlur={() => setFocus(null)}
-            className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition ${
+            className={`flex w-full items-center gap-[5px] rounded-lg px-2 py-1.5 text-left text-xs transition ${
               isHidden ? "opacity-40 line-through" : isDim ? "opacity-50" : "hover:bg-slate-50"
             }`}
           >
@@ -701,7 +701,7 @@ export function DonutChart({
       {visibleSegments.map((segment) => (
         <div key={segment.key} className="space-y-1">
           <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="flex min-w-0 items-center gap-2 font-bold text-slate-700">
+            <span className="flex min-w-0 items-center gap-[5px] font-bold text-slate-700">
               <span className="h-3 w-3 shrink-0 rounded-sm" style={{ backgroundColor: segment.color }} />
               <span className="truncate">{segment.label}</span>
             </span>
@@ -729,7 +729,7 @@ export function DonutChart({
       emptyText={emptyText}
     >
       {type === "barList" ? (
-        visibleSegments.length ? barList : <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Semua seri disembunyikan.</p>
+        visibleSegments.length ? barList : <p className="rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Semua seri disembunyikan.</p>
       ) : (
         <div className="flex flex-wrap items-center justify-center gap-6">
           {pie}

@@ -59,7 +59,7 @@ export function FilterSidebar({
               {categories.map((category) => (
                 <label
                   key={category.id || category.slug}
-                  className="flex cursor-pointer items-center gap-2 group"
+                  className="flex cursor-pointer items-center gap-[5px] group"
                 >
                   <input
                     type="checkbox"
@@ -101,7 +101,7 @@ export function FilterSidebar({
               {locations.map((location) => (
                 <label
                   key={location}
-                  className="flex items-center gap-2 cursor-pointer group"
+                  className="flex items-center gap-[5px] cursor-pointer group"
                 >
                   <input
                     type="checkbox"

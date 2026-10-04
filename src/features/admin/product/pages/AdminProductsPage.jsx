@@ -22,6 +22,7 @@ export default function AdminProductsPage() {
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
   const [sort, setSort] = useState({ by: "created_at", direction: "desc" });
   const [query, setQuery] = useState("");
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [initialSection, setInitialSection] = useState("general");
   const deferredQuery = useDeferredValue(query.trim());
@@ -51,6 +52,14 @@ export default function AdminProductsPage() {
   const deleteMutation = useDeleteAdminProduct();
   const quickUpdateMutation = useUpdateAdminProduct();
   const isInitialLoading = productsQuery.isLoading && !productsQuery.data;
+  const handleRefresh = async () => {
+    setManualRefreshing(true);
+    try {
+      await productsQuery.refetch();
+    } finally {
+      setManualRefreshing(false);
+    }
+  };
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
   const rows = productsQuery.data?.rows || [];
   const displayRows = useMemo(() => {
@@ -118,8 +127,8 @@ export default function AdminProductsPage() {
             query={query}
             onQueryChange={setQuery}
             onCreate={editor.create}
-            onRefresh={() => productsQuery.refetch()}
-            refreshing={productsQuery.isFetching}
+            onRefresh={handleRefresh}
+            refreshing={manualRefreshing}
             createLabel="Tambah Produk"
             placeholder="Cari nama, toko, SKU, brand, atau variant"
             totalCount={productsQuery.data?.meta?.total}
@@ -143,7 +152,7 @@ export default function AdminProductsPage() {
             <>
               <SellerProductTable
                 rows={displayRows}
-                isLoading={productsQuery.isFetching && !productsQuery.isFetchingNextPage}
+                isLoading={Boolean(productsQuery.isPlaceholderData)}
                 onEdit={editor.edit}
                 onToggleActive={toggleActive}
                 onStatusChange={changeStatus}

@@ -1,7 +1,9 @@
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { getAdminMode, setAdminMode } from "@/features/admin/adminMode";
+import { confirmPanelModeSwitch } from "@/shared/utils/userFeedback";
 import { AdminNotificationPanel } from "@/features/admin/notifications/components/AdminNotificationPanel";
 import { AdminRealtimeNotificationProvider, useAdminRealtimeNotifications } from "@/features/admin/notifications/context/AdminRealtimeNotificationContext";
+import { NotificationFeedbackBridge } from "@/shared/notifications/NotificationFeedbackBridge";
 import { PanelHeader } from "@/shared/layout/PanelHeader";
 import { PanelMobileNavigation } from "@/shared/layout/PanelMobileNavigation";
 import { PanelSidebar } from "@/shared/layout/PanelSidebar";
@@ -20,8 +22,8 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/ppob", label: "PPOB & Top Up", icon: "phone_android", group: "Penjualan" },
   { href: "/admin/customers", label: "Pelanggan", icon: "person_search", group: "Penjualan" },
   { href: "/admin/reviews", label: "Review", icon: "reviews", group: "Penjualan" },
-  { href: "/admin/cashflow", label: "Pemasukan dan Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
-  { href: "/admin/receivables-payables", label: "Hutang dan Piutang", icon: "payments", group: "Finance" },
+  { href: "/admin/cashflow", label: "Pemasukan-Pengeluaran", icon: "account_balance_wallet", group: "Finance" },
+  { href: "/admin/receivables-payables", label: "Hutang-Piutang", icon: "payments", group: "Finance" },
   { href: "/admin/fee-configs", label: "Konfigurasi Fee", icon: "tune", group: "Finance" },
   { href: "/admin/withdrawals", label: "Penarikan Dana", icon: "currency_exchange", group: "Finance" },
   { href: "/admin/store-information", label: "Informasi", icon: "store", group: "Toko" },
@@ -34,6 +36,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/admin/stores", label: "Toko", icon: "storefront", group: "Manajemen" },
   { href: "/admin/missions", label: "Mission", icon: "military_tech", group: "Master Data" },
   { href: "/admin/game-content", label: "Game Content", icon: "stadia_controller", group: "Master Data" },
+  { href: "/admin/code-settings", label: "Rumus Kode", icon: "settings", group: "Master Data", noChildTabs: true, hiddenInSidebar: true, pinTop: true },
   { href: "/admin/planner", label: "Planner / Jadwal", icon: "calendar_month", group: "Master Data", iconColor: "#06b6d4" },
   { href: "/admin/announcements", label: "Announcement", icon: "campaign", group: "Master Data" },
   { href: "/admin/chat", label: "Chat", icon: "chat", group: "Bantuan", noChildTabs: true, iconColor: "#3b82f6" },
@@ -47,13 +50,12 @@ function AdminModeSwitchButton() {
   const isSeller = mode === "seller";
   const target = isSeller ? "monitor" : "seller";
 
-  const handleSwitch = () => {
-    const confirmed = window.confirm(
-      isSeller
-        ? "Beralih ke mode Monitoring Toko? Anda akan melihat perspektif monitoring."
-        : "Beralih ke mode Seller? Anda akan mengelola toko sebagai seller.",
-    );
-    if (!confirmed) return;
+  const handleSwitch = async () => {
+    const targetLabel = isSeller ? "Monitoring Toko" : "Panel Seller";
+    const description = isSeller
+      ? "Anda akan melihat perspektif monitoring toko."
+      : "Anda akan mengelola toko sebagai seller.";
+    if (!(await confirmPanelModeSwitch(targetLabel, description))) return;
     setAdminMode(target);
   };
 
@@ -78,6 +80,7 @@ function AdminLayoutContent() {
 
   return (
     <PanelTabsProvider items={ADMIN_NAV_ITEMS}>
+      <NotificationFeedbackBridge />
       <div className="h-dvh bg-slate-50">
         <div className="grid h-full grid-cols-1 lg:grid-cols-[76px_minmax(0,1fr)]">
           <PanelSidebar items={ADMIN_NAV_ITEMS} homeHref="/admin" title="Admin Control" sidebarClassName="border-slate-800/20 bg-[#0f172a]" activeClassName="bg-teal-400 text-slate-950" showHomeLink={false} badges={realtime.badges} />
@@ -100,7 +103,7 @@ function AdminLayoutContent() {
               modeHeader={<AdminModeSwitchButton />}
             />
             <PanelTabBar />
-            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" /></main>
+            <main className="panel-surface min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-20 sm:px-4 lg:pb-3"><RouteOutletBoundary className="h-full w-full min-w-0 max-w-full" /></main>
           </div>
         </div>
       </div>

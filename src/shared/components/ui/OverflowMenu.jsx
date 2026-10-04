@@ -37,7 +37,7 @@ export const OverflowMenu = memo(function OverflowMenu({
   if (!items.length) return null;
 
   return (
-    <div ref={rootRef} className={cn("relative flex flex-wrap items-center gap-2", className)}>
+    <div ref={rootRef} className={cn("relative flex flex-wrap items-center gap-[5px]", className)}>
       {visible.map((item, i) => renderItem(item, i))}
 
       {overflow.length > 0 && (
@@ -59,7 +59,7 @@ export const OverflowMenu = memo(function OverflowMenu({
           {open && (
             <div
               className={cn(
-                "absolute right-0 z-50 mt-2 max-h-72 min-w-44 overflow-auto rounded-xl border border-gray-100 bg-white py-1 shadow-lg",
+                "absolute right-0 z-50 mt-2 max-h-72 min-w-44 overflow-auto rounded-[10px] border border-gray-100 bg-white py-1 shadow-lg",
                 menuClassName
               )}
             >

@@ -3,11 +3,12 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { advancedError, useAdjustRawMaterial, useDeleteRawMaterial, useManageableProducts, useRawMaterialCostImpacts, useRawMaterialMovements, useRawMaterials, useSaveRawMaterial } from "@/features/advanced/services/advancedMarketplaceService";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
-import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
+import { inputClassName } from "@/shared/components/form/FormField";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
@@ -35,6 +36,7 @@ export default function RawMaterialsPage() {
   const [unitCost, setUnitCost] = useState("");
   const products = useManageableProducts({ per_page: 100, is_active: true });
   const materials = useRawMaterials({ per_page: 100, ...(deferred ? { search: deferred } : {}) });
+  const total = useListTotalCount(materials.data?.meta, { label: "Bahan Baku" });
   const materialMovements = useRawMaterialMovements({ per_page: 100 });
   const costImpacts = useRawMaterialCostImpacts({ per_page: 100, direction: "increase" });
   const saveMaterial = useSaveRawMaterial();
@@ -42,8 +44,7 @@ export default function RawMaterialsPage() {
   const adjustMaterial = useAdjustRawMaterial();
 
   const editor = useEntityEditor({
-    createLabel: "Bahan Baku Baru",
-    getEditLabel: (entity) => (entity?.name ? `Edit: ${entity.name}` : "Edit Bahan Baku"),
+    getEditLabel: (entity) => entity?.name || "Bahan Baku",
   });
 
   const refetchAll = useCallback(() => {
@@ -209,6 +210,9 @@ export default function RawMaterialsPage() {
       onQueryChange={setQuery}
       onRefresh={refetchAll}
       refreshing={false}
+      totalCount={total.totalCount}
+      totalLabel={total.totalLabel}
+      totalTitle={total.totalTitle}
       onCreate={openCreate}
       createLabel="Bahan Baku"
       selectionEnabled={materialSelected.size > 0}
@@ -216,15 +220,15 @@ export default function RawMaterialsPage() {
       onToggleSelection={() => (materialSelected.size ? setMaterialSelected(new Set()) : setMaterialSelected(new Set(materialRows.map((row) => row.id))))}
       bulkActions={spreadsheetActions}
     >
-      <DataGrid storageKey="inventory.raw-materials" columns={materialColumns} rows={materialRows} emptyText="Bahan baku belum tersedia." onRowClick={(row) => (row.id ? openEdit(row) : undefined)} selectionEnabled selectedIds={materialSelected} allSelected={materialAllSelected} onToggleRow={toggleMaterialRow} onToggleAll={toggleMaterialAll} />
+      <DataGrid storageKey="inventory.raw-materials" onFilterStateChange={total.onFilterStateChange} columns={materialColumns} rows={materialRows} emptyText="Bahan baku belum tersedia." onRowClick={(row) => (row.id ? openEdit(row) : undefined)} selectionEnabled selectedIds={materialSelected} allSelected={materialAllSelected} onToggleRow={toggleMaterialRow} onToggleAll={toggleMaterialAll} />
     </ModuleFrame>
     ) : null}
 
     <SpreadsheetOperationPanel workspace={activeWorkspace} />
 
-    <FormModal open={editor.open} title={materialForm?.id ? "Edit Bahan Baku" : "Data Baru Bahan Baku"} onClose={closeMaterialForm} onSubmit={submitMaterial} busy={saveMaterial.isPending} submitLabel="Simpan" dangerAction={materialForm?.id ? <Button type="button" variant="outline" onClick={() => { setMaterialAdjust(materialForm); setDelta(""); setUnitCost(String(materialForm?.average_cost || "")); setMaterialForm(null); editor.close(); }}>Stock / Restock</Button> : undefined}>
+    <FormModal open={editor.open} title={materialForm?.id ? "Edit Bahan Baku" : "Data Baru Bahan Baku"} onClose={closeMaterialForm} onSubmit={submitMaterial} busy={saveMaterial.isPending} submitLabel="Simpan" extraActions={materialForm?.id ? [{ icon: "add_box", label: "Stock / Restock", tone: "emerald", onClick: () => { setMaterialAdjust(materialForm); setDelta(""); setUnitCost(String(materialForm?.average_cost || "")); setMaterialForm(null); editor.close(); } }] : []}>
       <div className="grid gap-4 md:grid-cols-2">
-        {activeRole === "admin" ? <Field label="Toko" required><select className="h-10 border border-slate-300 bg-white px-3 text-sm" value={materialForm?.store_id || ""} onChange={(event) => setMaterialForm((current) => ({ ...current, store_id: event.target.value }))} required><option value="">Pilih toko</option>{storeOptions.map((store) => <option key={store.id} value={store.id}>{store.name}</option>)}</select></Field> : null}
+        {activeRole === "admin" ? <Field label="Toko" required><select className={inputClassName} value={materialForm?.store_id || ""} onChange={(event) => setMaterialForm((current) => ({ ...current, store_id: event.target.value }))} required><option value="">Pilih toko</option>{storeOptions.map((store) => <option key={store.id} value={store.id}>{store.name}</option>)}</select></Field> : null}
         <Field label="Kode" hint="Kosongkan agar dibuat otomatis (mis. RM-GULA), atau isi manual."><Input value={materialForm?.code || ""} onChange={(event) => setMaterialForm((current) => ({ ...current, code: event.target.value }))} /></Field>
         <Field label="Nama" required><Input value={materialForm?.name || ""} onChange={(event) => setMaterialForm((current) => ({ ...current, name: event.target.value }))} required /></Field>
         <Field label="Satuan" required hint="Pilih satuan yang sudah ada, atau ketik satuan baru untuk menambah langsung ke daftar."><SearchableSelect value={materialForm?.unit || ""} onChange={(nextValue) => setMaterialForm((current) => ({ ...current, unit: nextValue }))} options={unitOptions} clearable={false} onCreate={createUnit} createLabel={(name) => `Satuan “${name}” belum ada, tambahkan sekarang`} placeholder="Pilih / ketik satuan" searchPlaceholder="Cari atau ketik satuan baru" /></Field>

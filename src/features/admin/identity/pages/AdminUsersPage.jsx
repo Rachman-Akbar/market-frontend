@@ -13,6 +13,7 @@ import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components
 import { AsyncState } from "@/shared/components/feedback";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -23,6 +24,7 @@ export default function AdminUsersPage() {
   const editor = useEntityEditor();
   const [deleteTarget, setDeleteTarget] = useState(null);
   const rows = usersQuery.rows;
+  const total = useListTotalCount(usersQuery.meta, { fallbackTotal: rows.length, label: "User" });
   const searchableRows = useMemo(
     () => rows.map((row) => ({ ...row, roleNames: row.roles.map((role) => role.name).join(" ") })),
     [rows],
@@ -87,6 +89,9 @@ export default function AdminUsersPage() {
             refreshing={usersQuery.isFetching}
             createLabel="Tambah User"
             placeholder="Cari nama, email, atau role lalu tekan Enter"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

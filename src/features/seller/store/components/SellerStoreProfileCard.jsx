@@ -6,15 +6,15 @@ export function SellerStoreProfileCard({ store }) {
   const initials = store.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
       {store.bannerUrl ? <img src={assetUrl(store.bannerUrl)} alt={store.name} className="h-48 w-full object-cover" /> : null}
       <div className="p-6">
         <div className="flex flex-col gap-5 md:flex-row md:items-start">
-          <div className="flex h-24 w-24 overflow-hidden items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-3xl font-extrabold text-white">
+          <div className="flex h-24 w-24 overflow-hidden items-center justify-center rounded-[10px] bg-gradient-to-br from-emerald-500 to-teal-400 text-3xl font-extrabold text-white">
             {store.logo ? <img src={assetUrl(store.logo)} alt={store.name} className="h-full w-full object-cover" /> : initials}
           </div>
           <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-[5px]">
               <h2 className="text-2xl font-extrabold text-slate-950">{toTitleCase(store.name)}</h2>
               <span className={`rounded-full px-3 py-1 text-xs font-bold ${store.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{store.isActive ? "Aktif" : "Nonaktif"}</span>
             </div>
@@ -27,7 +27,7 @@ export function SellerStoreProfileCard({ store }) {
                 { label: "Kota", value: store.city || "-" },
                 { label: "Provinsi", value: store.province || "-" },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl bg-slate-50 p-3">
+                <div key={item.label} className="rounded-[10px] bg-slate-50 p-3">
                   <p className="text-xs font-bold text-slate-500">{item.label}</p>
                   <p className="mt-1 break-words text-sm font-extrabold text-slate-950">{item.label === "Email" ? item.value : toTitleCase(item.value)}</p>
                 </div>

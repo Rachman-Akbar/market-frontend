@@ -81,7 +81,7 @@ export default function SellerDashboardPage() {
       </div>
 
       {lowStockProducts.length ? (
-        <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mt-6 rounded-[10px] border border-amber-200 bg-amber-50 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">inventory_2</span>
@@ -92,9 +92,9 @@ export default function SellerDashboardPage() {
             </div>
             <Link to="/seller/stock" className="h-10 rounded-lg bg-amber-600 px-4 text-sm font-extrabold text-white hover:bg-amber-700 inline-flex items-center">Kelola Stok</Link>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid gap-[5px] sm:grid-cols-2 xl:grid-cols-3">
             {lowStockProducts.map((product) => (
-              <div key={product.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-inset ring-amber-100">
+              <div key={product.id} className="flex items-center justify-between gap-3 rounded-[10px] bg-white px-4 py-3 ring-1 ring-inset ring-amber-100">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-extrabold text-slate-900">{product.name}</p>
                   <p className="text-xs text-slate-500">{product.sku || "SKU otomatis"}</p>
@@ -112,17 +112,17 @@ export default function SellerDashboardPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
         <SellerOrderTable rows={data.rows} />
         <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <div className="rounded-[10px] border border-slate-200 bg-white p-5">
             <h2 className="text-base font-extrabold text-slate-950">Tren order & pendapatan</h2>
             <p className="text-sm text-slate-500">Bulan ini</p>
             {trendQuery.isError ? (
-              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+              <p className="mt-3 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
                 Gagal memuat data tren penjualan.
               </p>
             ) : (
               <>
                 {!trendQuery.isLoading && trend.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-3 grid grid-cols-3 gap-[5px]">
                     <StatCard label="Total Order" value={trendMeta.totalsOrders.toLocaleString("id-ID")} tone="sky" />
                     <StatCard label="Pendapatan" value={formatPrice(trendMeta.totalsRevenue)} tone="emerald" />
                     <StatCard label="Selesai" value={trendMeta.totalsCompleted.toLocaleString("id-ID")} tone="slate" />
@@ -135,7 +135,7 @@ export default function SellerDashboardPage() {
             )}
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <div className="rounded-[10px] border border-slate-200 bg-white p-5">
             <h2 className="text-base font-extrabold text-slate-950">Aktivitas toko</h2>
             <p className="text-sm text-slate-500">Data produk dan pesanan terkini</p>
             <div className="mt-5 space-y-3">

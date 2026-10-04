@@ -19,7 +19,7 @@ export function TimePicker({ value, onChange, disabled, label }) {
       onChange={(event) => onChange(normalizeTime(event.target.value))}
       disabled={disabled}
       aria-label={label}
-      className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="h-11 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
     />
   );
 }

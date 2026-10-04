@@ -105,7 +105,7 @@ export default function AdminPpobPage() {
 
   return (
     <AdminShell title="Manajemen PPOB" subtitle="Kelola pulsa, token listrik, tagihan, operator, dan aturan harga.">
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-[5px]">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -145,7 +145,7 @@ function TransactionsTable({ rows }) {
 
   return (
     <>
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-3 flex items-center justify-between gap-[5px]">
         <h3 className="text-base font-extrabold text-slate-950">Transaksi Terbaru</h3>
         <ColumnVisibilityMenu
           columns={columns}
@@ -165,7 +165,7 @@ function StatCard({ label, value, icon, accent = "text-teal-700" }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3 p-4">
-        <span className={`flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 ${accent}`}>
+        <span className={`flex h-11 w-11 items-center justify-center rounded-[10px] bg-slate-100 ${accent}`}>
           <span className="material-symbols-outlined text-[22px]">{icon}</span>
         </span>
         <div className="min-w-0">
@@ -234,7 +234,7 @@ function BuyTab({ notifications }) {
     () =>
       products.map((p) => (
         <Card key={p.id} className="overflow-hidden">
-          <CardContent className="flex flex-col gap-2 p-4">
+          <CardContent className="flex flex-col gap-[5px] p-4">
             <div className="flex items-center justify-between">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
                 <span className="material-symbols-outlined text-lg">{CATEGORY_ICONS[category] || "category"}</span>
@@ -256,8 +256,8 @@ function BuyTab({ notifications }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-slate-200 bg-white px-4 py-4">
+        <div className="flex flex-wrap gap-[5px]">
           {categories.map((cat) => (
             <button
               key={cat.key}
@@ -296,7 +296,7 @@ function BuyTab({ notifications }) {
 
       {selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeBuy}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-[10px] bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-900">Konfirmasi Pembelian</h3>
             <p className="mt-1 text-sm text-slate-500">
               {selectedProduct.name} • <span className="font-semibold text-teal-700">{formatRupiah(selectedProduct.sellingPrice)}</span>
@@ -313,7 +313,7 @@ function BuyTab({ notifications }) {
             {result && (
               <p className={`mt-3 rounded-lg px-3 py-2 text-sm font-semibold ${result.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{result.message}</p>
             )}
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex justify-end gap-[5px]">
               <Button variant="outline" onClick={closeBuy}>Batal</Button>
               <Button onClick={doBuy} disabled={createMut.isPending} className="bg-teal-600 hover:bg-teal-700">
                 {createMut.isPending ? "Memproses..." : "Konfirmasi"}
@@ -354,7 +354,7 @@ function DashboardTab() {
               {balance.isLoading ? (
                 <p className="text-sm text-slate-500">Memeriksa saldo...</p>
               ) : balance.error ? (
-                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                <p className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
                   Tidak dapat memeriksa saldo: {getPpobAdminError(balance.error, "Terjadi kesalahan.")}
                 </p>
               ) : (
@@ -394,7 +394,7 @@ function DashboardTab() {
                   format={formatRupiah}
                   emptyText="Belum ada transaksi."
                 />
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-4 grid gap-[5px] sm:grid-cols-2 lg:grid-cols-3">
                   {data.by_category.map((c) => (
                     <div key={c.category} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
                       <span className="font-bold text-slate-700">{CATEGORY_LABELS[c.category] || c.category}</span>
@@ -443,8 +443,8 @@ function FinanceTab() {
             <h3 className="mb-4 text-base font-extrabold text-slate-950">Ringkasan Keuangan PPOB</h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {rows.map((r) => (
-                <div key={r.label} className="rounded-xl bg-slate-50 px-4 py-3">
-                  <div className="flex items-center gap-2 text-slate-500">
+                <div key={r.label} className="rounded-[10px] bg-slate-50 px-4 py-3">
+                  <div className="flex items-center gap-[5px] text-slate-500">
                     <span className="material-symbols-outlined text-[18px]">{r.icon}</span>
                     <span className="text-xs font-semibold">{r.label}</span>
                   </div>
@@ -551,7 +551,7 @@ function ProductsTab({ notifications }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-[5px]">
         <div className="max-w-xs">
           <SearchableSelect
             value={category}
@@ -561,7 +561,7 @@ function ProductsTab({ notifications }) {
             emptyText="—"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-[5px]">
           <ColumnVisibilityMenu
             columns={columns}
             visibleKeys={columnVisibility.visibleKeys}
@@ -721,9 +721,9 @@ function OperatorsTab({ notifications }) {
       {!operators.isLoading && rows.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-[5px] sm:grid-cols-2 lg:grid-cols-3">
               {rows.map((o) => (
-                <div key={o.id} onClick={() => openEdit(o)} className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 hover:bg-slate-100">
+                <div key={o.id} onClick={() => openEdit(o)} className="flex cursor-pointer items-center gap-3 rounded-[10px] bg-slate-50 px-4 py-3 hover:bg-slate-100">
                   <span className="material-symbols-outlined text-2xl text-slate-400">sim_card</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-slate-900">{o.name}</p>
@@ -760,7 +760,7 @@ function OperatorsTab({ notifications }) {
             <Input value={form.operator_prefix || ""} onChange={(e) => setForm({ ...form, operator_prefix: e.target.value })} placeholder="e.g. 0811" />
           </Field>
           {editing && (
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-[5px]">
               <input
                 type="checkbox"
                 checked={form.is_active}
@@ -882,7 +882,7 @@ function PricingTab({ notifications }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-[5px]">
         <ColumnVisibilityMenu
           columns={columns}
           visibleKeys={columnVisibility.visibleKeys}
@@ -1022,16 +1022,16 @@ function Field({ label, children }) {
 function Modal({ title, onClose, onSave, pending, children, onDelete }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[10px] bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-slate-900">{title}</h3>
         <div className="mt-4 space-y-3">{children}</div>
-        <div className="mt-5 flex items-center justify-between gap-2">
+        <div className="mt-5 flex items-center justify-between gap-[5px]">
           <div>
             {onDelete ? (
               <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={onDelete}>Hapus</Button>
             ) : null}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-[5px]">
             <Button variant="outline" onClick={onClose}>Batal</Button>
             <Button onClick={onSave} disabled={pending} className="bg-teal-600 hover:bg-teal-700">
               {pending ? "Menyimpan..." : "Simpan"}

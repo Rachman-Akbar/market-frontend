@@ -1,5 +1,21 @@
 import { memo, useEffect } from "react";
 
+function DialogHeader({ title, subtitle, onClose, closeLabel = "Tutup" }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+      <div className="min-w-0">
+        <h2 className="truncate text-base font-extrabold text-slate-950">{title}</h2>
+        {subtitle ? <p className="mt-1 text-xs text-slate-500">{subtitle}</p> : null}
+      </div>
+      {onClose ? (
+        <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700" aria-label={closeLabel}>
+          <span className="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export const CrudDialog = memo(function CrudDialog({
   open,
   title,
@@ -29,6 +45,7 @@ export const CrudDialog = memo(function CrudDialog({
   if (!modal) {
     return (
       <section className="w-full min-w-0 animate-ziip-fade-in bg-white" aria-label={title}>
+        {title ? <DialogHeader title={title} subtitle={subtitle} onClose={onClose} closeLabel="Tutup halaman data" /> : null}
         {children}
       </section>
     );
@@ -37,15 +54,7 @@ export const CrudDialog = memo(function CrudDialog({
   return (
     <div className="fixed inset-0 z-[90] overflow-y-auto bg-slate-950/35 p-4 backdrop-blur-sm">
       <section className={`mx-auto my-6 w-full animate-ziip-fade-in ${size} overflow-hidden rounded-lg bg-slate-100`}>
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-lg font-extrabold text-slate-950">{title}</h2>
-            {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
-          </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center text-slate-500 hover:bg-slate-100" aria-label="Tutup">
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-        </div>
+        <DialogHeader title={title} subtitle={subtitle} onClose={onClose} />
         {children}
       </section>
     </div>

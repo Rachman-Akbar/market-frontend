@@ -14,7 +14,10 @@ import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { inputClassName } from "@/shared/components/form/FormField";
+import { toolbarControlClassName } from "@/shared/components/crud/toolbarControlClassName";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { usePanelTabs } from "@/shared/layout/tabs";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -37,7 +40,7 @@ export default function HelpPage() {
   const admin = activeRole === "admin";
   const seller = activeRole === "seller";
   const tabs = usePanelTabs();
-  const editor = useEntityEditor({ createLabel: "Data Baru Help" });
+  const editor = useEntityEditor();
   const detailTab = tabs?.activeTab?.type === "help-detail" ? tabs.activeTab : null;
   const selectedId = detailTab?.entity?.id || null;
   const [query, setQuery] = useState("");
@@ -51,6 +54,7 @@ export default function HelpPage() {
   const replyMutation = useReplyTicket();
   const statusMutation = useUpdateTicketStatus();
   const rows = listQuery.data?.rows || [];
+  const total = useListTotalCount(listQuery.data?.meta, { fallbackTotal: rows.length, label: "Help" });
   const ticket = ticketQuery.data || detailTab?.entity || null;
   const context = contextQuery.data || null;
   const contextUser = context?.user || user || null;
@@ -174,9 +178,13 @@ export default function HelpPage() {
           refreshing={listQuery.isFetching}
           onCreate={admin ? undefined : editor.create}
           createLabel="Buat Help"
-          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
+          totalCount={total.totalCount}
+          totalLabel={total.totalLabel}
+          totalTitle={total.totalTitle}
+          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className={toolbarControlClassName}><option value="">Semua status</option>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           <DataGrid
+            onFilterStateChange={total.onFilterStateChange}
             columns={columns}
             rows={rows}
             onRowClick={openDetail}
@@ -201,18 +209,18 @@ export default function HelpPage() {
           </div>
         ) : null}
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Kategori"><select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm">{["order", "payment", "product", "store", "account", "technical", "other"].map((item) => <option key={item}>{item}</option>)}</select></Field>
-          <Field label="Prioritas"><select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm">{["low", "normal", "high", "urgent"].map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Kategori"><select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className={inputClassName}>{["order", "payment", "product", "store", "account", "technical", "other"].map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Prioritas"><select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))} className={inputClassName}>{["low", "normal", "high", "urgent"].map((item) => <option key={item}>{item}</option>)}</select></Field>
         </div>
         <Field label="Pesanan Terkait" hint="Opsional. Hanya pesanan yang dapat diakses akun aktif yang ditampilkan.">
-          <select value={form.order_id} onChange={(event) => changeOrder(event.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm">
+          <select value={form.order_id} onChange={(event) => changeOrder(event.target.value)} className={inputClassName}>
             <option value="">Tidak terkait pesanan</option>
             {orders.map((order) => <option key={order.id} value={order.id}>{optionLabel(order)}</option>)}
           </select>
         </Field>
         {!seller ? (
           <Field label="Toko Terkait" hint={selectedOrder ? "Daftar toko mengikuti pesanan yang dipilih." : "Opsional. Daftar berasal dari toko pada riwayat pesanan Anda."}>
-            <select value={form.store_id} onChange={(event) => setForm((current) => ({ ...current, store_id: event.target.value }))} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm">
+            <select value={form.store_id} onChange={(event) => setForm((current) => ({ ...current, store_id: event.target.value }))} className={inputClassName}>
               <option value="">Tidak terkait toko</option>
               {availableStores.map((item) => <option key={item.id} value={item.id}>{item.name} (Store #{item.id})</option>)}
             </select>
@@ -238,7 +246,7 @@ export default function HelpPage() {
                   <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Prioritas</span><Input value={ticket?.priority || "-"} disabled /></label>
                 </div>
                 <label className="grid gap-1.5 text-sm font-bold text-slate-700"><span>Keluhan</span><textarea value={ticket?.description || ""} readOnly rows={4} className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none" /></label>
-                {admin ? <div className="flex items-center gap-2"><span className="text-sm font-bold">Status</span><select value={ticket?.status || "open"} onChange={(event) => updateStatus(event.target.value)} className="h-9 border border-slate-300 px-3 text-sm">{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select></div> : null}
+                {admin ? <div className="flex items-center gap-2"><span className="text-sm font-bold">Status</span><select value={ticket?.status || "open"} onChange={(event) => updateStatus(event.target.value)} className={inputClassName}>{["open", "in_progress", "resolved", "closed"].map((item) => <option key={item}>{item}</option>)}</select></div> : null}
                 <div className="space-y-3">{(ticket?.messages || []).map((item) => <div key={item.id} className="border border-slate-200 p-3"><div className="flex justify-between text-xs font-bold text-slate-500"><span>{item.user_name || "User"}</span><span>{item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{item.message}</p></div>)}</div>
                 <form onSubmit={sendReply} className="space-y-2"><textarea value={reply} onChange={(event) => setReply(event.target.value)} className="min-h-24 w-full border border-slate-300 p-3 text-sm" placeholder="Tulis balasan" required /><div className="flex justify-end"><Button type="submit" disabled={replyMutation.isPending}>Kirim Balasan</Button></div></form>
               </>

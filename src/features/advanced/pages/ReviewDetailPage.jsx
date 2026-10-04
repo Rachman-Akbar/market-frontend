@@ -5,7 +5,7 @@ import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
-import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { FormActionDock, FormEditorLayout } from "@/shared/components/crud";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -91,17 +91,17 @@ function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
 
   return (
     <>
-      <OrderFormLayout
-        aside={
-          <>
-            {admin ? (
-              <OrderFormActionButton tone="emerald" variant="soft" icon="save" label="Simpan" disabled={busy} onClick={handleSave} />
-            ) : null}
-            <OrderFormActionButton tone="slate" variant="soft" icon="storefront" label="Kunjungi di Marketplace" disabled={!productSlug} onClick={handleOpenMarketplace} />
-            {admin ? (
-              <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus Review" disabled={deleteMutation.isPending} onClick={() => setConfirmOpen(true)} />
-            ) : null}
-          </>
+      <FormEditorLayout
+        actions={
+          <FormActionDock
+            tone="emerald"
+            save={{ icon: "save", label: "Simpan" }}
+            showSave={admin}
+            onSave={handleSave}
+            onDelete={admin ? () => setConfirmOpen(true) : undefined}
+            deleteLabel="Hapus Review"
+            extraActions={[{ icon: "storefront", label: "Kunjungi di Marketplace", onClick: handleOpenMarketplace, disabled: !productSlug }]}
+          />
         }
       >
         <FormPageLayout
@@ -196,7 +196,7 @@ function ReviewDetailForm({ row, onClose, onSaved, onDeleted }) {
             </div>
           </div>
         </FormPageLayout>
-      </OrderFormLayout>
+      </FormEditorLayout>
 
       <ConfirmDialog
         open={confirmOpen}

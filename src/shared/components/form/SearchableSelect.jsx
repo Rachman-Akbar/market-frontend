@@ -31,11 +31,16 @@ export const SearchableSelect = memo(function SearchableSelect({
   onCreate,
   createLabel,
   creating = false,
+  onSearch,
 }) {
   const rootRef = useRef(null);
   const inputRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const handleQuery = (next) => {
+    setQuery(next);
+    onSearch?.(next);
+  };
   const [creatingLocal, setCreatingLocal] = useState(false);
   const normalizedOptions = useMemo(() => options.map(normalizeOption), [options]);
   const selected = normalizedOptions.find((option) => option.value === String(value ?? "")) || null;
@@ -105,7 +110,7 @@ export const SearchableSelect = memo(function SearchableSelect({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex h-11 w-full min-w-0 items-center gap-2 border border-slate-200 bg-white px-3 text-left text-sm outline-none transition-colors focus:border-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400",
+          "flex h-11 w-full min-w-0 items-center gap-[5px] border border-slate-200 bg-white px-3 text-left text-sm outline-none transition-colors focus:border-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400",
           buttonClassName,
         )}
         aria-haspopup="listbox"
@@ -135,12 +140,12 @@ export const SearchableSelect = memo(function SearchableSelect({
       {open ? (
         <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden border border-slate-200 bg-white">
           <div className="border-b border-slate-100 p-2">
-            <div className="flex items-center gap-2 bg-slate-50 px-2">
+            <div className="flex items-center gap-[5px] bg-slate-50 px-2">
               <span aria-hidden="true" className="material-symbols-outlined text-[17px] text-slate-400">search</span>
               <input
                 ref={inputRef}
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => handleQuery(event.target.value)}
                 className="h-9 min-w-0 flex-1 bg-transparent text-sm outline-none"
                 placeholder={searchPlaceholder}
               />
@@ -148,7 +153,7 @@ export const SearchableSelect = memo(function SearchableSelect({
           </div>
           <div className="max-h-64 overflow-y-auto py-1" role="listbox">
             {canCreate ? (
-              <button type="button" disabled={creating || creatingLocal} onClick={createOption} aria-label={createLabel ? createLabel(query.trim()) : undefined} className="mb-1 flex w-full items-start gap-2 border-b border-emerald-100 bg-emerald-50 px-3 py-3 text-left text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-60">
+              <button type="button" disabled={creating || creatingLocal} onClick={createOption} aria-label={createLabel ? createLabel(query.trim()) : undefined} className="mb-1 flex w-full items-start gap-[5px] border-b border-emerald-100 bg-emerald-50 px-3 py-3 text-left text-sm text-emerald-800 hover:bg-emerald-100 disabled:opacity-60">
                 <span aria-hidden="true" className={`material-symbols-outlined mt-0.5 text-[18px] ${(creating || creatingLocal) ? "" : ""}`}>{(creating || creatingLocal) ? "add_circle" : "add_circle"}</span>
                 <span className="min-w-0 flex-1"><strong className="block">{createLabel ? createLabel(query.trim()) : `Data tidak ditemukan, tambahkan “${query.trim()}” sebagai data baru`}</strong><span className="mt-0.5 block text-xs font-medium text-emerald-700">Nama akan dibersihkan dan dicek ulang agar tidak membuat data ganda.</span></span>
               </button>
@@ -162,7 +167,7 @@ export const SearchableSelect = memo(function SearchableSelect({
                   disabled={option.disabled}
                   onClick={() => selectOption(option)}
                   className={cn(
-                    "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
+                    "flex w-full items-center gap-[5px] px-3 py-2 text-left text-sm",
                     active ? "bg-emerald-50 font-bold text-emerald-800" : "text-slate-700 hover:bg-slate-50",
                     option.disabled && "cursor-not-allowed opacity-45",
                   )}

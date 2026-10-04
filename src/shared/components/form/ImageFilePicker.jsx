@@ -86,7 +86,7 @@ export const ImageFilePicker = memo(function ImageFilePicker({
         type="button"
         disabled={disabled || uploading}
         onClick={() => inputRef.current?.click()}
-        className="flex h-10 items-center gap-2 border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        className="flex h-10 items-center gap-[5px] border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
       >
         <span className="material-symbols-outlined text-[18px]">upload</span>
         {label}

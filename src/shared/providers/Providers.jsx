@@ -9,7 +9,7 @@ import { NotificationCenterProvider, useNotificationCenter } from "@/shared/noti
 
 function NotificationLayer({ children }) {
   const center = useNotificationCenter();
-  return <>{children}{center.open ? <NotificationCenterPage /> : null}</>;
+  return <>{children}{center.open && center.openMode === "modal" ? <NotificationCenterPage /> : null}</>;
 }
 
 export function Providers({ children }) {

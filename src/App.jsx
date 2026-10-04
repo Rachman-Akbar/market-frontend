@@ -64,6 +64,7 @@ const ModulePlaceholderPage = lazyWithRetry(() => import("@/shared/pages/ModuleP
 const FinancePage = lazyWithRetry(() => import("@/features/advanced/pages/FinancePage"));
 const StockPage = lazyWithRetry(() => import("@/features/advanced/pages/StockPage"));
 const RawMaterialsPage = lazyWithRetry(() => import("@/features/advanced/pages/RawMaterialsPage"));
+const CodePatternSettingsPage = lazyWithRetry(() => import("@/features/advanced/pages/CodePatternSettingsPage"));
 const CustomersPage = lazyWithRetry(() => import("@/features/advanced/pages/CustomersPage"));
 const ShowcasePage = lazyWithRetry(() => import("@/features/advanced/pages/ShowcasePage"));
 const HelpPage = lazyWithRetry(() => import("@/features/advanced/pages/HelpPage"));
@@ -179,6 +180,7 @@ function renderSellerRoutes() {
           <Route path="/seller/store" element={<SellerStorePage />} />
           <Route path="/seller/banners" element={<SellerBannerPage />} />
           <Route path="/seller/store-preview" element={<SellerStorePreviewPage />} />
+          <Route path="/seller/code-settings" element={<CodePatternSettingsPage />} />
         </Route>
       </Route>
     </Route>
@@ -214,6 +216,7 @@ function renderAdminRoutes() {
         <Route path="/admin/store-information" element={<ModulePlaceholderPage title="Informasi" group="Toko" icon="store" actionHref="/admin/stores" actionLabel="Kelola Data Toko" />} />
         <Route path="/admin/banners" element={<AdminBannersPage />} />
         <Route path="/admin/store-preview" element={<ModulePlaceholderPage title="Preview Toko" group="Toko" icon="preview" actionHref="/stores" actionLabel="Buka Marketplace" />} />
+        <Route path="/admin/code-settings" element={<CodePatternSettingsPage />} />
         <Route path="/admin/categories" element={<AdminCategoryPage />} />
         <Route path="/admin/catalog-groups" element={<AdminCatalogGroupPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />

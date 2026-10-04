@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -22,7 +22,7 @@ import { getRelationQuickCreateError, useQuickCreateCategory } from "@/shared/se
 import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
 import { usePromotionPayments } from "@/features/advanced/services/advancedMarketplaceService";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { toastError } from "@/shared/utils/userFeedback";
 
 function flattenCategories(rows = [], depth = 0, result = []) {
   rows.forEach((row) => {
@@ -155,8 +155,7 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
         ? await updateMutation.mutateAsync({ id: entity.id, values })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      toastSuccess(entity ? "Promosi berhasil diperbarui." : (isSeller ? "Promosi berhasil diajukan." : "Promosi berhasil ditambahkan."));
-      window.setTimeout(() => onClose?.(), 350);
+            window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
       toastError("Gagal menyimpan promosi", getPromotionError(error));
     }
@@ -194,7 +193,7 @@ export function PromotionFormDialog({ open, entity, portal, onClose, onSaved, on
           {values.imageUrl ? <picture className="md:col-span-2"><source media="(max-width: 640px)" srcSet={values.mobileImageUrl || values.imageUrl} /><img src={values.imageUrl} alt="Preview promosi" className="aspect-[4/1] w-full rounded-2xl bg-slate-100 object-cover" /></picture> : null}
         </div>
         </FormEditorLayout>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden"><button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>{entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}<button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? `${isSeller ? "bg-emerald-600" : "bg-teal-600"} text-white` : "bg-slate-100 text-slate-400"}`}>{isSeller ? "Ajukan Promosi" : "Simpan Promosi"}</button></div>
+        <FormEditorFooter onCancel={onClose} submitLabel={isSeller ? "Ajukan Promosi" : "Simpan Promosi"} submitIcon={isSeller ? "send" : "save"} disabled={mutation.isPending || !dirty} tone={isSeller ? "emerald" : "teal"} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

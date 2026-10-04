@@ -10,6 +10,7 @@ import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 import { DayPicker, TimePicker } from "@/shared/components/form";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { useTabDirtyGuard } from "@/shared/hooks/useTabDirtyGuard";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const emptyForm = {
@@ -80,6 +81,7 @@ export function SellerStoreSettingsPanel({ store }) {
   const [logo, setLogo] = useState(null);
   const [banner, setBanner] = useState(null);
   const dirty = useFormDirty(pristine, form) || Boolean(logo) || Boolean(banner);
+  useTabDirtyGuard(dirty);
   const logoObjectUrl = useObjectUrl(logo);
   const bannerObjectUrl = useObjectUrl(banner);
   const logoPreviewUrl = logoObjectUrl || resolveMediaUrl(store?.logo || "");
@@ -203,7 +205,7 @@ export function SellerStoreSettingsPanel({ store }) {
 
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5">
+      <div className="rounded-[10px] border border-slate-200 bg-white p-5">
         <h2 className="text-base font-extrabold text-slate-950">
           Informasi operasional
         </h2>
@@ -218,7 +220,7 @@ export function SellerStoreSettingsPanel({ store }) {
                 type="text"
                 value={form[key]}
                 onChange={change(key)}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+                className="h-11 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
               />
             </label>
           ))}
@@ -249,7 +251,7 @@ export function SellerStoreSettingsPanel({ store }) {
             <textarea
               value={form.shipping_policy}
               onChange={change("shipping_policy")}
-              className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              className="min-h-24 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
             />
           </label>
           <label className="space-y-1.5">
@@ -259,13 +261,13 @@ export function SellerStoreSettingsPanel({ store }) {
             <textarea
               value={form.return_policy}
               onChange={change("return_policy")}
-              className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              className="min-h-24 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
             />
           </label>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5">
+      <div className="rounded-[10px] border border-slate-200 bg-white p-5">
         <h2 className="text-base font-extrabold text-slate-950">
           Pengaturan toko
         </h2>
@@ -295,7 +297,7 @@ export function SellerStoreSettingsPanel({ store }) {
                 required={Boolean(required)}
                 value={form[key]}
                 onChange={change(key)}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+                className="h-11 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
               />
             </label>
           ))}
@@ -304,7 +306,7 @@ export function SellerStoreSettingsPanel({ store }) {
             <textarea
               value={form.description}
               onChange={change("description")}
-              className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+              className="min-h-28 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -316,7 +318,7 @@ export function SellerStoreSettingsPanel({ store }) {
                 onChange={(event) => setLogo(event.target.files?.[0] || null)}
                 className="block w-full text-xs text-slate-500"
               />
-              <div className="aspect-square w-full max-w-40 overflow-hidden rounded-2xl bg-slate-100">
+              <div className="aspect-square w-full max-w-40 overflow-hidden rounded-[10px] bg-slate-100">
                 {logoPreviewUrl ? <img src={logoPreviewUrl} alt="Preview logo toko" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><span className="material-symbols-outlined text-4xl">image</span></div>}
               </div>
             </label>
@@ -328,7 +330,7 @@ export function SellerStoreSettingsPanel({ store }) {
                 onChange={(event) => setBanner(event.target.files?.[0] || null)}
                 className="block w-full text-xs text-slate-500"
               />
-              <div className="aspect-[3/1] w-full overflow-hidden rounded-2xl bg-slate-100">
+              <div className="aspect-[3/1] w-full overflow-hidden rounded-[10px] bg-slate-100">
                 {bannerPreviewUrl ? <img src={bannerPreviewUrl} alt="Preview banner toko" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400"><span className="material-symbols-outlined text-4xl">image</span></div>}
               </div>
             </label>
@@ -337,7 +339,7 @@ export function SellerStoreSettingsPanel({ store }) {
         <div className="mt-4 flex justify-end">
           <button
             disabled={pending || !dirty}
-            className={`rounded-2xl px-4 py-2 text-sm font-bold transition disabled:opacity-60 ${dirty ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-100 text-slate-400"}`}
+            className={`rounded-[10px] px-4 py-2 text-sm font-bold transition disabled:opacity-60 ${dirty ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-100 text-slate-400"}`}
           >
             Simpan Perubahan
           </button>

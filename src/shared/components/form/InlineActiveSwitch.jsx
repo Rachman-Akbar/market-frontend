@@ -26,7 +26,7 @@ export const InlineActiveSwitch = memo(function InlineActiveSwitch({
         onChange?.(!checked);
       }}
       className={cn(
-        "inline-flex items-center gap-2 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex items-center gap-[5px] text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-60",
         compact ? "text-[11px]" : "text-xs",
       )}
     >

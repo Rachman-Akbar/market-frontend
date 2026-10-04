@@ -3,6 +3,7 @@ import { SellerPanelShell } from "@/features/seller/dashboard/components/SellerP
 import { ORDER_TABLE_COLUMNS, OrderManagementTable } from "@/features/admin/order/components/OrderManagementTable";
 import { getOrderManagementError, useSellerOrders, useUpdateOrderStatus } from "@/features/admin/order/services/orderManagementService";
 import { EntityToolbar } from "@/shared/components/crud/EntityToolbar";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
@@ -30,6 +31,7 @@ export default function SellerOrdersPage() {
   const ordersQuery = useSellerOrders({ per_page: 20, ...(deferredQuery ? { order_number: deferredQuery } : {}), ...(status ? { status } : {}), ...(type ? { order_type: type } : {}) });
   const updateMutation = useUpdateOrderStatus();
   const rows = ordersQuery.data?.rows || [];
+  const total = useListTotalCount(ordersQuery.data?.meta, { label: "Pesanan" });
   const editor = useEntityEditor({ getEditLabel: (row) => row.orderNumber || row.order_number || row.subOrderNumber || `Order #${row.id}` });
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: ordersQuery.refetch });
   const columns = useMemo(() => mergeColumns(ORDER_TABLE_COLUMNS.filter((column) => column.key !== "store"), buildRawColumns(rows, ["id", "order_id", "order_number", "sub_order_number", "store_id", "store_name", "grand_total", "total", "total_items_price", "shipping_cost", "status", "payment_status", "tracking_number"])), [rows]);
@@ -116,6 +118,9 @@ export default function SellerOrdersPage() {
             onRefresh={() => ordersQuery.refetch()}
             refreshing={ordersQuery.isFetching}
             placeholder="Cari nomor order lalu tekan Enter"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}
@@ -164,6 +169,7 @@ export default function SellerOrdersPage() {
           {rows.length ? (
             <OrderManagementTable
               rows={rows}
+              onFilterStateChange={total.onFilterStateChange}
               columns={columns}
               portal="seller"
               pendingId={updateMutation.variables?.id}

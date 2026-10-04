@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { confirmRoleSwitch } from "@/shared/utils/userFeedback";
 
 function normalizeRole(value) {
   return String(value || "").toLowerCase().trim();
@@ -80,11 +81,8 @@ export default function RoleSwitchPage() {
       }
 
       try {
-        const confirmed = window.confirm(
-          targetRole === "seller"
-            ? "Anda akan beralih ke peran Seller. Lanjutkan?"
-            : `Anda akan beralih ke peran ${targetRole}. Lanjutkan?`,
-        );
+        const targetLabel = targetRole === "seller" ? "Seller" : targetRole.charAt(0).toUpperCase() + targetRole.slice(1);
+        const confirmed = await confirmRoleSwitch(targetLabel, redirect === "/seller" ? "Seller Panel" : "panel peran tersebut");
 
         if (!confirmed) {
           if (window.opener) {

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { DailyCashflowBars, SeriesBarList, StatCard } from "@/shared/components/charts/chartKit";
+import { inputClassName } from "@/shared/components/form/FormField";
+import { cn } from "@/shared/utils/utils";
 import { useFinanceDashboard } from "@/features/advanced/services/advancedMarketplaceService";
 
 function money(value) {
@@ -35,7 +37,7 @@ export default function FinanceChartPanel({ mode = "cashflow" }) {
           <p className="text-sm font-extrabold text-slate-900">Grafik Keuangan</p>
           <p className="text-xs text-slate-500">Rentang periode: {PERIOD_OPTIONS.find((item) => item.value === period)?.label.toLowerCase()}. Periode saat ini dimulai {dashboardQuery.data?.start_date ? new Date(dashboardQuery.data.start_date).toLocaleDateString("id-ID") : "-"}.</p>
         </div>
-        <select value={period} onChange={(event) => setPeriod(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm font-bold">
+        <select value={period} onChange={(event) => setPeriod(event.target.value)} className={cn(inputClassName, "font-bold")}>
           {PERIOD_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </div>

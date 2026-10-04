@@ -47,7 +47,7 @@ export const ActionIconButton = memo(function ActionIconButton({
   const tipLabel = title || label;
 
   return (
-    <span className="relative inline-flex">
+    <span className="relative inline-flex shrink-0">
       <button
         type="button"
         aria-label={tipLabel}
@@ -57,7 +57,7 @@ export const ActionIconButton = memo(function ActionIconButton({
         disabled={disabled}
         className={cn(
           "relative inline-flex h-9 w-9 shrink-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-45",
-          round ? "rounded-full shadow-md" : "rounded-lg",
+          round ? "rounded-full shadow-md" : "rounded-[10px]",
           variantClass,
           className,
         )}

@@ -152,7 +152,7 @@ export const SellerProductTable = memo(function SellerProductTable({
     if (column.key === "product") {
       return (
         <td key={column.key} className="px-4 py-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[5px]">
             <div className="h-11 w-11 shrink-0 overflow-hidden bg-slate-100">{product.thumbnail ? <img src={product.thumbnail} alt={product.name} className="h-full w-full object-cover" loading="lazy" /> : null}</div>
             <div className="min-w-0">
               <p className="truncate font-extrabold text-slate-900">{toTitleCase(product.name)}</p>
@@ -165,7 +165,7 @@ export const SellerProductTable = memo(function SellerProductTable({
     if (column.key === "store") return <td key={column.key} className="truncate px-4 py-3 font-bold text-slate-700">{toTitleCase(product.storeName) || "-"}</td>;
     if (column.key === "mode") return <td key={column.key} className="truncate px-4 py-3 text-slate-600">{product.mode === "variant" ? `${product.variants.length} variant` : "Tanpa variant"}</td>;
     if (column.key === "price") return <td key={column.key} className="px-4 py-3 font-bold text-slate-800">{formatPrice(product.price)}</td>;
-    if (column.key === "stock") return <td key={column.key} className="px-4 py-3"><div className="flex items-center gap-2"><p className="text-sm font-extrabold text-slate-800">{product.stock.toLocaleString("id-ID")}</p>{product.minStock > 0 && Number(product.stock) <= Number(product.minStock) ? <span title={`Di bawah minimal stok ${product.minStock.toLocaleString("id-ID")}`} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-700"><span className="material-symbols-outlined text-[12px]">priority_high</span>Restock</span> : null}</div>{product.poStock > 0 ? <p className="text-[11px] font-bold text-amber-600">PO {product.poStock.toLocaleString("id-ID")}</p> : null}<p className="text-[11px] text-slate-400">Total {product.totalStock.toLocaleString("id-ID")}{product.minStock > 0 ? ` · Min ${product.minStock.toLocaleString("id-ID")}` : ""}</p></td>;
+    if (column.key === "stock") return <td key={column.key} className="px-4 py-3"><div className="flex items-center gap-[5px]"><p className="text-sm font-extrabold text-slate-800">{product.stock.toLocaleString("id-ID")}</p>{product.minStock > 0 && Number(product.stock) <= Number(product.minStock) ? <span title={`Di bawah minimal stok ${product.minStock.toLocaleString("id-ID")}`} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-700"><span className="material-symbols-outlined text-[12px]">priority_high</span>Restock</span> : null}</div>{product.poStock > 0 ? <p className="text-[11px] font-bold text-amber-600">PO {product.poStock.toLocaleString("id-ID")}</p> : null}<p className="text-[11px] text-slate-400">Total {product.totalStock.toLocaleString("id-ID")}{product.minStock > 0 ? ` · Min ${product.minStock.toLocaleString("id-ID")}` : ""}</p></td>;
     if (column.key === "status") return <td key={column.key} className="px-4 py-3"><div onClick={(event) => event.stopPropagation()} className="w-full"><SearchableSelect value={product.status} disabled={pendingId === product.id} onChange={(nextValue) => onStatusChange?.(product, nextValue)} options={[{ value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "archived", label: "Archived" }]} clearable={false} buttonClassName="h-8 px-2 text-xs" /></div></td>;
     return <td key={column.key} className="px-4 py-3" onClick={(event) => event.stopPropagation()}><InlineActiveSwitch checked={product.isActive} onChange={(checked) => onToggleActive?.(product, checked)} compact />{!admin ? <div className="mt-1"><StatusBadge status={product.status} /></div> : null}</td>;
   };
@@ -176,7 +176,7 @@ export const SellerProductTable = memo(function SellerProductTable({
       const variantValues = (variant.values || []).map((item) => item.value).filter(Boolean).join(" · ");
       return (
         <td key={column.key} className="py-2 pr-4 pl-4">
-          <div className="flex items-center gap-2 pl-8">
+          <div className="flex items-center gap-[5px] pl-8">
             <span className="material-symbols-outlined shrink-0 text-[16px] leading-none text-slate-400">subdirectory_arrow_right</span>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-slate-700">{toTitleCase(variant.name) || variant.sku || "Variant"}</p>
@@ -191,7 +191,7 @@ export const SellerProductTable = memo(function SellerProductTable({
     if (column.key === "stock") {
       return (
         <td key={column.key} className="px-4 py-2">
-          <div className="flex items-center gap-2"><p className="text-sm font-extrabold text-slate-800">{variant.stock.toLocaleString("id-ID")}</p>{variant.minStock > 0 && variant.stock <= variant.minStock ? <span title={`Di bawah minimal stok ${variant.minStock.toLocaleString("id-ID")}`} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-700"><span className="material-symbols-outlined text-[12px]">priority_high</span>Restock</span> : null}</div>
+          <div className="flex items-center gap-[5px]"><p className="text-sm font-extrabold text-slate-800">{variant.stock.toLocaleString("id-ID")}</p>{variant.minStock > 0 && variant.stock <= variant.minStock ? <span title={`Di bawah minimal stok ${variant.minStock.toLocaleString("id-ID")}`} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-700"><span className="material-symbols-outlined text-[12px]">priority_high</span>Restock</span> : null}</div>
           {variant.poStock > 0 ? <p className="text-[11px] font-bold text-amber-600">PO {variant.poStock.toLocaleString("id-ID")}</p> : null}
         </td>
       );

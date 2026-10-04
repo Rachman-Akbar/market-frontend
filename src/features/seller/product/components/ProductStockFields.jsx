@@ -42,9 +42,9 @@ export const ProductStockFields = memo(function ProductStockFields({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[5px]">
             <span className="material-symbols-outlined text-slate-400">warehouse</span>
             <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Stok</h2>
           </div>
@@ -56,7 +56,7 @@ export const ProductStockFields = memo(function ProductStockFields({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200">
+      <div className="overflow-hidden rounded-[10px] border border-slate-200">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100 text-xs font-extrabold text-slate-600">

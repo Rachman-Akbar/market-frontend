@@ -6,15 +6,27 @@ export const Popover = memo(function Popover({
   children,
   className,
   onOpenChange,
+  open: openProp,
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const rootRef = useRef(null);
   const lastEmittedRef = useRef(false);
   const onOpenChangeRef = useRef(onOpenChange);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? Boolean(openProp) : internalOpen;
+  const openRef = useRef(open);
+  const controlledRef = useRef(isControlled);
+
+  openRef.current = open;
+  controlledRef.current = isControlled;
 
   useEffect(() => {
     onOpenChangeRef.current = onOpenChange;
   }, [onOpenChange]);
+
+  useEffect(() => {
+    lastEmittedRef.current = open;
+  }, [open]);
 
   const emit = (next) => {
     if (lastEmittedRef.current !== next) {
@@ -24,16 +36,14 @@ export const Popover = memo(function Popover({
   };
 
   const close = useCallback(() => {
-    setOpen(false);
+    if (!controlledRef.current) setInternalOpen(false);
     emit(false);
   }, []);
 
   const toggle = useCallback(() => {
-    setOpen((current) => {
-      const next = !current;
-      emit(next);
-      return next;
-    });
+    const next = !openRef.current;
+    if (!controlledRef.current) setInternalOpen(next);
+    emit(next);
   }, []);
 
   useEffect(() => {

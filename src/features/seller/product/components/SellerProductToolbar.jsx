@@ -15,22 +15,22 @@ export function SellerProductToolbar({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Cari produk, SKU, kategori"
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100"
+          className="h-11 w-full rounded-[10px] border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-[#10B981] focus:ring-2 focus:ring-emerald-100"
         />
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-[5px]">
         <button
           type="button"
           onClick={onRefresh}
           disabled={refreshing}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-[#10B981] hover:text-[#047857] disabled:opacity-60"
+          className="rounded-[10px] border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-[#10B981] hover:text-[#047857] disabled:opacity-60"
         >
           Refresh Data
         </button>
         <button
           type="button"
           onClick={onCreate}
-          className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#059669]"
+          className="rounded-[10px] bg-[#10B981] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#059669]"
         >
           Tambah Produk
         </button>

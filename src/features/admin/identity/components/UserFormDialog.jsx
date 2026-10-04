@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { required, validateFields } from "@/core/utils/formValidation";
@@ -115,9 +115,9 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
           </FormField>
           <div className="md:col-span-2">
             <p className="text-sm font-extrabold text-slate-800">Role</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-2 grid gap-[5px] sm:grid-cols-2 lg:grid-cols-3">
               {(rolesQuery.data || []).filter((role) => role.isActive || values.roleIds.includes(role.id)).map((role) => (
-                <label key={role.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700">
+                <label key={role.id} className="flex cursor-pointer items-center gap-[5px] rounded-[10px] border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700">
                   <input type="checkbox" checked={values.roleIds.includes(role.id)} onChange={() => toggleRole(role.id)} className="h-4 w-4 rounded border-slate-300 text-teal-600" />
                   <span className="capitalize">{role.name}</span>
                 </label>
@@ -125,20 +125,20 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
             </div>
             {errors.roleIds ? <p className="mt-1 text-xs font-semibold text-red-600">{errors.roleIds}</p> : null}
           </div>
-          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-700">
+          <label className="flex items-center gap-3 rounded-[10px] border border-slate-200 p-4 text-sm font-semibold text-slate-700">
             <input type="checkbox" checked={values.isEmailVerified} onChange={(event) => setField("isEmailVerified", event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600" />
             Email terverifikasi
           </label>
           {canBeBanned ? (
-            <label className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/40 p-4 text-sm font-semibold text-red-700">
+            <label className="flex items-center gap-3 rounded-[10px] border border-red-200 bg-red-50/40 p-4 text-sm font-semibold text-red-700">
               <input type="checkbox" checked={values.isBanned} onChange={(event) => { const checked = event.target.checked; setValues((current) => ({ ...current, isBanned: checked, isActive: checked ? false : current.isActive })); }} className="h-4 w-4 rounded border-red-300 text-red-600" />
               Banned akun admin
             </label>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">Banned hanya tersedia untuk akun dengan role admin.</div>
+            <div className="rounded-[10px] border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">Banned hanya tersedia untuk akun dengan role admin.</div>
           )}
           <div className="md:col-span-2">
-            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+            <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
               <div>
                 <span className="block text-sm font-bold text-slate-700">Status aktif</span>
                 <span className="block text-[11px] text-slate-400">Akun nonaktif tidak dapat menggunakan sesi atau role aktif.</span>
@@ -147,13 +147,13 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
             </div>
           </div>
           {user && (
-            <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="md:col-span-2 rounded-[10px] border border-slate-200 bg-slate-50 p-4">
               <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
                 <input type="checkbox" checked={useCustomChatMessage} onChange={(event) => setUseCustomChatMessage(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600" />
                 Kirim pesan notifikasi custom ke user
               </label>
               {useCustomChatMessage ? (
-                <textarea value={chatMessage} onChange={(event) => setChatMessage(event.target.value)} rows={3} className="mt-2 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30" placeholder="Ketik pesan custom. Gunakan {user_name} jika perlu." />
+                <textarea value={chatMessage} onChange={(event) => setChatMessage(event.target.value)} rows={3} className="mt-2 block w-full rounded-[10px] border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30" placeholder="Ketik pesan custom. Gunakan {user_name} jika perlu." />
               ) : (
                 <p className="mt-2 text-xs text-slate-500">Pesan default akan dikirim otomatis jika status banned atau aktif/nonaktif berubah.</p>
               )}
@@ -161,11 +161,7 @@ export function UserFormDialog({ open, user, onClose, onSaved, onDelete }) {
           )}
         </div>
         </FormEditorLayout>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          {user && onDelete ? <button type="button" onClick={() => onDelete(user)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan User</button>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel="Simpan User" submitIcon="save" disabled={mutation.isPending || !dirty} tone="teal" onDelete={user && onDelete ? () => onDelete(user) : undefined} />
       </form>
     </CrudDialog>
   );

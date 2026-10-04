@@ -25,7 +25,7 @@ export default class ErrorBoundary extends Component {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-6 rounded-xl bg-[#10B981] px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
+            className="mt-6 rounded-[10px] bg-[#10B981] px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
           >
             Muat Ulang
           </button>

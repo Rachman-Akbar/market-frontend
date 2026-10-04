@@ -41,7 +41,7 @@ export const Pagination = memo(function Pagination({ current = 1, total = 1, onC
   );
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-12">
+    <div className="flex items-center justify-center gap-[5px] mt-12">
       <button
         type="button"
         disabled={safeCurrent <= 1}

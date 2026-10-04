@@ -23,6 +23,7 @@ const EMPTY_COLUMN_FILTERS = { product: "", mode: "", price: { min: "", max: "" 
 
 export default function SellerProductsPage() {
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [sort, setSort] = useState({ by: "created_at", direction: "desc" });
   const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -51,6 +52,14 @@ export default function SellerProductsPage() {
   const deleteMutation = useDeleteSellerProduct();
   const quickUpdateMutation = useUpdateSellerProduct();
   const isInitialLoading = productsQuery.isLoading && !productsQuery.data;
+  const handleRefresh = async () => {
+    setManualRefreshing(true);
+    try {
+      await productsQuery.refetch();
+    } finally {
+      setManualRefreshing(false);
+    }
+  };
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: productsQuery.refetch });
   const rows = productsQuery.data?.rows || [];
   const columns = useMemo(() => mergeColumns(PRODUCT_TABLE_COLUMNS.filter((column) => column.key !== "store" && column.key !== "status"), buildRawColumns(rows, ["id", "store_id", "name", "thumbnail", "variants", "images", "price", "stock", "status", "is_active"])), [rows]);
@@ -109,8 +118,8 @@ export default function SellerProductsPage() {
             query={query}
             onQueryChange={setQuery}
             onCreate={editor.create}
-            onRefresh={() => productsQuery.refetch()}
-            refreshing={productsQuery.isFetching}
+            onRefresh={handleRefresh}
+            refreshing={manualRefreshing}
             createLabel="Tambah Produk"
             placeholder="Cari nama, toko, SKU, brand, atau variant"
             totalCount={productsQuery.data?.meta?.total}
@@ -134,7 +143,7 @@ export default function SellerProductsPage() {
             <>
               <SellerProductTable
                 rows={rows}
-                isLoading={productsQuery.isFetching && !productsQuery.isFetchingNextPage}
+                isLoading={Boolean(productsQuery.isPlaceholderData)}
                 onEdit={editor.edit}
                 onToggleActive={toggleActive}
                 pendingId={quickUpdateMutation.variables?.id}

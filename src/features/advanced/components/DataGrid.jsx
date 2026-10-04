@@ -18,7 +18,7 @@ function valueText(value) {
   return formatted !== "-" ? String(formatted).toLowerCase() : "";
 }
 
-export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey, hasNextPage = false, isFetchingNextPage = false, onLoadMore }) {
+export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", onRowClick, selectionEnabled = false, selectedIds = new Set(), allSelected = false, onToggleRow, onToggleAll, storageKey, hasNextPage = false, isFetchingNextPage = false, onLoadMore, onFilterStateChange }) {
   const { register, unregister } = useToolbarTableColumns();
   const visibleState = useColumnVisibility(columns, storageKey || `advanced.${columns.map((column) => column.key).join(".")}`);
   const visibleColumns = useMemo(
@@ -89,6 +89,10 @@ export function DataGrid({ columns, rows, emptyText = "Data belum tersedia.", on
 
   const tableWidth = layout.totalWidth + (selectionEnabled ? 44 : 0);
   const activeFilterCount = Object.keys(columnFilters).filter((key) => hasFilterValue(filterConfig[key]?.type, columnFilters[key])).length;
+
+  useEffect(() => {
+    onFilterStateChange?.({ activeCount: activeFilterCount, filteredCount: sortedRows.length, loadedCount: rows.length });
+  }, [activeFilterCount, onFilterStateChange, rows.length, sortedRows.length]);
 
   useEffect(() => {
     if (!register) return undefined;

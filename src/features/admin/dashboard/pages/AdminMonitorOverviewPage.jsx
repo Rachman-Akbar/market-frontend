@@ -40,7 +40,7 @@ function InfoGrid({ stats }) {
       {cards.map((card) => (
         <Card key={card.label}>
           <CardContent className="flex items-center gap-3 p-4">
-            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 ${card.accent}`}>
+            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-slate-100 ${card.accent}`}>
               <span className="material-symbols-outlined text-[22px]">{card.icon}</span>
             </span>
             <div className="min-w-0">
@@ -74,7 +74,7 @@ function TopStoresRanking({ stores, startDate }) {
               <Link
                 key={store.store_id}
                 to={`/admin/store-context?storeId=${store.store_id}`}
-                className="block rounded-2xl border border-slate-100 bg-slate-50/60 p-3 transition hover:border-teal-300 hover:bg-teal-50/40"
+                className="block rounded-[10px] border border-slate-100 bg-slate-50/60 p-3 transition hover:border-teal-300 hover:bg-teal-50/40"
               >
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -113,7 +113,7 @@ function OrderTrendMini({ trend }) {
           <h2 className="text-base font-extrabold text-slate-950">Tren Order &amp; Pendapatan</h2>
           <p className="text-sm text-slate-500">Perbandingan jumlah pesanan dan pendapatan per hari pada periode terpilih.</p>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-[5px]">
           <StatCard label="Total Order" value={totalOrders.toLocaleString("id-ID")} tone="sky" />
           <StatCard label="Pendapatan" value={formatRupiah(totalRevenue)} tone="emerald" />
           <StatCard label="Selesai" value={totalCompleted.toLocaleString("id-ID")} tone="slate" />
@@ -168,7 +168,7 @@ export default function AdminMonitorOverviewPage() {
                     </p>
                     <Link
                       to="/admin/store-context"
-                      className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-[10px] bg-indigo-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
                     >
                       <span className="material-symbols-outlined text-base">storefront</span>
                       Buka Store Context

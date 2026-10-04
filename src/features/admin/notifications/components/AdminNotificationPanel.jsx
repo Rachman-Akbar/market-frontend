@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminRealtimeNotifications } from "@/features/admin/notifications/context/AdminRealtimeNotificationContext";
+import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
+import { NotificationItem } from "@/shared/notifications/NotificationCenterPage";
 
 const MODULE_LABELS = {
   orders: "Pesanan",
@@ -21,6 +23,7 @@ function iconFor(module) {
 
 export function AdminNotificationPanel({ onClose }) {
   const center = useAdminRealtimeNotifications();
+  const notificationCenter = useNotificationCenter();
   const navigate = useNavigate();
   const [confirmId, setConfirmId] = useState(null);
   const confirmTimerRef = useRef(null);
@@ -51,8 +54,8 @@ export function AdminNotificationPanel({ onClose }) {
   return (
     <section className="flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden bg-slate-50 shadow-2xl ring-1 ring-slate-200">
       <header className="border-b border-slate-200 bg-white px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="flex items-center justify-between gap-[5px]">
+          <div className="flex min-w-0 items-center gap-[5px]">
             <p className="truncate text-xs font-black uppercase tracking-[0.18em] text-teal-700">Notifikasi Admin</p>
             <span className={`h-2 w-2 shrink-0 rounded-full ${center.connected ? "bg-emerald-500" : "bg-amber-500"}`} />
           </div>
@@ -71,6 +74,36 @@ export function AdminNotificationPanel({ onClose }) {
       </header>
 
       <div className="max-h-[min(60vh,26rem)] flex-1 overflow-y-auto">
+        {notificationCenter.queueItems.length ? (
+          <div>
+            <div className="flex items-center justify-between gap-[5px] border-b border-slate-100 bg-slate-100/70 px-4 py-2">
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-teal-700">Antrean ({notificationCenter.queueItems.length})</p>
+              <button
+                type="button"
+                onClick={() => {
+                  notificationCenter.setOpen(true);
+                  onClose?.();
+                }}
+                className="h-6 px-1.5 text-[11px] font-extrabold text-slate-500 hover:text-slate-800"
+              >
+                Lihat detail
+              </button>
+            </div>
+            {notificationCenter.queueItems.map((item) => (
+              <NotificationItem key={item.id} item={item} onRemove={notificationCenter.remove} />
+            ))}
+          </div>
+        ) : null}
+        {notificationCenter.infoItems.length ? (
+          <div>
+            <div className="border-b border-slate-100 bg-slate-100/70 px-4 py-2">
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Info ({notificationCenter.infoItems.length})</p>
+            </div>
+            {notificationCenter.infoItems.slice(0, 8).map((item) => (
+              <NotificationItem key={item.id} item={item} onRemove={notificationCenter.remove} />
+            ))}
+          </div>
+        ) : null}
         {center.loading ? (
           <div className="space-y-2 p-3">
             {[1, 2, 3, 4].map((value) => <div key={value} className="h-20 animate-pulse bg-white" />)}
@@ -80,7 +113,7 @@ export function AdminNotificationPanel({ onClose }) {
             <button type="button" onClick={() => openNotification(item)} className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left">
               <span className={`material-symbols-outlined mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${item.readAt ? "bg-slate-100 text-slate-500" : "bg-teal-100 text-teal-700"}`}>{iconFor(item.module)}</span>
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-[5px]">
                   <span className="truncate text-sm font-black text-slate-900">{item.title}</span>
                   {!item.readAt ? <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" /> : null}
                 </span>

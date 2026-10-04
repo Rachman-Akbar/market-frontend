@@ -11,6 +11,7 @@ import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -25,6 +26,7 @@ export default function AdminStoresPage() {
   const storesQuery = useAdminStores({ per_page: PER_PAGE, ...(search ? { search } : {}), ...(status ? { status } : {}) });
   const statusMutation = useUpdateAdminStoreStatus();
   const rows = storesQuery.data?.rows || [];
+  const total = useListTotalCount(storesQuery.data?.meta, { fallbackTotal: rows.length, label: "Toko" });
   const columns = useMemo(() => mergeColumns(ADMIN_STORE_COLUMNS, buildRawColumns(rows, ["id", "user_id", "name", "slug", "description", "short_description", "phone", "email", "city", "province", "address", "status", "is_active", "logo", "banner_url", "created_at", "updated_at"])), [rows]);
   const selection = useTableSelection(rows);
   const columnVisibility = useColumnVisibility(columns, "admin-stores");
@@ -68,6 +70,9 @@ export default function AdminStoresPage() {
             onRefresh={() => storesQuery.refetch()}
             refreshing={storesQuery.isFetching}
             placeholder="Cari toko lalu tekan Enter"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

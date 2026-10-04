@@ -5,7 +5,9 @@ import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
 import { Input } from "@/shared/components/ui/Input";
+import { toolbarControlClassName } from "@/shared/components/crud/toolbarControlClassName";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -28,11 +30,12 @@ export default function PromotionPaymentsPage() {
   const [reviewAction, setReviewAction] = useState("");
   const [reviewReason, setReviewReason] = useState("");
   const panelTabs = usePanelTabs();
-  const editor = useEntityEditor({ createLabel: "Data Baru Pembayaran Promosi" });
+  const editor = useEntityEditor();
   const listQuery = usePromotionPayments({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}), ...(status ? { status } : {}) });
   const createMutation = useCreatePromotionPayment();
   const reviewMutation = useReviewPromotionPayment();
   const rows = listQuery.data?.rows || [];
+  const total = useListTotalCount(listQuery.data?.meta, { fallbackTotal: rows.length, label: "Pembayaran" });
   const reviewOpen = panelTabs ? panelTabs.activeTab?.type === "promotion-payment-review" : localReviewOpen;
   const activeReviewRow = panelTabs?.activeTab?.entity || reviewRow;
   const activeReviewAction = panelTabs?.activeTab?.payload?.action || reviewAction;
@@ -125,9 +128,13 @@ export default function PromotionPaymentsPage() {
           refreshing={listQuery.isFetching}
           onCreate={admin ? undefined : editor.create}
           createLabel="Ajukan Pembayaran"
-          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 border border-slate-300 bg-white px-3 text-sm"><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
+          totalCount={total.totalCount}
+          totalLabel={total.totalLabel}
+          totalTitle={total.totalTitle}
+          filters={<select value={status} onChange={(event) => setStatus(event.target.value)} className={toolbarControlClassName}><option value="">Semua status</option>{["pending", "approved", "rejected"].map((item) => <option key={item}>{item}</option>)}</select>}
         >
           <DataGrid
+            onFilterStateChange={total.onFilterStateChange}
             columns={columns}
             rows={rows}
             onRowClick={(row) => admin && row.status === "pending" ? openReview(row, "approve") : undefined}
@@ -147,7 +154,10 @@ export default function PromotionPaymentsPage() {
         onSubmit={submitReview}
         busy={reviewMutation.isPending}
         submitLabel={activeReviewAction === "approve" ? "Setujui Pembayaran" : "Tolak Pembayaran"}
-        dangerAction={activeReviewAction === "approve" && activeReviewRow ? <button type="button" onClick={() => openReview(activeReviewRow, "reject")} className="h-8 select-none bg-red-50 px-4 text-xs font-extrabold text-red-600 hover:bg-red-100">Tolak {'\u00b7'} isi alasan</button> : undefined}
+        saveIcon={activeReviewAction === "approve" ? "check" : "close"}
+        tone={activeReviewAction === "approve" ? "emerald" : "rose"}
+        onDelete={activeReviewAction === "approve" && activeReviewRow ? () => openReview(activeReviewRow, "reject") : undefined}
+        deleteLabel="Tolak & Isi Alasan"
       >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-1.5 text-sm font-bold text-slate-700">

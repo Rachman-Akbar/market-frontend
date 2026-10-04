@@ -2,7 +2,7 @@ import { memo } from "react";
 import { cn } from "@/shared/utils/utils";
 
 const Card = memo(({ className, ...props }) => (
-  <div className={cn("rounded-xl border border-gray-200 bg-white shadow-sm", className)} {...props} />
+  <div className={cn("rounded-[10px] border border-gray-200 bg-white shadow-sm", className)} {...props} />
 ));
 
 const CardHeader = memo(({ className, ...props }) => (

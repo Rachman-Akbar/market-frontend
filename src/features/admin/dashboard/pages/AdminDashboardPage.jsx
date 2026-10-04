@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
         <AdminMiniChart values={data.revenueSeries} />
-        <div className="rounded-3xl border border-slate-200 bg-white p-5">
+        <div className="rounded-[10px] border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-base font-extrabold text-slate-950">Antrean moderasi</h2>
@@ -40,7 +40,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="space-y-3">
             {data.moderationQueue.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div key={item.id} className="rounded-[10px] border border-slate-100 bg-slate-50 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold text-teal-700">{item.type} · {item.id}</p>

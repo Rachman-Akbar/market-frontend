@@ -4,12 +4,13 @@ import { advancedError, useDeleteMission, useMissions, useMissionEventTypes, use
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
-import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { inputClassName } from "@/shared/components/form/FormField";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialForm() {
@@ -28,13 +29,14 @@ export default function MissionsPage() {
   const [pristine, setPristine] = useState(() => initialForm());
   const dirty = useFormDirty(pristine, form);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const editor = useEntityEditor({ createLabel: "Data Baru Misi", getEditLabel: (row) => row.name });
+  const editor = useEntityEditor({ getEditLabel: (row) => row.name });
   const listQuery = useMissions({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) }, admin);
   const eventTypesQuery = useMissionEventTypes();
   const eventTypes = eventTypesQuery.data || {};
   const saveMutation = useSaveMission();
   const deleteMutation = useDeleteMission();
   const rows = listQuery.data?.rows || [];
+  const total = useListTotalCount(listQuery.data?.meta, { fallbackTotal: rows.length, label: "Misi" });
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
 
   useEffect(() => {
@@ -95,12 +97,12 @@ export default function MissionsPage() {
 
   return (
     <>
-      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi"><DataGrid columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} /></ModuleFrame> : null}
+      {editor.isListActive ? <ModuleFrame title={admin ? "Games dan Mission" : "Misi Saya"} subtitle={admin ? "CRUD misi memakai tab data baru seperti Product." : "Progress diperbarui otomatis dari aktivitas pesanan dan review."} query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={admin ? editor.create : undefined} createLabel="Tambah Misi" totalCount={total.totalCount} totalLabel={total.totalLabel} totalTitle={total.totalTitle}><DataGrid onFilterStateChange={total.onFilterStateChange} columns={columns} rows={rows} onRowClick={admin ? (row) => editor.edit(row) : undefined} emptyText={listQuery.isLoading ? "" : "Misi belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} /></ModuleFrame> : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Misi" message={`Misi “${deleteTarget?.name || ""}” akan dihapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
-      <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending || !dirty} dangerAction={admin && editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
+      <FormModal open={admin && editor.open} title={editor.entity ? "Edit Misi" : "Tambah Misi"} subtitle="Form misi tampil pada tab data tersendiri." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending || !dirty} onDelete={admin && editor.entity ? () => { setDeleteTarget(editor.entity); editor.close(); } : undefined}>
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nama" required><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required /></Field><Field label="Kode"><Input value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} /></Field></div>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-24 border border-slate-300 p-3 text-sm" /></Field>
-        <div className="grid gap-4 md:grid-cols-3"><Field label="Event"><select value={form.event_type} onChange={(event) => setForm((current) => ({ ...current, event_type: event.target.value }))} className="h-10 border border-slate-300 px-3"><option value="">— pilih event —</option>{Object.entries(eventTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Target" required><Input type="number" min="1" value={form.target_value} onChange={(event) => setForm((current) => ({ ...current, target_value: event.target.value }))} required /></Field><Field label="ID Voucher"><Input type="number" min="1" value={form.voucher_id} onChange={(event) => setForm((current) => ({ ...current, voucher_id: event.target.value }))} /></Field></div>
+        <div className="grid gap-4 md:grid-cols-3"><Field label="Event"><select value={form.event_type} onChange={(event) => setForm((current) => ({ ...current, event_type: event.target.value }))} className={inputClassName}><option value="">— pilih event —</option>{Object.entries(eventTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Target" required><Input type="number" min="1" value={form.target_value} onChange={(event) => setForm((current) => ({ ...current, target_value: event.target.value }))} required /></Field><Field label="ID Voucher"><Input type="number" min="1" value={form.voucher_id} onChange={(event) => setForm((current) => ({ ...current, voucher_id: event.target.value }))} /></Field></div>
         <div className="grid gap-4 md:grid-cols-2"><Field label="Mulai" required><Input type="datetime-local" value={form.starts_at} onChange={(event) => setForm((current) => ({ ...current, starts_at: event.target.value }))} required /></Field><Field label="Berakhir" required><Input type="datetime-local" value={form.ends_at} onChange={(event) => setForm((current) => ({ ...current, ends_at: event.target.value }))} required /></Field></div>
         <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3"><span className="text-sm font-bold text-slate-700">Status aktif</span><InlineActiveSwitch checked={form.is_active} onChange={(checked) => setForm((current) => ({ ...current, is_active: checked }))} showLabel={false} /></div>
       </FormModal>

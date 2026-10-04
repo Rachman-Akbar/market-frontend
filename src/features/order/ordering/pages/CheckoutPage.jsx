@@ -28,6 +28,7 @@ import {
   getBestCheckoutVoucher,
 } from "@/features/order/voucher/utils/checkoutVoucher";
 import { Button } from "@/shared/components/ui/Button";
+import { showOrderCreatedAlert } from "@/shared/utils/userFeedback";
 import { Separator } from "@/shared/components/ui/Separator";
 import { formatPrice } from "@/shared/utils/utils";
 
@@ -416,6 +417,14 @@ export default function CheckoutPage() {
     refreshCart().catch(() => null);
 
     const orderRoute = getCreatedOrderRoute(order);
+    const requiresPayment = payment === "midtrans";
+
+    await showOrderCreatedAlert({
+      orderNumber: order?.order_number || order?.orderNumber || "",
+      orderId: order?.id || "",
+      totalLabel: formatPrice(total),
+      requiresPayment,
+    });
 
     if (payment !== "midtrans") {
       navigate(orderRoute, {

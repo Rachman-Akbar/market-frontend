@@ -34,6 +34,10 @@ function ModuleFrameInner({
   onShowAllColumns,
   onResetColumns,
   onApplyDefaultColumns,
+  extraActions,
+  totalCount,
+  totalLabel = "Data",
+  totalTitle = "",
 }) {
   const { registration } = useToolbarTableColumns();
   const incomingProps = {
@@ -68,6 +72,10 @@ function ModuleFrameInner({
         onShowAllColumns={resolved.onShowAllColumns}
         onResetColumns={resolved.onResetColumns}
         onApplyDefaultColumns={resolved.onApplyDefaultColumns}
+        extraActions={extraActions}
+        totalCount={totalCount}
+        totalLabel={totalLabel}
+        totalTitle={totalTitle}
       />
       <div className="space-y-0.5">{children}</div>
     </section>

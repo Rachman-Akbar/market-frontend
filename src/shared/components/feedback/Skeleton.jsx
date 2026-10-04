@@ -17,7 +17,7 @@ export const SkeletonCircle = memo(function SkeletonCircle({ className }) {
 
 export function SkeletonProductCard() {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white p-4">
+    <div className="flex flex-col gap-[5px] rounded-[10px] border border-slate-100 bg-white p-4">
       <div className="flex items-center justify-between">
         <Skeleton className="h-9 w-9 rounded-lg" />
         <Skeleton className="h-4 w-12 rounded-full" />
@@ -41,7 +41,7 @@ export const SkeletonProductGrid = memo(function SkeletonProductGrid({ count = 8
 
 export const SkeletonTable = memo(function SkeletonTable({ rows = 5, cols = 4 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-100" aria-busy="true">
+    <div className="overflow-hidden rounded-[10px] border border-slate-100" aria-busy="true">
       <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
         {Array.from({ length: cols }).map((_, i) => (
           <Skeleton key={i} className="h-3 flex-1" />
@@ -60,8 +60,8 @@ export const SkeletonTable = memo(function SkeletonTable({ rows = 5, cols = 4 })
 
 export const SkeletonStatCard = memo(function SkeletonStatCard() {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4">
-      <Skeleton className="h-11 w-11 rounded-xl" />
+    <div className="flex items-center gap-3 rounded-[10px] border border-slate-100 bg-white p-4">
+      <Skeleton className="h-11 w-11 rounded-[10px]" />
       <div className="min-w-0 flex-1 space-y-2">
         <SkeletonLine className="w-1/2" />
         <SkeletonLine className="w-3/4" />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { required, validateFields } from "@/core/utils/formValidation";
@@ -13,7 +13,8 @@ import {
   useUpdateAdminGameContent,
 } from "@/features/admin/gameContent/services/adminGameContentService";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { useTabDirtyGuard } from "@/shared/hooks/useTabDirtyGuard";
+import { toastError } from "@/shared/utils/userFeedback";
 
 function initialValues(entity) {
   return {
@@ -35,6 +36,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
   const [errors, setErrors] = useState({});
   const pristine = initialValues(entity);
   const dirty = useFormDirty(pristine, values);
+  useTabDirtyGuard(dirty);
   const createMutation = useCreateAdminGameContent();
   const updateMutation = useUpdateAdminGameContent();
   const mutation = entity ? updateMutation : createMutation;
@@ -123,15 +125,14 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
     try {
       const saved = entity ? await updateMutation.mutateAsync({ id: entity.id, values }) : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      toastSuccess(entity ? "Konten game berhasil diperbarui." : "Konten game berhasil ditambahkan.");
-      window.setTimeout(() => onClose?.(), 350);
+            window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
       toastError("Gagal menyimpan konten game", getAdminGameContentError(error));
     }
   };
 
   return (
-    <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Konten Game" : "Tambah Konten Game"} subtitle={hint} size="max-w-6xl" presentation="modal">
+    <CrudDialog open={open} onClose={onClose} title={entity ? "Edit Konten Game" : "Tambah Konten Game"} subtitle={hint} size="max-w-6xl">
       <form onSubmit={submit}>
         <FormEditorLayout
           actions={
@@ -182,7 +183,7 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
               />
             ) : (
               <FormField label="Data (JSON)" hint={`${hint} Setiap baris dihitung sebagai 1 item konten.`} error={errors.payload} className="md:col-span-2">
-                <textarea value={jsonText} onChange={(event) => updatePayloadFromJson(event.target.value)} rows={12} spellCheck={false} className="min-h-56 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs leading-5 text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
+                <textarea value={jsonText} onChange={(event) => updatePayloadFromJson(event.target.value)} rows={12} spellCheck={false} className="min-h-56 w-full resize-y rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs leading-5 text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
                 <span className="mt-1 block text-xs text-slate-400">
                   Item aktif: {Array.isArray(values.payload) ? values.payload.length : typeof values.payload === "object" ? Object.keys(values.payload || {}).length : 0}
                 </span>
@@ -191,30 +192,21 @@ export function AdminGameContentEditor({ open, entity, onClose, onSaved, onDelet
           </div>
 
           <div className="md:col-span-2">
-            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+            <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
               <span className="text-sm font-bold text-slate-700">Status aktif</span>
               <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
             </div>
           </div>
         </div>
         </FormEditorLayout>
-        <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
-          <div>
-            {entity && onDelete ? (
-              <button type="button" onClick={onDelete} className="h-10 select-none border border-red-200 px-4 text-sm font-bold text-red-600 hover:bg-red-50">
-                Hapus
-              </button>
-            ) : null}
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="h-10 select-none border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:border-slate-300">
-              Batal
-            </button>
-            <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 select-none px-5 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white hover:bg-teal-700" : "bg-slate-100 text-slate-400"}`}>
-              {mutation.isPending ? "Menyimpan..." : "Simpan"}
-            </button>
-          </div>
-        </div>
+        <FormEditorFooter
+          onCancel={onClose}
+          submitLabel={mutation.isPending ? "Menyimpan..." : "Simpan"}
+          submitIcon="save"
+          disabled={mutation.isPending || !dirty}
+          tone="teal"
+          onDelete={entity && onDelete ? onDelete : undefined}
+        />
       </form>
     </CrudDialog>
   );
@@ -232,10 +224,10 @@ function QuizPayloadEditor({ questions = [], onUpdate, onOptionChange, onAdd, on
         </button>
       </div>
       {!questions.length ? (
-        <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">Belum ada soal. Klik "Tambah Soal".</p>
+        <p className="rounded-[10px] border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">Belum ada soal. Klik "Tambah Soal".</p>
       ) : null}
       {questions.map((question, qIndex) => (
-        <div key={qIndex} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div key={qIndex} className="rounded-[10px] border border-slate-200 bg-slate-50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs font-extrabold text-slate-500">Soal #{qIndex + 1}</span>
             <button type="button" onClick={() => onRemove(qIndex)} className="flex h-8 w-8 items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label="Hapus soal">
@@ -243,7 +235,7 @@ function QuizPayloadEditor({ questions = [], onUpdate, onOptionChange, onAdd, on
             </button>
           </div>
           <FormField label="Pertanyaan" required>
-            <textarea value={question.question || ""} onChange={(event) => onUpdate(qIndex, { question: event.target.value })} rows={2} className="min-h-14 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+            <textarea value={question.question || ""} onChange={(event) => onUpdate(qIndex, { question: event.target.value })} rows={2} className="min-h-14 w-full resize-y rounded-[10px] border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
           </FormField>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {optionLetters.map((letter, oIndex) => (

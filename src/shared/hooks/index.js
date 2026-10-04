@@ -7,3 +7,4 @@ export { useInfiniteList } from "./useInfiniteList";
 export { useColumnFilterState } from "./useColumnFilterState";
 export * from "./useTableSelection";
 export * from "./useColumnVisibility";
+export { useListTotalCount } from "./useListTotalCount";

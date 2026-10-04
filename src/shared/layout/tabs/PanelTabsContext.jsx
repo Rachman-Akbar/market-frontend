@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toTitleCase } from "@/shared/utils/textFormatter";
+import { confirmDiscardChanges } from "@/shared/utils/userFeedback";
 
 const PanelTabsContext = createContext(null);
 
@@ -69,6 +70,12 @@ export function PanelTabsProvider({ children, items = [] }) {
     return state;
   });
   const [listRevisionByParent, setListRevisionByParent] = useState({});
+  const [dirtyTabIds, setDirtyTabIds] = useState({});
+  const dirtyTabIdsRef = useRef(dirtyTabIds);
+
+  useEffect(() => {
+    dirtyTabIdsRef.current = dirtyTabIds;
+  }, [dirtyTabIds]);
   const [activeChildByParent, setActiveChildByParent] = useState(() => {
     const state = {};
     if (dashboardParent) state[dashboardParent.id] = "";
@@ -126,10 +133,52 @@ export function PanelTabsProvider({ children, items = [] }) {
     navigate(parent.href);
   }, [navigate, parentTabs]);
 
-  const closeParent = useCallback((parentId) => {
+  const setTabDirty = useCallback((tabId, dirty) => {
+    if (!tabId) return;
+    setDirtyTabIds((current) => {
+      if (Boolean(current[tabId]) === Boolean(dirty)) return current;
+      const next = { ...current };
+      if (dirty) next[tabId] = true;
+      else delete next[tabId];
+      return next;
+    });
+  }, []);
+
+  const clearDirtyTabs = useCallback((tabIds = []) => {
+    setDirtyTabIds((current) => {
+      const next = { ...current };
+      let changed = false;
+      tabIds.forEach((tabId) => {
+        if (next[tabId]) {
+          delete next[tabId];
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+  }, []);
+
+  const markTabClean = useCallback((tabId) => {
+    if (!tabId) return;
+    if (!dirtyTabIdsRef.current[tabId]) return;
+    dirtyTabIdsRef.current = { ...dirtyTabIdsRef.current, [tabId]: false };
+    clearDirtyTabs([tabId]);
+  }, [clearDirtyTabs]);
+
+  const confirmDirtyTabs = useCallback(async (tabsToCheck) => {
+    const dirtyTargets = tabsToCheck.filter((tab) => dirtyTabIdsRef.current[tab.id]);
+    if (!dirtyTargets.length) return true;
+    const confirmed = await confirmDiscardChanges(dirtyTargets.length === 1 ? dirtyTargets[0].label : `${dirtyTargets.length} tab`);
+    if (!confirmed) return false;
+    clearDirtyTabs(dirtyTargets.map((tab) => tab.id));
+    return true;
+  }, [clearDirtyTabs]);
+
+  const closeParent = useCallback(async (parentId) => {
     const index = parentTabs.findIndex((tab) => tab.id === parentId);
     const target = parentTabs[index];
     if (!target?.closable || target?.pinned) return;
+    if (!(await confirmDirtyTabs(childrenByParent[parentId] || []))) return;
     const nextTabs = parentTabs.filter((tab) => tab.id !== parentId);
     setParentTabs(nextTabs);
     setChildrenByParent((current) => {
@@ -149,7 +198,7 @@ export function PanelTabsProvider({ children, items = [] }) {
         navigate(fallback.href);
       }
     }
-  }, [activeParentId, navigate, parentTabs]);
+  }, [activeParentId, childrenByParent, confirmDirtyTabs, navigate, parentTabs]);
 
   const activateTab = useCallback((tabId) => {
     if (!activeParent) return;
@@ -232,36 +281,40 @@ export function PanelTabsProvider({ children, items = [] }) {
     return id;
   }, [activeParent]);
 
-  const closeTab = useCallback((tabId) => {
+  const closeTab = useCallback(async (tabId) => {
     if (!activeParent) return;
+    const childTabs = childrenByParent[activeParent.id] || [];
+    const target = childTabs.find((tab) => tab.id === tabId);
+    if (!target?.closable) return;
+    if (!(await confirmDirtyTabs(childTabs.filter((tab) => tab.id === tabId)))) return;
     setChildrenByParent((current) => {
-      const childTabs = current[activeParent.id] || [];
-      const index = childTabs.findIndex((tab) => tab.id === tabId);
-      const target = childTabs[index];
-      if (!target?.closable) return current;
-      const nextTabs = childTabs.filter((tab) => tab.id !== tabId);
+      const nextTabs = current[activeParent.id]?.filter((tab) => tab.id !== tabId) || [];
       if (activeChildByParent[activeParent.id] === tabId) {
+        const index = childTabs.findIndex((tab) => tab.id === tabId);
         const fallback = nextTabs[Math.max(0, index - 1)] || nextTabs[0];
         setActiveChildByParent((active) => ({ ...active, [activeParent.id]: fallback?.id || `${activeParent.id}:list` }));
       }
       return { ...current, [activeParent.id]: nextTabs.length ? nextTabs : [createListTab(activeParent)] };
     });
-  }, [activeChildByParent, activeParent]);
+  }, [activeChildByParent, activeParent, childrenByParent, confirmDirtyTabs]);
 
   const closeActiveTab = useCallback(() => {
     if (activeTab?.closable) closeTab(activeTab.id);
     else if (activeParent) activateTab(`${activeParent.id}:list`);
   }, [activateTab, activeParent, activeTab, closeTab]);
 
-  const closeAllChildren = useCallback(() => {
+  const closeAllChildren = useCallback(async () => {
     if (!activeParent) return;
     const parentId = activeParent.id;
     if (activeParent.exact || activeParent.noChildTabs) return;
+    if (!(await confirmDirtyTabs(childrenByParent[parentId] || []))) return;
     setChildrenByParent((current) => ({ ...current, [parentId]: [createListTab(activeParent)] }));
     setActiveChildByParent((current) => ({ ...current, [parentId]: `${parentId}:list` }));
-  }, [activeParent]);
+  }, [activeParent, childrenByParent, confirmDirtyTabs]);
 
-  const closeAllParents = useCallback(() => {
+  const closeAllParents = useCallback(async () => {
+    const allTabs = Object.values(childrenByParent).flat();
+    if (!(await confirmDirtyTabs(allTabs))) return;
     const remaining = parentTabs.filter((tab) => !tab.closable);
     const nextTabs = remaining.length ? remaining : [parentTabs[0]].filter(Boolean);
     const nextIds = new Set(nextTabs.map((tab) => tab.id));
@@ -286,7 +339,7 @@ export function PanelTabsProvider({ children, items = [] }) {
       if (fallback) navigate(fallback.href);
       return fallback?.id || "";
     });
-  }, [navigate, parentTabs]);
+  }, [childrenByParent, confirmDirtyTabs, navigate, parentTabs]);
 
   const openList = useCallback(() => {
     if (activeParent) activateTab(`${activeParent.id}:list`);
@@ -330,8 +383,11 @@ export function PanelTabsProvider({ children, items = [] }) {
     openList,
     markListDirty,
     listRevision: Number(listRevisionByParent[activeParent?.id] || 0),
+    setTabDirty,
+    markTabClean,
+    dirtyTabIds,
     navigate,
-  }), [activateParent, activateTab, activeParent, activeParentId, activeTab, activeTabId, closeActiveTab, closeAllChildren, closeAllParents, closeParent, closeTab, items, listRevisionByParent, markListDirty, navigate, openCreateTab, openEditTab, openOperationTab, openList, openParent, parentTabs, tabs]);
+  }), [activateParent, activateTab, activeParent, activeParentId, activeTab, activeTabId, closeActiveTab, closeAllChildren, closeAllParents, closeParent, closeTab, dirtyTabIds, items, listRevisionByParent, markListDirty, navigate, openCreateTab, openEditTab, openOperationTab, openList, openParent, parentTabs, setTabDirty, tabs]);
 
   return <PanelTabsContext.Provider value={value}>{children}</PanelTabsContext.Provider>;
 }

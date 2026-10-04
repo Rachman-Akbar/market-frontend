@@ -134,7 +134,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
             type="button"
             onClick={clearAllFilters}
             title="Reset semua filter dan urutan"
-            className="flex h-8 w-full items-center justify-start gap-2 whitespace-nowrap rounded-md px-2 text-left text-[11px] font-extrabold text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+            className="flex h-8 w-full items-center justify-start gap-[5px] whitespace-nowrap rounded-md px-2 text-left text-[11px] font-extrabold text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <span className="material-symbols-outlined text-[14px]">filter_alt_off</span>
             Reset Filter
@@ -148,7 +148,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
             type="button"
             onClick={() => setSort("desc")}
             className={cn(
-              "flex h-9 w-full items-center gap-2 px-2 text-left font-semibold text-slate-700 hover:bg-slate-50",
+              "flex h-9 w-full items-center gap-[5px] px-2 text-left font-semibold text-slate-700 hover:bg-slate-50",
               activeSort && sortDirection === "desc" && "bg-emerald-50 text-emerald-800",
             )}
           >
@@ -159,7 +159,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
             type="button"
             onClick={() => setSort("asc")}
             className={cn(
-              "flex h-9 w-full items-center gap-2 px-2 text-left font-semibold text-slate-700 hover:bg-slate-50",
+              "flex h-9 w-full items-center gap-[5px] px-2 text-left font-semibold text-slate-700 hover:bg-slate-50",
               activeSort && sortDirection === "asc" && "bg-emerald-50 text-emerald-800",
             )}
           >
@@ -192,7 +192,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
                 type="button"
                 onClick={() => setDraft("")}
                 className={cn(
-                  "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50",
+                  "flex w-full items-center gap-[5px] px-3 py-2 text-left text-sm hover:bg-slate-50",
                   draft === "" && "bg-emerald-50 font-bold text-emerald-800",
                 )}
               >
@@ -205,7 +205,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
                   type="button"
                   onClick={() => setDraft(option.value)}
                   className={cn(
-                    "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50",
+                    "flex w-full items-center gap-[5px] px-3 py-2 text-left text-sm hover:bg-slate-50",
                     String(draft ?? "") === option.value && "bg-emerald-50 font-bold text-emerald-800",
                   )}
                 >
@@ -219,7 +219,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
           ) : null}
 
           {filterType === "range" ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-[5px]">
               <input
                 type="number"
                 min="0"
@@ -255,7 +255,7 @@ export const TableHeaderFilter = memo(function TableHeaderFilter({
             </div>
           ) : null}
 
-          <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="mt-3 flex items-center justify-between gap-[5px]">
             <button
               type="button"
               onClick={clearFilter}

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useCart } from "@/features/order/cart/context/CartContext";
 import { CategoryDropdown } from "@/features/catalog/category/components/CategoryDropdown";
-import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { confirmLogout } from "@/shared/utils/userFeedback";
 
 function openIndependentPortal(path, windowName) {
   window.open(path, windowName, "noopener,noreferrer");
@@ -47,7 +47,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
   }
 
   return (
-    <div className="absolute right-0 top-full z-[95] mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1">
+    <div className="absolute right-0 top-full z-[95] mt-2 w-56 overflow-hidden rounded-[10px] border border-slate-200 bg-white py-1">
       {sharedItems.map((item) => (
         <Link
           key={item.label}
@@ -55,7 +55,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={onClose}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-[#047857]"
+          className="flex w-full items-center gap-[5px] px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-[#047857]"
         >
           <span className="material-symbols-outlined text-[18px] text-slate-500">
             {item.icon}
@@ -72,7 +72,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
             openIndependentPortal(item.path, item.windowName);
             onClose();
           }}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-[#047857]"
+          className="flex w-full items-center gap-[5px] px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-[#047857]"
         >
           <span className="material-symbols-outlined text-[18px] text-slate-500">
             {item.icon}
@@ -86,7 +86,7 @@ function ProfileTooltip({ onClose, onLogout, roles, loading }) {
         type="button"
         onClick={onLogout}
         disabled={loading}
-        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center gap-[5px] px-4 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className="material-symbols-outlined text-[18px]">logout</span>
         {loading ? "Keluar..." : "Logout"}
@@ -103,7 +103,7 @@ export function Navbar() {
   const [query, setQuery] = useState("");
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [profileHover, setProfileHover] = useState(false);
-  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
 
   function handleSearch(event) {
     event.preventDefault();
@@ -113,16 +113,22 @@ export function Navbar() {
     }
   }
 
-  function openLogout() {
+  function closeProfileMenu() {
     setProfileHover(false);
-    setLogoutOpen(true);
   }
 
   async function handleLogout() {
-    setLogoutOpen(false);
-    await logout?.();
-    queryClient.clear();
-    navigate("/", { replace: true });
+    closeProfileMenu();
+    if (logoutPending) return;
+    if (!(await confirmLogout())) return;
+    setLogoutPending(true);
+    try {
+      await logout?.();
+      queryClient.clear();
+      navigate("/", { replace: true });
+    } finally {
+      setLogoutPending(false);
+    }
   }
 
   function handleOpenSellerPanel() {
@@ -218,7 +224,7 @@ export function Navbar() {
             </div>
           </form>
 
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-[5px]">
             <Link
               to="/cart"
               className="relative rounded-lg p-2 text-slate-600 transition hover:bg-emerald-50 hover:text-[#10B981]"
@@ -275,7 +281,7 @@ export function Navbar() {
                   >
                     <ProfileTooltip
                       onClose={() => setProfileHover(false)}
-                      onLogout={openLogout}
+                      onLogout={handleLogout}
                       roles={roles}
                       loading={loading}
                     />
@@ -308,16 +314,6 @@ export function Navbar() {
         onClose={() => setCategoryOpen(false)}
       />
     </header>
-      <ConfirmDialog
-        open={logoutOpen}
-        title="Konfirmasi Logout"
-        message="Anda akan keluar dari akun Ziip. Proses transaksi yang belum selesai mungkin perlu dicek kembali saat login berikutnya."
-        confirmLabel="Ya, Logout"
-        pending={loading}
-        snoozeable={false}
-        onClose={() => setLogoutOpen(false)}
-        onConfirm={handleLogout}
-      />
     </>
   );
 }

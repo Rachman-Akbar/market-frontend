@@ -107,7 +107,7 @@ export default function OrderPrintSheet({ row, onClose }) {
             {items.map((item) => (
               <tr key={item.id} className="border-b border-slate-200">
                 <td className="py-2 pr-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-[5px]">
                     {item.thumbnail ? (
                       <img src={item.thumbnail} alt={item.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" loading="lazy" />
                     ) : null}

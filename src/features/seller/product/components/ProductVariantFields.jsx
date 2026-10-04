@@ -65,7 +65,7 @@ export const ProductVariantFields = memo(function ProductVariantFields({ variant
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-[5px]">
           <span className="material-symbols-outlined text-slate-400">tune</span>
           <div>
             <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Daftar Variant</h2>
@@ -93,12 +93,12 @@ export const ProductVariantFields = memo(function ProductVariantFields({ variant
         return (
           <div key={key} className="overflow-hidden border border-slate-200 bg-white">
             <div className="flex items-center justify-between bg-slate-50 px-4 py-2.5">
-              <button type="button" onClick={() => toggle(key)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+              <button type="button" onClick={() => toggle(key)} className="flex min-w-0 flex-1 items-center gap-[5px] text-left">
                 <span className="material-symbols-outlined text-[19px] text-slate-500">{isExpanded ? "expand_less" : "expand_more"}</span>
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-white text-xs font-extrabold text-slate-700 ring-1 ring-inset ring-slate-200">{index + 1}</span>
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-extrabold text-slate-800">{toTitleCase(variant.name) || `Variant ${index + 1}`}</span>
-                  <span className="block truncate text-[10px] font-bold text-slate-500">{variant.sku || "SKU belum diisi"}</span>
+                  <span className="block truncate text-[10px] font-bold text-slate-500">{variant.sku || "SKU otomatis"}</span>
                 </span>
               </button>
               <div className="flex items-center gap-1">
@@ -117,8 +117,8 @@ export const ProductVariantFields = memo(function ProductVariantFields({ variant
                   <FormField label="Nama variant" required>
                     <input value={variant.name} onChange={(event) => updateVariant(index, "name", event.target.value)} className={inputClassName} placeholder="Contoh: Merah / XL" />
                   </FormField>
-                  <FormField label="SKU" required>
-                    <input value={variant.sku} onChange={(event) => updateVariant(index, "sku", event.target.value)} className={inputClassName} placeholder="SKU-001" />
+                  <FormField label="SKU" hint="Isi kode manual bila punya kode sendiri, atau kosongkan agar sistem membuat SKU otomatis.">
+                    <input value={variant.sku} onChange={(event) => updateVariant(index, "sku", event.target.value)} className={inputClassName} placeholder="Kosongkan untuk SKU otomatis" />
                   </FormField>
                 </div>
 
@@ -133,7 +133,7 @@ export const ProductVariantFields = memo(function ProductVariantFields({ variant
 
                   <div className="space-y-2">
                     {variant.values.map((item, valueIndex) => (
-                      <div key={item.clientId || `${index}-${valueIndex}`} className="grid gap-2 sm:grid-cols-[210px_1fr_36px]">
+                      <div key={item.clientId || `${index}-${valueIndex}`} className="grid gap-[5px] sm:grid-cols-[210px_1fr_36px]">
                         <SearchableSelect
                           value={item.attributeId}
                           onChange={(nextValue) => updateValue(index, valueIndex, "attributeId", nextValue)}

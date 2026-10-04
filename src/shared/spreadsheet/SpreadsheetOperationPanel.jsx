@@ -25,7 +25,7 @@ function Header({ icon, eyebrow, title, description, onClose }) {
           <p className="mt-1 text-sm text-slate-500">{description}</p>
         </div>
       </div>
-      <button type="button" onClick={onClose} className="inline-flex h-10 items-center justify-center gap-2 bg-slate-100 px-4 text-sm font-bold text-slate-700 hover:bg-slate-200">
+      <button type="button" onClick={onClose} className="inline-flex h-10 items-center justify-center gap-[5px] bg-slate-100 px-4 text-sm font-bold text-slate-700 hover:bg-slate-200">
         <span className="material-symbols-outlined text-[18px]">close</span>
         Tutup tab
       </button>
@@ -152,18 +152,18 @@ function ImportPanel({ operation, workspace }) {
           <Step number="1" title="Pilih jenis import">
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setImportMode("create")} className={`border p-4 text-left transition ${importMode === "create" ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <span className="flex items-center gap-2 text-sm font-black text-slate-900"><span className="material-symbols-outlined text-[19px] text-emerald-700">add_box</span>Import Data Baru</span>
+                <span className="flex items-center gap-[5px] text-sm font-black text-slate-900"><span className="material-symbols-outlined text-[19px] text-emerald-700">add_box</span>Import Data Baru</span>
                 <span className="mt-2 block text-xs leading-5 text-slate-600">Hanya membuat data baru. Kolom ID harus kosong dan data yang sudah ada akan ditolak agar tidak ter-update tanpa sengaja.</span>
               </button>
               <button type="button" onClick={() => setImportMode("update")} className={`border p-4 text-left transition ${importMode === "update" ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                <span className="flex items-center gap-2 text-sm font-black text-slate-900"><span className="material-symbols-outlined text-[19px] text-blue-700">edit_note</span>Import Update Data</span>
+                <span className="flex items-center gap-[5px] text-sm font-black text-slate-900"><span className="material-symbols-outlined text-[19px] text-blue-700">edit_note</span>Import Update Data</span>
                 <span className="mt-2 block text-xs leading-5 text-slate-600">Hanya memperbarui data lama. Kolom ID wajib diisi sehingga baris baru tidak tercipta atau menggandakan data.</span>
               </button>
             </div>
           </Step>
           <Step number="2" title="Unduh template resmi">
             Template berisi Template Kosong, 10 Contoh Kasus Import yang rinci, dan Penjelasan Kolom.
-            <div className="mt-3"><button type="button" onClick={downloadTemplate} disabled={templatePending} className="inline-flex h-10 items-center gap-2 bg-slate-900 px-4 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-60"><span className={`material-symbols-outlined text-[18px] ${templatePending ? "" : ""}`}>download</span>Download Template</button></div>
+            <div className="mt-3"><button type="button" onClick={downloadTemplate} disabled={templatePending} className="inline-flex h-10 items-center gap-[5px] bg-slate-900 px-4 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-60"><span className={`material-symbols-outlined text-[18px] ${templatePending ? "" : ""}`}>download</span>Download Template</button></div>
           </Step>
           <Step number="3" title="Periksa relasi modul">
             {help?.relation || "Relasi diisi sesuai Penjelasan Kolom pada template. Data relasi yang wajib tersedia tidak dibuat otomatis tanpa aturan yang jelas."}
@@ -189,7 +189,7 @@ function ImportPanel({ operation, workspace }) {
             <p>Master dari modul lain tidak dibuat otomatis oleh import ini.</p>
             <p>Data gagal otomatis dibuatkan file Excel error beserta penyebabnya.</p>
           </div>
-          <button type="button" onClick={submit} disabled={!file || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="button" onClick={submit} disabled={!file || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-[5px] bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-45">
             <span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>fact_check</span>
             {pending ? "Memvalidasi..." : "Validasi & Import"}
           </button>
@@ -229,7 +229,7 @@ function ExportPanel({ operation, workspace }) {
           <div className="bg-slate-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Format</p><p className="mt-2 text-lg font-black text-slate-900">Excel .xlsx</p></div>
           <div className="bg-slate-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Isi</p><p className="mt-2 text-lg font-black text-slate-900">{supportsImages ? "Data + gambar" : "Data realtime"}</p></div>
         </div>
-        <button type="button" onClick={submit} disabled={pending} className="mt-6 inline-flex h-11 items-center justify-center gap-2 bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60"><span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>download</span>Mulai Export</button>
+        <button type="button" onClick={submit} disabled={pending} className="mt-6 inline-flex h-11 items-center justify-center gap-[5px] bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60"><span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>download</span>Mulai Export</button>
       </div>
     </div>
   );
@@ -273,7 +273,7 @@ function DeletePanel({ operation, workspace }) {
           <span className="material-symbols-outlined text-4xl text-red-600">warning</span>
           <h3 className="mt-3 text-base font-black text-red-900">Konfirmasi penghapusan</h3>
           <p className="mt-2 text-sm leading-6 text-red-800">Sebanyak {ids.length} data akan dihapus. Proses ini tetap berjalan di backend dan dipantau melalui antrean.</p>
-          <button type="button" onClick={submit} disabled={!ids.length || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700 disabled:opacity-45"><span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>delete</span>Hapus Data</button>
+          <button type="button" onClick={submit} disabled={!ids.length || pending} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-[5px] bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700 disabled:opacity-45"><span className={`material-symbols-outlined text-[19px] ${pending ? "" : ""}`}>delete</span>Hapus Data</button>
         </aside>
       </div>
     </div>

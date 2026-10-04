@@ -53,7 +53,7 @@ function FeeConfigModal({ title, onClose, onSave, pending, initial, categories, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[10px] bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-slate-900">{title}</h3>
         <div className="mt-4 space-y-3">
           <Field label="Nama (wajib)">
@@ -94,13 +94,13 @@ function FeeConfigModal({ title, onClose, onSave, pending, initial, categories, 
             />
           </Field>
         </div>
-        <div className="mt-5 flex items-center justify-between gap-2">
+        <div className="mt-5 flex items-center justify-between gap-[5px]">
           <div>
             {initial && onDelete ? (
               <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={onDelete}>Hapus</Button>
             ) : null}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-[5px]">
             <Button variant="outline" onClick={onClose}>Batal</Button>
             <Button onClick={onSave} disabled={pending} className="bg-teal-600 hover:bg-teal-700">
               {pending ? "Menyimpan..." : "Simpan"}
@@ -215,7 +215,7 @@ export default function AdminFeeConfigPage() {
   return (
     <AdminShell title="Konfigurasi Fee" subtitle="Kelola biaya admin/fee marketplace per kategori atau global.">
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-[5px]">
           <ColumnVisibilityMenu
             columns={columns}
             visibleKeys={columnVisibility.visibleKeys}

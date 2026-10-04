@@ -8,7 +8,7 @@ export const ActiveToggle = memo(function ActiveToggle({
   disabled = false,
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-slate-200 bg-slate-50 p-3">
       <input
         type="checkbox"
         checked={Boolean(checked)}

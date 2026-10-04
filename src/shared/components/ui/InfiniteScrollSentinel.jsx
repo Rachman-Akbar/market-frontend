@@ -29,7 +29,7 @@ export function InfiniteScrollSentinel({
   }, [hasNextPage]);
 
   return (
-    <div ref={nodeRef} className={`flex items-center justify-center gap-2 py-4 text-xs font-bold text-slate-500 ${className}`} aria-live="polite">
+    <div ref={nodeRef} className={`flex items-center justify-center gap-[5px] py-4 text-xs font-bold text-slate-500 ${className}`} aria-live="polite">
       {isFetchingNextPage ? (
         <>
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />

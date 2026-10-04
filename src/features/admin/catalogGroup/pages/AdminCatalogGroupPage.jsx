@@ -6,6 +6,7 @@ import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { useRefreshOnListActivation } from "@/shared/hooks/useRefreshOnListActivation";
 import { CATALOG_GROUP_COLUMNS, CatalogGroupCrudTable } from "@/features/admin/catalogGroup/components/CatalogGroupCrudTable";
@@ -25,6 +26,7 @@ export default function AdminCatalogGroupPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: groupsQuery.refetch });
   const rows = groupsQuery.data || [];
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Group" });
   const { query, setQuery, filteredRows } = useTableSearch(rows, ["name", "slug"]);
   const columns = useMemo(() => mergeColumns(CATALOG_GROUP_COLUMNS, buildRawColumns(rows, ["id", "name", "slug", "is_active"])), [rows]);
   const selection = useTableSelection(filteredRows);
@@ -58,7 +60,7 @@ export default function AdminCatalogGroupPage() {
       {editor.isListActive ? (
         <ListPageFrame
           toolbar={(
-          <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => groupsQuery.refetch()} refreshing={groupsQuery.isFetching} createLabel="Tambah Group" selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
+          <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => groupsQuery.refetch()} refreshing={groupsQuery.isFetching} createLabel="Tambah Group" totalCount={total.totalCount} totalLabel={total.totalLabel} totalTitle={total.totalTitle} selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
           onApplyDefaultColumns={columnVisibility.applyAsDefault} />
           )}
         >

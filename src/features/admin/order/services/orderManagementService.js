@@ -87,21 +87,24 @@ export async function updateOrder(id, payload) {
 }
 
 export function useAdminOrders(params = {}) {
+  const { enabled = true, ...queryParams } = params;
   return useInfiniteList({
     queryKey: ["admin", "orders"],
     queryFn: (queryParams) => getAdminOrders(queryParams),
-    params,
+    params: queryParams,
+    enabled,
   });
 }
 
 export function useSellerOrders(params = {}) {
   const { store, activeRole } = useAuth();
+  const { enabled = true, ...queryParams } = params;
   const storeId = Number(store?.id || 0);
   return useInfiniteList({
     queryKey: ["seller", "orders", storeId],
     queryFn: (queryParams) => getSellerOrders(storeId, queryParams),
-    params,
-    enabled: Boolean(activeRole === "seller" && storeId),
+    params: queryParams,
+    enabled: enabled && activeRole === "seller" && Boolean(storeId),
   });
 }
 

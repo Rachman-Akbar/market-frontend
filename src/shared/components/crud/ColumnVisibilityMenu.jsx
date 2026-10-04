@@ -69,7 +69,7 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
   if (!hasColumns && !onToggleSelection) return null;
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className="shrink-0">
       <ActionIconButton
         icon="view_column"
         title="Atur kolom tabel"
@@ -79,7 +79,7 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
       />
 
       {open && typeof document !== "undefined" ? createPortal(
-        <div ref={menuRef} className="fixed z-[300] w-72 overflow-hidden bg-white ring-1 ring-slate-200 shadow-xl" style={{ top: position.top, left: position.left }}>
+        <div ref={menuRef} className="fixed z-[300] w-72 overflow-hidden rounded-[10px] bg-white shadow-xl ring-1 ring-slate-200" style={{ top: position.top, left: position.left }}>
           {onToggleSelection ? (
             <div className="border-b border-slate-100 p-2">
               <button
@@ -153,7 +153,7 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
                       }}
                       title={onMoveColumn ? "Seret untuk mengubah urutan kolom" : undefined}
                       className={cn(
-                        "flex select-none items-center gap-2 px-2 py-2",
+                        "flex select-none items-center gap-[5px] px-2 py-2",
                         onMoveColumn && "cursor-grab active:cursor-grabbing",
                         dragging && "opacity-45",
                         dropTarget && "bg-emerald-50",
@@ -182,7 +182,7 @@ export const ColumnVisibilityMenu = memo(function ColumnVisibilityMenu({ columns
                     type="button"
                     title="Jadikan pilihan kolom saat ini sebagai tampilan default"
                     onClick={onApplyDefault}
-                    className="flex h-9 w-full items-center justify-center gap-2 bg-slate-800 px-3 text-xs font-extrabold text-white transition-colors hover:bg-slate-700"
+                    className="flex h-9 w-full items-center justify-center gap-[5px] bg-slate-800 px-3 text-xs font-extrabold text-white transition-colors hover:bg-slate-700"
                   >
                     <span className="material-symbols-outlined text-[16px]">bookmark</span>
                     Terapkan sebagai Default

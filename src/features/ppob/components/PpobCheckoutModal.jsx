@@ -269,6 +269,7 @@ export const PpobCheckoutModal = memo(function PpobCheckoutModal({
               placeholder="08xxxxxxxxxx"
               inputMode="numeric"
               autoFocus
+              className="h-10 rounded-md border-gray-300 py-2 placeholder:text-gray-400 focus:ring-orange-500"
             />
             {isPostpaid ? (
               <p className="text-xs text-slate-500">Kami akan memeriksa data tagihan Anda terlebih dahulu sebelum pembayaran.</p>

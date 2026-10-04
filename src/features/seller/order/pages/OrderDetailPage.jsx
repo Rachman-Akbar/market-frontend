@@ -8,7 +8,7 @@ import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { formatPrice } from "@/shared/utils/utils";
 import { getOrderManagementError, useDeleteOrder, useUpdateOrder } from "@/features/admin/order/services/orderManagementService";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { FormActionDock, FormEditorLayout } from "@/shared/components/crud";
 import OrderPrintSheet from "@/features/seller/order/components/OrderPrintSheet";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -164,33 +164,37 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
 
   return (
     <>
-      <OrderFormLayout
-        aside={
-          <>
-            <OrderFormActionButton tone="emerald" variant="soft" icon="save" label="Simpan" type="submit" disabled={busy} onClick={handleSave} />
-            <OrderFormActionButton tone="slate" variant="soft" icon="print" label="Cetak Nota" onClick={() => setPrintOpen(true)} />
-            {canDelete ? <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus Pesanan" onClick={() => setDeleteOpen(true)} /> : null}
-          </>
+      <FormEditorLayout
+        actions={
+          <FormActionDock
+            tone="emerald"
+            save={{ icon: "save", label: "Simpan" }}
+            onSave={handleSave}
+            disabled={busy}
+            extraActions={[{ icon: "print", label: "Cetak Nota", onClick: () => setPrintOpen(true) }]}
+            onDelete={canDelete ? () => setDeleteOpen(true) : undefined}
+            deleteLabel="Hapus Pesanan"
+          />
         }
       >
         <FormPageLayout
           title="Detail Pesanan"
           subtitle={`${raw.sub_order_number || row.subOrderNumber || `#${row.id}`} · Order ${raw.order_number || row.orderNumber || "-"} · ${formatDate(raw.created_at || row.createdAt)}`}
           lead={
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-[5px]">
               <StatusBadge status={orderStatus} label={STATUS_OPTIONS.find((option) => option.value === orderStatus)?.label || orderStatus} />
               {savedStatus ? <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-extrabold uppercase text-amber-700">Baru saja diubah</span> : null}
             </div>
           }
         >
-          <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-            <div className="flex items-center gap-2">
+          <div className="rounded-[10px] bg-white p-5 ring-1 ring-slate-200">
+            <div className="flex items-center gap-[5px]">
               <span className="material-symbols-outlined text-slate-400">inventory_2</span>
               <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Produk dalam Pesanan</h2>
             </div>
 
             {!canEditItems ? (
-              <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mt-3 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">info</span>
                 <div className="space-y-0.5">
                   <p className="font-extrabold uppercase tracking-wide text-[11px]">Tidak dapat mengubah produk</p>
@@ -203,7 +207,7 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
               </div>
             ) : null}
 
-            <div className="mt-3 overflow-hidden rounded-xl ring-1 ring-slate-200">
+            <div className="mt-3 overflow-hidden rounded-[10px] ring-1 ring-slate-200">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead className="bg-slate-50 text-xs font-extrabold uppercase text-slate-500">
@@ -248,14 +252,14 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-            <div className="flex items-center gap-2">
+          <div className="rounded-[10px] bg-white p-5 ring-1 ring-slate-200">
+            <div className="flex items-center gap-[5px]">
               <span className="material-symbols-outlined text-slate-400">person</span>
               <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Customer</h2>
             </div>
 
             {customerLocked ? (
-              <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mt-3 flex items-start gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">lock</span>
                 <div className="space-y-0.5">
                   <p className="font-extrabold uppercase tracking-wide text-[11px]">Data pembeli tidak dapat diubah</p>
@@ -284,8 +288,8 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-            <div className="flex items-center gap-2">
+          <div className="rounded-[10px] bg-white p-5 ring-1 ring-slate-200">
+            <div className="flex items-center gap-[5px]">
               <span className="material-symbols-outlined text-slate-400">local_shipping</span>
               <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Pengiriman & Pembayaran</h2>
             </div>
@@ -319,7 +323,7 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-1.5 text-sm">
+          <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3 space-y-1.5 text-sm">
             <div className="flex justify-between text-slate-600"><span>Subtotal ({totalItems} item)</span><span className="font-bold text-slate-800">{formatPrice(subtotal)}</span></div>
             {discount > 0 ? <div className="flex justify-between text-emerald-700"><span>Diskon</span><span className="font-bold">-{formatPrice(discount)}</span></div> : null}
             {shippingDiscount > 0 ? <div className="flex justify-between text-emerald-700"><span>Diskon Ongkir</span><span className="font-bold">-{formatPrice(shippingDiscount)}</span></div> : null}
@@ -327,7 +331,7 @@ function OrderDetailForm({ row, onDeleted, onSaved }) {
             <div className="flex justify-between border-t border-slate-300 pt-2 text-base font-black text-slate-900"><span>Total</span><span>{formatPrice(grandTotal)}</span></div>
           </div>
         </FormPageLayout>
-      </OrderFormLayout>
+      </FormEditorLayout>
 
       <ConfirmDialog
         open={deleteOpen}

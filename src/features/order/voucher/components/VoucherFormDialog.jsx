@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -10,7 +10,7 @@ import { toTitleCase } from "@/shared/utils/textFormatter";
 import { resolveMediaUrl } from "@/core/utils/mediaUrl";
 import { useObjectUrl } from "@/shared/hooks/useObjectUrl";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { toastError } from "@/shared/utils/userFeedback";
 
 function initialValues(entity) {
   return {
@@ -77,8 +77,7 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
         ? await updateMutation.mutateAsync({ id: entity.id, values })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      toastSuccess(entity ? "Voucher berhasil diperbarui." : "Voucher berhasil ditambahkan.");
-      window.setTimeout(() => onClose?.(), 350);
+            window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
       toastError("Gagal menyimpan voucher", getVoucherManagementError(error));
     }
@@ -176,13 +175,7 @@ export function VoucherFormDialog({ open, entity, portal, onClose, onSaved, onDe
           </div>
         </div>
         </FormEditorLayout>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-6 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-4 text-sm font-extrabold ${dirty ? `${portal === "admin" ? "bg-teal-600" : "bg-emerald-600"} text-white` : "bg-slate-100 text-slate-400"}`}>
-            Simpan
-          </button>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel="Simpan" submitIcon="save" disabled={mutation.isPending || !dirty} tone={portal === "admin" ? "teal" : "emerald"} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

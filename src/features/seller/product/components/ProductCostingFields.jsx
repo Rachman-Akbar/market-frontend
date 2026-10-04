@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "r
 import { advancedError, useProductCosting, useRawMaterials, useSaveProductCosting, useSaveRawMaterial } from "@/features/advanced/services/advancedMarketplaceService";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { inputClassName } from "@/shared/components/form/FormField";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -137,26 +138,26 @@ export const ProductCostingFields = forwardRef(function ProductCostingFields({ p
   }
 
   return <div className="space-y-5">
-    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
+    <section className="rounded-[10px] p-5 ring-1 ring-slate-200">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[5px]">
             <span className="material-symbols-outlined text-slate-400">layers</span>
             <h2 className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Tahap 1 · Pilih Bahan Baku</h2>
           </div>
           <p className="mt-0.5 text-xs text-slate-500">Biaya satuan dikunci dari average cost bahan baku aktual sehingga HPP selalu sinkron dengan database.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-[5px]">
           <Button type="button" size="sm" variant="outline" onClick={() => setQuickCreateOpen((current) => !current)}>Bahan Baru</Button>
           <Button type="button" size="sm" variant="outline" onClick={() => updateForm((current) => ({ ...current, materials: [...current.materials, { raw_material_id: "", quantity: 1 }] }))}>Tambah Bahan</Button>
         </div>
       </div>
 
       {quickCreateOpen ? (
-        <div className="mb-3 grid gap-2 border border-emerald-200 bg-emerald-50 p-3 md:grid-cols-[140px_minmax(0,1fr)_100px_120px_auto]">
+        <div className="mb-3 grid gap-[5px] border border-emerald-200 bg-emerald-50 p-3 md:grid-cols-[140px_minmax(0,1fr)_100px_120px_auto]">
           <Input value={quickCreate.code} onChange={(event) => setQuickCreate((current) => ({ ...current, code: event.target.value }))} placeholder="Kode (opsional)" className="uppercase" />
           <Input value={quickCreate.name} onChange={(event) => setQuickCreate((current) => ({ ...current, name: event.target.value }))} placeholder="Nama bahan baku" />
-          <select className="h-10 border border-slate-300 bg-white px-3 text-sm" value={quickCreate.unit} onChange={(event) => setQuickCreate((current) => ({ ...current, unit: event.target.value }))}>
+          <select className={inputClassName} value={quickCreate.unit} onChange={(event) => setQuickCreate((current) => ({ ...current, unit: event.target.value }))}>
             {COMMON_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
           </select>
           <Button type="button" size="sm" disabled={saveRawMaterial.isPending} onClick={createRawMaterial}>Simpan & Pilih</Button>
@@ -167,8 +168,8 @@ export const ProductCostingFields = forwardRef(function ProductCostingFields({ p
       <div className="space-y-2">
         {activeForm.materials.map((row, index) => {
           const material = materialOptions.find((item) => Number(item.id) === Number(row.raw_material_id));
-          return <div key={`${row.raw_material_id}-${index}`} className="grid gap-2 border border-slate-100 p-2 md:grid-cols-[minmax(0,1fr)_120px_140px_130px_70px]">
-            <select className="h-10 border border-slate-300 bg-white px-3 text-sm" value={row.raw_material_id} onChange={(event) => updateMaterial(index, "raw_material_id", event.target.value)}>
+          return <div key={`${row.raw_material_id}-${index}`} className="grid gap-[5px] border border-slate-100 p-2 md:grid-cols-[minmax(0,1fr)_120px_140px_130px_70px]">
+            <select className={inputClassName} value={row.raw_material_id} onChange={(event) => updateMaterial(index, "raw_material_id", event.target.value)}>
               <option value="">Pilih bahan baku</option>
               {materialOptions.filter((item) => item.is_active !== false).map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}
             </select>
@@ -182,8 +183,8 @@ export const ProductCostingFields = forwardRef(function ProductCostingFields({ p
       </div>
     </section>
 
-    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
-      <div className="flex items-center gap-2">
+    <section className="rounded-[10px] p-5 ring-1 ring-slate-200">
+      <div className="flex items-center gap-[5px]">
         <span className="material-symbols-outlined text-slate-400">calculate</span>
         <h2 className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Tahap 2 · Perhitungan HPP</h2>
       </div>
@@ -195,8 +196,8 @@ export const ProductCostingFields = forwardRef(function ProductCostingFields({ p
       </div>
     </section>
 
-    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
-      <div className="flex items-center gap-2">
+    <section className="rounded-[10px] p-5 ring-1 ring-slate-200">
+      <div className="flex items-center gap-[5px]">
         <span className="material-symbols-outlined text-slate-400">sell</span>
         <h2 className="text-sm font-extrabold uppercase tracking-wide text-emerald-700">Tahap 3 · Pembentukan Harga Jual</h2>
       </div>
@@ -206,11 +207,11 @@ export const ProductCostingFields = forwardRef(function ProductCostingFields({ p
         <div><span className="text-xs text-slate-500">Saran Harga Jual</span><strong className="block text-lg text-emerald-700">{money(suggested)}</strong></div>
         <label className="text-xs font-bold">Harga Jual<Input type="number" min="0" value={activeForm.selling_price} onChange={(event) => updateForm((current) => ({ ...current, selling_price: event.target.value }))} /></label>
       </div>
-      <label className="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={activeForm.apply_to_variants} onChange={(event) => updateForm((current) => ({ ...current, apply_to_variants: event.target.checked }))} /> Terapkan harga jual ke seluruh variant produk</label>
+      <label className="mt-3 flex items-center gap-[5px] text-sm font-semibold"><input type="checkbox" checked={activeForm.apply_to_variants} onChange={(event) => updateForm((current) => ({ ...current, apply_to_variants: event.target.checked }))} /> Terapkan harga jual ke seluruh variant produk</label>
     </section>
 
-    <section className="rounded-2xl p-5 ring-1 ring-slate-200">
-      <div className="flex items-center gap-2">
+    <section className="rounded-[10px] p-5 ring-1 ring-slate-200">
+      <div className="flex items-center gap-[5px]">
         <span className="material-symbols-outlined text-slate-400">factory</span>
         <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Tahap 4 · Produksi melalui Stock / Restock Produk</h2>
       </div>
@@ -220,3 +221,5 @@ export const ProductCostingFields = forwardRef(function ProductCostingFields({ p
     <p className="rounded-lg bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-700">{createMode ? "Resep, HPP, dan harga jual disimpan" : "Perubahan HPP dan harga jual tersimpan"} bersamaan saat produk disimpan lewat tombol Simpan di sisi kanan.</p>
   </div>;
 });
+
+

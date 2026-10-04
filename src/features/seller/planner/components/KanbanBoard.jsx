@@ -169,7 +169,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
           isDone ? "border-slate-100" : "border-slate-200"
         )}
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-[5px]">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: typeColor(card.type) }} />
@@ -235,7 +235,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
         )}
 
         {!isDone && (
-          <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="mt-2 flex items-center justify-between gap-[5px]">
             <select
               value={card.status}
               onChange={(e) => handleMove(card.id, e.target.value)}
@@ -255,7 +255,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
   return (
     <div className="w-full min-w-0 max-w-full">
       {isLoading ? (
-        <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white py-12 text-sm text-slate-400">Memuat...</div>
+        <div className="flex items-center justify-center rounded-[10px] border border-slate-200 bg-white py-12 text-sm text-slate-400">Memuat...</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {STATUS_OPTIONS.map((column) => {
@@ -264,7 +264,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
               <div
                 key={column.value}
                 className={cn(
-                  "flex min-h-[200px] flex-col rounded-xl border bg-slate-100/80",
+                  "flex min-h-[200px] flex-col rounded-[10px] border bg-slate-100/80",
                   column.value === "todo" && TYPE_COLORS.todo,
                   column.value === "in_progress" && TYPE_COLORS.in_progress,
                   column.value === "done" && TYPE_COLORS.done,
@@ -278,8 +278,8 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
                 onDragLeave={() => setOverColumn((cur) => (cur === column.value ? null : cur))}
                 onDrop={handleDrop(column.value)}
               >
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-[5px] px-3 py-2.5">
+                  <div className="flex items-center gap-[5px]">
                     <h3 className="text-sm font-bold text-slate-800">{column.label}</h3>
                     <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                       {items.length}
@@ -314,7 +314,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
       {/* Selesaikan dengan bukti */}
       {completeFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => setCompleteFor(null)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-[10px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-1 text-lg font-semibold text-slate-900">Selesaikan Jadwal</h3>
             <p className="mb-4 text-sm text-slate-500">{completeFor.title}</p>
 
@@ -332,7 +332,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
                 />
                 {uploading && <p className="mt-1 text-xs text-slate-400">Mengunggah...</p>}
                 {proof.files.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-[5px]">
                     {proof.files.map((file, index) => (
                       <div key={`${file.url}-${index}`} className="relative">
                         <img src={file.url} alt={file.name || "Bukti"} className="h-16 w-16 rounded-lg object-cover ring-1 ring-slate-200" />
@@ -360,7 +360,7 @@ export default function KanbanBoard({ isAdmin, filterStoreId, filterType, filter
               </div>
             </div>
 
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex justify-end gap-[5px]">
               <button onClick={() => setCompleteFor(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Batal</button>
               <button onClick={handleComplete} disabled={completeMutation.isPending} className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
                 Tandai Selesai

@@ -131,7 +131,7 @@ export function DayPicker({ value, onChange, disabled }) {
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-[5px]">
       {DAYS.map((day) => {
         const isActive = selected.has(day.key);
 
@@ -142,7 +142,7 @@ export function DayPicker({ value, onChange, disabled }) {
             aria-pressed={isActive}
             disabled={disabled}
             onClick={() => toggle(day.key)}
-            className={`h-11 rounded-2xl border px-4 text-sm font-bold transition ${
+            className={`h-11 rounded-[10px] border px-4 text-sm font-bold transition ${
               isActive
                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                 : "border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/40"

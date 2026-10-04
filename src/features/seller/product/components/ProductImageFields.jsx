@@ -50,7 +50,7 @@ export const ProductImageFields = memo(function ProductImageFields({ images, err
     <div className="space-y-3">
       <input ref={inputRef} type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={uploadFiles} className="hidden" />
       <div className="flex flex-wrap items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-[5px]">
           <span className="material-symbols-outlined text-slate-400">image</span>
           <div>
             <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Gambar Produk</h2>
@@ -61,7 +61,7 @@ export const ProductImageFields = memo(function ProductImageFields({ images, err
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="inline-flex h-10 items-center justify-center gap-2 border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center gap-[5px] border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
         >
           <span className="material-symbols-outlined text-[18px]">upload</span>
           Pilih Gambar

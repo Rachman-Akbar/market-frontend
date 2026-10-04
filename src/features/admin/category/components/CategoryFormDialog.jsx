@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -11,7 +11,7 @@ import { toTitleCase } from "@/shared/utils/textFormatter";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { getRelationQuickCreateError, useQuickCreateCatalogGroup, useQuickCreateCategory } from "@/shared/services/relationQuickCreateService";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { toastError } from "@/shared/utils/userFeedback";
 
 function descendantIds(categories, parentId) {
   const ids = new Set();
@@ -174,8 +174,7 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
         ? await updateMutation.mutateAsync({ id: entity.id, values })
         : await createMutation.mutateAsync(values);
       onSaved?.(saved);
-      toastSuccess(entity ? "Kategori berhasil diperbarui." : "Kategori berhasil ditambahkan.");
-      window.setTimeout(() => onClose?.(), 350);
+            window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
       toastError("Gagal menyimpan kategori", getCategoryError(error));
     }
@@ -191,13 +190,12 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
     >
       <form onSubmit={submit}>
         <FormEditorLayout
-          asCard={false}
           actions={
             <FormActionDock tone="teal" save={{ icon: "save", label: "Simpan" }} disabled={mutation.isPending || !dirty} onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
           }
         >
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-          <section className="min-w-0 rounded-xl border border-slate-200 bg-white">
+          <section className="min-w-0 rounded-[10px] border border-slate-200 bg-white">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
               <h3 className="text-sm font-extrabold text-slate-800">Struktur Kategori</h3>
               <p className="mt-0.5 text-xs text-slate-500">Pilih catalog group dan parent untuk membentuk level 1 sampai 3.</p>
@@ -264,7 +262,7 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white">
+          <section className="rounded-[10px] border border-slate-200 bg-white">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
               <h3 className="text-sm font-extrabold text-slate-800">Tampilan & Status</h3>
               <p className="mt-0.5 text-xs text-slate-500">Atur gambar, ikon, menu buyer, dan status kategori.</p>
@@ -300,11 +298,11 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
               )}
 
               <div className="space-y-3 border-t border-slate-100 pt-4">
-                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+                <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
                   <span className="text-sm font-bold text-slate-700">Status aktif</span>
                   <InlineActiveSwitch checked={values.isActive} onChange={(isActive) => setField("isActive", isActive)} showLabel={false} />
                 </div>
-                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+                <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
                   <div>
                     <span className="block text-sm font-bold text-slate-700">Tampil di menu</span>
                     <span className="block text-[11px] text-slate-400">Kategori akan muncul pada navigasi buyer.</span>
@@ -318,13 +316,7 @@ export function CategoryFormDialog({ open, entity, categories, onClose, onSaved,
         </div>
         </FormEditorLayout>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
-          {entity && onDelete ? <button type="button" onClick={() => onDelete(entity)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600">Hapus</button> : null}
-          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-5 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>
-            Simpan
-          </button>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel="Simpan" submitIcon="save" disabled={mutation.isPending || !dirty} tone="teal" onDelete={entity && onDelete ? () => onDelete(entity) : undefined} />
       </form>
     </CrudDialog>
   );

@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { VoucherFormDialog } from "@/features/order/voucher/components/VoucherFormDialog";
 import { VOUCHER_TABLE_COLUMNS, VoucherManagementTable } from "@/features/order/voucher/components/VoucherManagementTable";
@@ -21,7 +22,7 @@ export function VoucherManagementPage({ portal, children: wrap }) {
   const vouchersQuery = useManagedVouchers(portal, { include_inactive: 1 });
   const deleteMutation = useDeleteVoucher(portal);
   const quickUpdateMutation = useUpdateVoucher(portal);
-  const editor = useEntityEditor({ createLabel: "Tambah Voucher" });
+  const editor = useEntityEditor();
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   useRefreshOnListActivation({
@@ -34,6 +35,7 @@ export function VoucherManagementPage({ portal, children: wrap }) {
     if (portal === "seller") return row.voucherScope === "store" && Number(row.storeId) === Number(store?.id);
     return true;
   });
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Voucher" });
   const { query, setQuery, filteredRows } = useTableSearch(rows, ["name", "code", "discountType", "storeName"]);
   const columns = useMemo(() => mergeColumns(VOUCHER_TABLE_COLUMNS, buildRawColumns(rows, ["id", "code", "name", "image", "image_url", "voucher_scope", "discount_target", "discount_type", "discount_value", "min_spend", "max_discount", "starts_at", "ends_at", "usage_limit", "used_count", "store_id", "is_active"])), [rows]);
   const selection = useTableSelection(filteredRows);
@@ -75,6 +77,9 @@ export function VoucherManagementPage({ portal, children: wrap }) {
             refreshing={vouchersQuery.isFetching}
             createLabel="Tambah Voucher"
             placeholder="Cari kode, nama, toko, atau tipe voucher"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

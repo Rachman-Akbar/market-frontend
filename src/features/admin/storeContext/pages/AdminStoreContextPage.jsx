@@ -82,7 +82,7 @@ export default function AdminStoreContextPage() {
               </div>
             </div>
             {selectedStore && (
-              <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-[5px] rounded-[10px] bg-slate-50 px-4 py-3">
                 <span className="material-symbols-outlined text-slate-500">store</span>
                 <span className="font-bold text-slate-900">{selectedStore.name}</span>
                 <span className="text-xs text-slate-500">• {selectedStore.ownerName || "—"}</span>
@@ -95,7 +95,7 @@ export default function AdminStoreContextPage() {
         </Card>
 
         {storeId && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-[5px]">
             {ORDER_TABS.map((t) => (
               <button
                 key={t.key}
@@ -130,7 +130,7 @@ function ContextStatCard({ label, value, icon, accent = "text-teal-700" }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3 p-4">
-        <span className={`flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 ${accent}`}>
+        <span className={`flex h-11 w-11 items-center justify-center rounded-[10px] bg-slate-100 ${accent}`}>
           <span className="material-symbols-outlined text-[22px]">{icon}</span>
         </span>
         <div className="min-w-0">
@@ -224,7 +224,7 @@ function TrendTab({ storeId, period }) {
         <Card>
           <CardContent className="space-y-4 pt-6">
             <h3 className="text-base font-extrabold text-slate-950">Tren Order &amp; Pendapatan ({period})</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-[5px]">
               <StatCard label="Total Order" value={totalOrders.toLocaleString("id-ID")} tone="sky" />
               <StatCard label="Pendapatan" value={formatRupiah(totalRevenue)} tone="emerald" />
             </div>
@@ -255,9 +255,9 @@ function OrdersTab({ storeId }) {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-[5px]">
           <h3 className="text-base font-extrabold text-slate-950">Pesanan Toko ({meta.total ?? rows.length})</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[5px]">
             <div className="w-44">
               <SearchableSelect
                 value={status}
@@ -311,7 +311,7 @@ function ProductsTab({ storeId }) {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-[5px]">
           <h3 className="text-base font-extrabold text-slate-950">Produk Toko</h3>
           <ColumnVisibilityMenu
             columns={columns}
@@ -353,9 +353,9 @@ function SettlementsTab({ storeId }) {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-[5px]">
           <h3 className="text-base font-extrabold text-slate-950">Settlement Toko</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[5px]">
             <div className="w-44">
               <SearchableSelect
                 value={status}

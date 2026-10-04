@@ -1,17 +1,22 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { advancedError, useDeleteFinance, useFinance, useFinancePaymentHistory, useRecordFinancePayment, useSaveFinance } from "@/features/advanced/services/advancedMarketplaceService";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import FinanceChartPanel from "@/features/advanced/components/FinanceChartPanel";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
-import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
+import { ActionIconButton } from "@/shared/components/crud/ActionIconButton";
 import { useEntityEditor, useRefreshOnListActivation, useTableSelection, useColumnVisibility } from "@/shared/hooks";
 import { usePanelTabs } from "@/shared/layout/tabs/PanelTabsContext";
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { useAdminOrders, useSellerOrders } from "@/features/admin/order/services/orderManagementService";
+import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
+import { inputClassName } from "@/shared/components/form/FormField";
 
 function nowInput() {
   const date = new Date();
@@ -30,7 +35,17 @@ function initialForm(type, mode) {
     due_date: "",
     occurred_at: nowInput(),
     is_active: true,
+    order_id: "",
+    store_id: "",
+    reference_number: autoReference(type),
   };
+}
+
+function autoReference(type) {
+  const date = new Date();
+  const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `INV/${String(type || "FIN").slice(0, 3).toUpperCase()}/${stamp}/${random}`;
 }
 
 function money(value) {
@@ -41,10 +56,17 @@ function typeLabel(type) {
   return ({ income: "Pemasukan", expense: "Pengeluaran", receivable: "Piutang", payable: "Hutang" })[type] || type;
 }
 
+const TYPE_BADGE = {
+  receivable: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  payable: "bg-rose-50 text-rose-700 ring-rose-200",
+  income: "bg-sky-50 text-sky-700 ring-sky-200",
+  expense: "bg-orange-50 text-orange-700 ring-orange-200",
+};
+
 export default function FinancePage({ mode = "cashflow" }) {
-  const allowedTypes = mode === "cashflow" ? ["income", "expense"] : ["receivable", "payable"];
-  const [listTab, setListTab] = useState("list");
-  const [type, setType] = useState(allowedTypes[0]);
+  const allowedTypes = useMemo(() => (mode === "cashflow" ? ["income", "expense"] : ["receivable", "payable"]), [mode]);
+  const isDebtMode = mode !== "cashflow";
+  const [viewMode, setViewMode] = useState("list");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState(() => initialForm(allowedTypes[0], mode));
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -54,10 +76,16 @@ export default function FinancePage({ mode = "cashflow" }) {
   const [paymentMethod, setPaymentMethod] = useState("transfer");
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [orderSearch, setOrderSearch] = useState("");
+  const { activeRole } = useAuth();
   const panelTabs = usePanelTabs();
   const deferredQuery = useDeferredValue(query.trim());
-  const editor = useEntityEditor({ createLabel: `Data Baru ${typeLabel(type)}`, getEditLabel: (row) => row.reference_number || row.title });
-  const listQuery = useFinance({ per_page: 20, type, ...(deferredQuery ? { search: deferredQuery } : {}) });
+  const editor = useEntityEditor({ getEditLabel: (row) => row.reference_number || row.title });
+  const listQuery = useFinance({
+    per_page: 20,
+    type: allowedTypes.join(","),
+    ...(deferredQuery ? { search: deferredQuery } : {}),
+  });
   const saveMutation = useSaveFinance();
   const paymentMutation = useRecordFinancePayment();
   const deleteMutation = useDeleteFinance();
@@ -65,9 +93,29 @@ export default function FinancePage({ mode = "cashflow" }) {
   const selection = useTableSelection(rows);
   const paymentOpen = panelTabs ? panelTabs.activeTab?.type === "finance-payment" : localPaymentOpen;
   const paymentHistoryQuery = useFinancePaymentHistory(paymentRow?.id, paymentOpen);
+  const total = useListTotalCount(listQuery.data?.meta, { label: "Transaksi" });
+  const deferredOrderSearch = useDeferredValue(orderSearch.trim());
+  const sellerOrderQuery = useSellerOrders({ per_page: 20, enabled: editor.open && activeRole !== "admin", ...(deferredOrderSearch ? { order_number: deferredOrderSearch } : {}) });
+  const adminOrderQuery = useAdminOrders({ per_page: 20, enabled: editor.open && activeRole === "admin", ...(deferredOrderSearch ? { order_number: deferredOrderSearch } : {}) });
+  const orderRows = activeRole === "admin" ? adminOrderQuery.rows : sellerOrderQuery.rows;
+  const orderOptions = useMemo(() => {
+    const options = orderRows.map((order) => ({
+      value: String(order.orderId || order.id),
+      label: order.orderNumber || `Order #${order.id}`,
+      keywords: `${order.subOrderNumber || ""} ${order.storeName || ""} ${order.customerName || ""}`,
+    }));
+    const currentId = String(form.order_id || "");
+    if (currentId && !options.some((option) => option.value === currentId)) {
+      options.unshift({ value: currentId, label: editor.entity?.order_number || `Order #${currentId}`, keywords: `${editor.entity?.store_name || ""} ${editor.entity?.order_number || ""}` });
+    }
+    return options;
+  }, [editor.entity?.order_number, editor.entity?.store_name, form.order_id, orderRows]);
+  const selectedOrder = useMemo(() => orderRows.find((order) => String(order.orderId || order.id) === String(form.order_id || "")) || null, [form.order_id, orderRows]);
+  const selectedTypes = useMemo(() => [...new Set(selection.selectedRows.map((row) => row.type).filter(Boolean))], [selection.selectedRows]);
+  const spreadsheetModule = selectedTypes.length === 1 ? selectedTypes[0] : allowedTypes[0];
   const spreadsheet = useSpreadsheetWorkspace({
-    module: type,
-    label: typeLabel(type),
+    module: spreadsheetModule,
+    label: typeLabel(spreadsheetModule),
     selectedRows: selection.selectedRows,
     onCompleted: () => {
       selection.clear();
@@ -89,20 +137,39 @@ export default function FinancePage({ mode = "cashflow" }) {
       due_date: row.due_date || "",
       occurred_at: row.occurred_at ? new Date(row.occurred_at).toISOString().slice(0, 16) : nowInput(),
       is_active: row.is_active !== false,
-    } : initialForm(type, mode));
-  }, [editor.open, editor.entity, mode, type]);
+      order_id: row.order_id ? String(row.order_id) : "",
+      store_id: row.store_id ? String(row.store_id) : "",
+      reference_number: row.reference_number || autoReference(row.type || allowedTypes[0]),
+    } : initialForm(allowedTypes[0], mode));
+  }, [allowedTypes, editor.open, editor.entity, mode]);
 
-  const columns = useMemo(() => [
-    { key: "reference_number", label: "Referensi" },
-    { key: "title", label: "Keterangan" },
-    { key: "store_name", label: "Toko" },
-    { key: "order_number", label: "Pesanan" },
-    { key: "amount", label: "Nominal", render: (row) => <span className="font-bold text-slate-900">{money(row.amount)}</span> },
-    { key: "paid_amount", label: "Terbayar", render: (row) => money(row.paid_amount) },
-    { key: "outstanding_amount", label: "Sisa", render: (row) => money(row.outstanding_amount) },
-    { key: "status", label: "Status", render: (row) => <span className="font-bold uppercase text-slate-600">{row.status}</span> },
-    { key: "occurred_at", label: "Tanggal", render: (row) => row.occurred_at ? new Date(row.occurred_at).toLocaleDateString("id-ID") : "-" },
-  ], []);
+  const columns = useMemo(() => {
+    const typeColumn = {
+      key: "type",
+      label: "Jenis",
+      width: 120,
+      minWidth: 110,
+      filterType: "select",
+      options: allowedTypes.map((item) => ({ value: item, label: typeLabel(item) })),
+      render: (row) => (
+        <span className={`inline-flex items-center rounded-[10px] px-2 py-0.5 text-[11px] font-extrabold uppercase ring-1 ring-inset ${TYPE_BADGE[row.type] || "bg-slate-50 text-slate-600 ring-slate-200"}`}>
+          {typeLabel(row.type)}
+        </span>
+      ),
+    };
+    const list = [
+      { key: "reference_number", label: "Referensi" },
+      { key: "title", label: "Keterangan" },
+      { key: "store_name", label: "Toko" },
+      { key: "order_number", label: "Pesanan" },
+      { key: "amount", label: "Nominal", render: (row) => <span className="font-bold text-slate-900">{money(row.amount)}</span> },
+      { key: "paid_amount", label: "Terbayar", render: (row) => money(row.paid_amount) },
+      { key: "outstanding_amount", label: "Sisa", render: (row) => money(row.outstanding_amount) },
+      { key: "status", label: "Status", filterType: "select", options: (isDebtMode ? ["open", "partial", "paid", "cancelled"] : ["draft", "posted", "cancelled"]).map((item) => ({ value: item, label: item })), render: (row) => <span className="font-bold uppercase text-slate-600">{row.status}</span> },
+      { key: "occurred_at", label: "Tanggal", render: (row) => row.occurred_at ? new Date(row.occurred_at).toLocaleDateString("id-ID") : "-" },
+    ];
+    return [typeColumn, ...list];
+  }, [allowedTypes, isDebtMode]);
 
   const tableColumns = useMemo(() => {
     if (mode === "cashflow") return columns;
@@ -116,7 +183,7 @@ export default function FinancePage({ mode = "cashflow" }) {
           <button
             type="button"
             disabled={!canPay}
-            onClick={(event) => { event.stopPropagation(); recordPayment(row); }}
+            onClick={(event) => { event.stopPropagation(); recordPaymentRef.current?.(row); }}
             className="inline-flex h-8 items-center gap-1.5 bg-emerald-600 px-3 text-xs font-extrabold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             title={canPay ? "Catat pembayaran/cicilan" : "Transaksi sudah lunas"}
           >
@@ -131,6 +198,19 @@ export default function FinancePage({ mode = "cashflow" }) {
 
   const columnVisibility = useColumnVisibility(tableColumns, `advanced.finance.${mode}`);
 
+  function applyOrder(orderId) {
+    const nextId = String(orderId || "");
+    const order = orderRows.find((item) => String(item.orderId || item.id) === nextId) || null;
+    setForm((current) => ({
+      ...current,
+      order_id: order ? nextId : "",
+      store_id: order?.storeId ? String(order.storeId) : current.store_id,
+      title: order && !current.title.trim() ? `Pesanan ${order.orderNumber}` : current.title,
+      amount: order && !String(current.amount).trim() ? String(order.total || "") : current.amount,
+      reference_number: order && !String(current.reference_number).trim() ? `INV/${order.orderNumber}` : current.reference_number,
+    }));
+  }
+
   async function submit(event) {
     event.preventDefault();
     try {
@@ -140,6 +220,9 @@ export default function FinancePage({ mode = "cashflow" }) {
         values: {
           ...editableForm,
           amount: Number(form.amount),
+          order_id: form.order_id ? Number(form.order_id) : null,
+          store_id: activeRole === "admin" && form.store_id ? Number(form.store_id) : null,
+          reference_number: String(form.reference_number || "").trim() || null,
           due_date: form.due_date || null,
           occurred_at: new Date(form.occurred_at).toISOString(),
         },
@@ -153,6 +236,8 @@ export default function FinancePage({ mode = "cashflow" }) {
     }
   }
 
+  const recordPaymentRef = useRef(null);
+
   function recordPayment(row) {
     setPaymentRow(row);
     setPaymentAmount("");
@@ -165,6 +250,8 @@ export default function FinancePage({ mode = "cashflow" }) {
     }
     setLocalPaymentOpen(true);
   }
+
+  recordPaymentRef.current = recordPayment;
 
   function closePayment() {
     setPaymentRow(null);
@@ -202,7 +289,7 @@ export default function FinancePage({ mode = "cashflow" }) {
     }
   }
 
-  const title = mode === "cashflow" ? "Pemasukan dan Pengeluaran" : "Hutang dan Piutang";
+  const title = mode === "cashflow" ? "Pemasukan-Pengeluaran" : "Hutang-Piutang";
 
   return (
     <>
@@ -214,13 +301,19 @@ export default function FinancePage({ mode = "cashflow" }) {
           onQueryChange={setQuery}
           onRefresh={() => listQuery.refetch()}
           refreshing={listQuery.isFetching}
+          totalCount={total.totalCount}
+          totalLabel={total.totalLabel}
+          totalTitle={total.totalTitle}
           onCreate={editor.create}
-          createLabel={`Tambah ${typeLabel(type)}`}
-          placeholder={`Cari ${typeLabel(type).toLowerCase()}, referensi, pesanan, atau toko`}
-          filters={(
-            <select value={type} onChange={(event) => { setType(event.target.value); selection.clear(); }} className="h-9 border border-slate-300 bg-white px-3 text-sm font-bold">
-              {allowedTypes.map((item) => <option key={item} value={item}>{typeLabel(item)}</option>)}
-            </select>
+          createLabel="Tambah Data Keuangan"
+          placeholder={isDebtMode ? "Cari hutang/piutang, referensi, pesanan, atau toko" : "Cari pemasukan/pengeluaran, referensi, pesanan, atau toko"}
+          extraActions={(
+            <ActionIconButton
+              icon={viewMode === "list" ? "bar_chart" : "view_list"}
+              title={viewMode === "list" ? "Tampilkan grafik" : "Tampilkan daftar datar"}
+              onClick={() => setViewMode((current) => (current === "list" ? "chart" : "list"))}
+              active={viewMode === "chart"}
+            />
           )}
           selectionEnabled={selection.enabled}
           selectedCount={selection.selectedCount}
@@ -233,25 +326,23 @@ export default function FinancePage({ mode = "cashflow" }) {
           onResetColumns={columnVisibility.reset}
           onApplyDefaultColumns={columnVisibility.applyAsDefault}
         >
-          <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">{[["list", "List"], ["grafik", "Grafik"]].map(([id, label]) => <button key={id} type="button" onClick={() => setListTab(id)} className={`h-9 px-4 text-sm font-bold ${listTab === id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{label}</button>)}</div>
-          {listTab === "grafik" ? <FinanceChartPanel mode={mode} /> : (
-            <>
-              <DataGrid
-                columns={tableColumns}
-                rows={rows}
-                storageKey={`advanced.finance.${mode}`}
-                emptyText={listQuery.isLoading ? "" : `${typeLabel(type)} belum tersedia.`}
-                selectionEnabled={selection.enabled}
-                selectedIds={selection.selectedIds}
-                allSelected={selection.allSelected}
-                onToggleRow={selection.toggleRow}
-                onToggleAll={selection.toggleAll}
-                onRowClick={editor.edit}
-                hasNextPage={listQuery.hasNextPage}
-                isFetchingNextPage={listQuery.isFetchingNextPage}
-                onLoadMore={() => listQuery.fetchNextPage()}
-              />
-            </>
+          {viewMode === "chart" ? <FinanceChartPanel mode={mode} /> : (
+            <DataGrid
+              onFilterStateChange={total.onFilterStateChange}
+              columns={tableColumns}
+              rows={rows}
+              storageKey={`advanced.finance.${mode}`}
+              emptyText={listQuery.isLoading ? "" : isDebtMode ? "Belum ada data hutang atau piutang." : "Belum ada data pemasukan atau pengeluaran."}
+              selectionEnabled={selection.enabled}
+              selectedIds={selection.selectedIds}
+              allSelected={selection.allSelected}
+              onToggleRow={selection.toggleRow}
+              onToggleAll={selection.toggleAll}
+              onRowClick={editor.edit}
+              hasNextPage={listQuery.hasNextPage}
+              isFetchingNextPage={listQuery.isFetchingNextPage}
+              onLoadMore={() => listQuery.fetchNextPage()}
+            />
           )}
         </ModuleFrame>
       ) : null}
@@ -274,7 +365,7 @@ export default function FinancePage({ mode = "cashflow" }) {
             <Input type="number" min="0.01" step="0.01" max={paymentRow?.outstanding_amount || undefined} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required />
           </Field>
           <Field label="Metode Pembayaran">
-            <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm">
+            <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className={inputClassName}>
               <option value="transfer">Transfer</option><option value="cash">Tunai</option><option value="ewallet">E-Wallet</option><option value="manual">Lainnya</option>
             </select>
           </Field>
@@ -310,26 +401,42 @@ export default function FinancePage({ mode = "cashflow" }) {
         onClose={editor.close}
         onSubmit={submit}
         busy={false}
-        dangerAction={editor.entity ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {mode !== "cashflow" && Number(editor.entity.outstanding_amount) > 0 ? <Button type="button" variant="outline" onClick={() => { const row = editor.entity; editor.close(); recordPayment(row); }}>Bayar</Button> : null}
-            <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button>
-          </div>
-        ) : undefined}
+        onDelete={editor.entity ? () => { setDeleteTarget(editor.entity); editor.close(); } : undefined}
+        extraActions={(
+          editor.entity && mode !== "cashflow" && Number(editor.entity.outstanding_amount) > 0
+            ? [{ icon: "payments", label: "Bayar", tone: "teal", onClick: () => { const row = editor.entity; editor.close(); recordPayment(row); } }]
+            : []
+        )}
       >
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Jenis" required>
-            <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))} className="h-10 border border-slate-300 bg-white px-3 text-sm" required>
+            <select value={form.type} onChange={(event) => { const nextType = event.target.value; setForm((current) => ({ ...current, type: nextType, reference_number: current.reference_number === autoReference(current.type) || !String(current.reference_number).trim() ? autoReference(nextType) : current.reference_number })); }} className={inputClassName} required>
               {allowedTypes.map((item) => <option key={item} value={item}>{typeLabel(item)}</option>)}
             </select>
           </Field>
           <Field label="Status" required>
-            <select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))} className="h-10 border border-slate-300 bg-white px-3 text-sm">
+            <select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))} className={inputClassName}>
               {(mode === "cashflow" ? ["draft", "posted", "cancelled"] : ["open", "partial", "paid", "cancelled"]).map((item) => <option key={item}>{item}</option>)}
             </select>
           </Field>
         </div>
-        <Field label="Judul" required><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required /></Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="No. Pesanan" hint={selectedOrder ? `Toko ${selectedOrder.storeName || "-"} · Total ${money(selectedOrder.total)}` : "Pilih pesanan untuk mengisi nominal dan nomor invoice otomatis."}>
+            <SearchableSelect
+              value={form.order_id || ""}
+              onChange={applyOrder}
+              options={orderOptions}
+              onSearch={setOrderSearch}
+              placeholder="Pilih / cari pesanan"
+              searchPlaceholder="Cari nomor pesanan"
+              emptyText="Pesanan tidak ditemukan"
+            />
+          </Field>
+          <Field label="No. Invoice / Referensi" hint="Boleh dikosongkan, sistem akan membuat nomor otomatis.">
+            <Input value={form.reference_number} placeholder={autoReference(form.type)} onChange={(event) => setForm((current) => ({ ...current, reference_number: event.target.value }))} />
+          </Field>
+        </div>
+        <Field label="Judul" required hint={selectedOrder ? "Terisi otomatis dari pesanan, bisa diubah." : undefined}><Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required /></Field>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="min-h-24 border border-slate-300 p-3 text-sm" /></Field>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Nominal" required><Input type="number" min="1" step="0.01" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} required /></Field>

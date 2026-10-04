@@ -58,7 +58,7 @@ export function AdminMiniChart({ values = [] }) {
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+    <div className="rounded-[10px] border border-slate-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-base font-extrabold text-slate-950">Tren pendapatan</h2>
@@ -75,7 +75,7 @@ export function AdminMiniChart({ values = [] }) {
         empty={empty}
         emptyText="Belum ada data."
       >
-        <div className="rounded-2xl bg-slate-50 p-4" style={{ height }}>
+        <div className="rounded-[10px] bg-slate-50 p-4" style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
         </div>
       </ChartFrame>

@@ -16,6 +16,7 @@ import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { InfiniteScrollSentinel } from "@/shared/components/ui/InfiniteScrollSentinel";
 import { useColumnVisibility } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 
 export default function AdminGameContentPage() {
@@ -34,6 +35,7 @@ export default function AdminGameContentPage() {
   const deleteMutation = useDeleteAdminGameContent();
 
   const rows = listQuery.rows;
+  const total = useListTotalCount(listQuery.meta, { fallbackTotal: rows.length, label: "Konten" });
 
   const columns = [
     { key: "id", label: "ID", render: (row) => <span className="font-mono text-xs text-slate-400">#{row.id}</span> },
@@ -89,6 +91,9 @@ export default function AdminGameContentPage() {
         refreshing={listQuery.isFetching}
         createLabel="Tambah Konten"
         placeholder="Cari judul konten lalu tekan Enter"
+        totalCount={total.totalCount}
+        totalLabel={total.totalLabel}
+        totalTitle={total.totalTitle}
         filters={
           <div className="flex flex-wrap items-center gap-1.5">
             {GAME_TYPES.map((type) => {
@@ -123,7 +128,7 @@ export default function AdminGameContentPage() {
 
       {rows.length ? (
         <>
-          <div className="w-full min-w-0 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <div className="w-full min-w-0 overflow-x-auto rounded-[10px] border border-slate-200 bg-white">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-100">
               <tr className="border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">

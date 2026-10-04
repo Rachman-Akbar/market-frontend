@@ -34,7 +34,7 @@ export function AdminDataTable({ rows = [] }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
       <div className="border-b border-slate-100 px-5 py-4">
         <h2 className="text-base font-extrabold text-slate-950">Pesanan terbaru</h2>
         <p className="text-sm text-slate-500">Monitoring order, channel, dan status pembayaran</p>

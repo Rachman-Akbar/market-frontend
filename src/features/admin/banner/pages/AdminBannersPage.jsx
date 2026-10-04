@@ -9,6 +9,7 @@ import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { useColumnVisibility, useRefreshOnListActivation, useTableSelection } from "@/shared/hooks";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
@@ -18,7 +19,7 @@ import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWork
 export default function AdminBannersPage() {
   const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const editor = useEntityEditor({ createLabel: "Tambah Banner" });
+  const editor = useEntityEditor();
   const notifications = useNotificationCenter();
   const bannersQuery = useAdminBanners({ ...(query ? { search: query } : {}) });
   const storesQuery = useAdminProductStores();
@@ -26,6 +27,7 @@ export default function AdminBannersPage() {
   const updateMutation = useUpdateAdminBanner();
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: bannersQuery.refetch });
   const rows = bannersQuery.data || [];
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Banner" });
   const columns = useMemo(() => mergeColumns(BANNER_TABLE_COLUMNS, buildRawColumns(rows, ["id", "store_id", "name", "image_url", "sort_order", "is_active"])), [rows]);
   const selection = useTableSelection(rows);
   const columnVisibility = useColumnVisibility(columns, "admin-banners");
@@ -66,6 +68,9 @@ export default function AdminBannersPage() {
             refreshing={bannersQuery.isFetching}
             createLabel="Tambah Banner"
             placeholder="Cari nama banner atau toko lalu tekan Enter"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

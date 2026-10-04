@@ -8,6 +8,7 @@ import { ReasonDialog } from "@/shared/components/crud/ReasonDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { useRefreshOnListActivation } from "@/shared/hooks/useRefreshOnListActivation";
 import { PromotionFormDialog } from "@/features/catalog/promotion/components/PromotionFormDialog";
 import { PROMOTION_TABLE_COLUMNS, PromotionManagementTable } from "@/features/catalog/promotion/components/PromotionManagementTable";
@@ -29,7 +30,7 @@ export default function AdminPromotionPage() {
   const [approvalStatus, setApprovalStatus] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
-  const editor = useEntityEditor({ createLabel: "Tambah Promosi" });
+  const editor = useEntityEditor();
   const notifications = useNotificationCenter();
   const promotionsQuery = useAdminPromotions(approvalStatus ? { approval_status: approvalStatus } : {});
   const deleteMutation = useDeleteAdminPromotion();
@@ -38,6 +39,7 @@ export default function AdminPromotionPage() {
   const quickUpdateMutation = useUpdateAdminPromotion();
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: promotionsQuery.refetch });
   const rows = promotionsQuery.data || [];
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Promosi" });
   const { query, setQuery, filteredRows } = useTableSearch(rows, ["name", "approvalStatus", "targetUrl", "storeName"]);
   const columns = useMemo(() => mergeColumns(PROMOTION_TABLE_COLUMNS, buildRawColumns(rows, ["id", "store_id", "name", "image_url", "mobile_image_url", "click_action", "target_id", "target_url", "sort_order", "is_active", "approval_status", "rejection_reason", "submitted_at", "approved_at", "approved_by"])), [rows]);
   const selection = useTableSelection(filteredRows);
@@ -99,6 +101,9 @@ export default function AdminPromotionPage() {
             refreshing={promotionsQuery.isFetching}
             createLabel="Tambah Promosi"
             placeholder="Cari nama, toko, atau target promosi"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

@@ -6,6 +6,7 @@ import { ListPageFrame } from "@/shared/components/crud/ListPageFrame";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
 import { useRefreshOnListActivation } from "@/shared/hooks/useRefreshOnListActivation";
 import { CATEGORY_TABLE_COLUMNS, CategoryCrudTable } from "@/features/admin/category/components/CategoryCrudTable";
@@ -27,6 +28,7 @@ export default function AdminCategoryPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: categoriesQuery.refetch });
   const rows = categoriesQuery.data || [];
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Kategori" });
   const groupsById = useMemo(() => Object.fromEntries((groupsQuery.data || []).map((group) => [group.id, group.name])), [groupsQuery.data]);
   const searchableRows = useMemo(() => rows.map((row) => ({ ...row, groupName: groupsById[row.catalogGroupId] || "" })), [groupsById, rows]);
   const { query, setQuery, filteredRows } = useTableSearch(searchableRows, ["name", "slug", "fullSlug", "parentName", "groupName"]);
@@ -62,7 +64,7 @@ export default function AdminCategoryPage() {
       {editor.isListActive ? (
         <ListPageFrame
           toolbar={(
-          <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => categoriesQuery.refetch()} refreshing={categoriesQuery.isFetching} createLabel="Tambah Kategori" placeholder="Cari category, parent, atau catalog group" selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
+          <EntityToolbar query={query} onQueryChange={setQuery} onCreate={editor.create} onRefresh={() => categoriesQuery.refetch()} refreshing={categoriesQuery.isFetching} createLabel="Tambah Kategori" placeholder="Cari category, parent, atau catalog group" totalCount={total.totalCount} totalLabel={total.totalLabel} totalTitle={total.totalTitle} selectionEnabled={selection.enabled} selectedCount={selection.selectedCount} onToggleSelection={selection.toggleEnabled} bulkActions={spreadsheet.actions} columns={columns} visibleColumns={columnVisibility.visibleKeys} onToggleColumn={columnVisibility.toggleColumn} onShowAllColumns={columnVisibility.showAll} onResetColumns={columnVisibility.reset}
           onApplyDefaultColumns={columnVisibility.applyAsDefault} />
           )}
         >

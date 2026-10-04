@@ -7,6 +7,7 @@ import { CustomerDetailForm } from "@/features/advanced/pages/CustomerDetailPage
 import { SpreadsheetOperationPanel } from "@/shared/spreadsheet/SpreadsheetOperationPanel";
 import { useSpreadsheetWorkspace } from "@/shared/spreadsheet/useSpreadsheetWorkspace";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { toastSuccess } from "@/shared/utils/userFeedback";
 
 function money(value) {
@@ -20,7 +21,8 @@ export default function CustomersPage() {
   const deferredQuery = useDeferredValue(query.trim());
   const listQuery = useCustomers({ per_page: 20, ...(deferredQuery ? { search: deferredQuery } : {}) });
   const rows = listQuery.data?.rows || [];
-  const editor = useEntityEditor({ createLabel: "Data Baru Pelanggan", getEditLabel: (row) => row.name || `Pelanggan #${row.id}` });
+  const total = useListTotalCount(listQuery.data?.meta, { fallbackTotal: rows.length, label: "Pelanggan" });
+  const editor = useEntityEditor({ getEditLabel: (row) => row.name || `Pelanggan #${row.id}` });
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
   const spreadsheet = useSpreadsheetWorkspace({ module: "customer", label: "Pelanggan", allowImport: false, allowBulkDelete: false });
   const columns = useMemo(() => [
@@ -45,9 +47,13 @@ export default function CustomersPage() {
         bulkActions={spreadsheet.actions}
         onCreate={admin ? undefined : editor.create}
         createLabel="Tambah Pelanggan"
+        totalCount={total.totalCount}
+        totalLabel={total.totalLabel}
+        totalTitle={total.totalTitle}
       >
         <DataGrid
           storageKey="seller.customers"
+          onFilterStateChange={total.onFilterStateChange}
           columns={columns}
           rows={rows}
           onRowClick={editor.edit}

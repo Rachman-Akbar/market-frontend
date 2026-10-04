@@ -12,6 +12,7 @@ import { useTableSearch } from "@/core/hooks/useTableSearch";
 import { ConfirmDialog, EntityToolbar, ListPageFrame } from "@/shared/components/crud";
 import { AsyncState } from "@/shared/components/feedback";
 import { useColumnVisibility, useEntityEditor, useTableSelection } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
@@ -22,6 +23,7 @@ export default function AdminRolesPage() {
   const editor = useEntityEditor();
   const [deleteTarget, setDeleteTarget] = useState(null);
   const rows = rolesQuery.data || [];
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Role" });
   const searchableRows = useMemo(() => rows.map((row) => ({ ...row, permissionNames: row.permissions.map((permission) => permission.name).join(" ") })), [rows]);
   const { query, setQuery, filteredRows } = useTableSearch(searchableRows, ["name", "description", "permissionNames"]);
   const columns = useMemo(() => mergeColumns(ROLE_TABLE_COLUMNS, buildRawColumns(rows, ["id", "name", "description", "permissions", "is_active"])), [rows]);
@@ -80,6 +82,9 @@ export default function AdminRolesPage() {
             refreshing={rolesQuery.isFetching}
             createLabel="Tambah Role"
             placeholder="Cari role atau permission lalu tekan Enter"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

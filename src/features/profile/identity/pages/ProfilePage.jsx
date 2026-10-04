@@ -37,7 +37,7 @@ import AddressMapTracker from "@/features/profile/address/components/AddressMapT
 import { resolveKomerceDestination } from "@/features/profile/address/destinationService";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { cn } from "@/shared/utils/utils";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { confirmLogout, toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const TABS = [
   { key: "biodata", label: "Biodata" },
@@ -937,7 +937,6 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState("");
@@ -975,7 +974,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
   };
 
   const handleLogout = async () => {
-    setLogoutConfirm(false);
+    if (!(await confirmLogout())) return;
     await logout?.();
     queryClient.clear();
     window.close();
@@ -984,7 +983,6 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
     }, 120);
   };
 
-  const openLogoutConfirm = () => setLogoutConfirm(true);
 
   return (
     <section className={profileLayout.page}>
@@ -1104,7 +1102,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
         <div className="mt-auto border-t border-[#e5e7eb] p-4">
           <button
             type="button"
-            onClick={openLogoutConfirm}
+            onClick={handleLogout}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 text-sm font-semibold text-red-600 transition hover:bg-red-100"
           >
             <LogOut size={16} />
@@ -1152,7 +1150,7 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
           {activeTab === "alamat" ? <AlamatTab /> : null}
           {activeTab === "keamanan" ? (
             <KeamananTab
-              onLogout={openLogoutConfirm}
+              onLogout={handleLogout}
               onAddPassword={() => setShowPasswordModal(true)}
             />
           ) : null}
@@ -1164,17 +1162,6 @@ export default function ProfilePage({ defaultTab = "biodata" }) {
         userId={user.id}
         onClose={() => setShowPasswordModal(false)}
         onSuccess={refreshMe}
-      />
-
-      <ConfirmDialog
-        open={logoutConfirm}
-        title="Konfirmasi Logout"
-        message="Anda akan keluar dari akun Ziip pada perangkat ini. Pastikan perubahan yang belum tersimpan sudah disimpan terlebih dahulu."
-        confirmLabel="Ya, Logout"
-        pending={false}
-        snoozeable={false}
-        onClose={() => setLogoutConfirm(false)}
-        onConfirm={handleLogout}
       />
 
       <EmailVerifyDialog

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/Button";
+import { confirmPanelModeSwitch } from "@/shared/utils/userFeedback";
 import {
   getAdminMode,
   setAdminMode,
@@ -26,9 +27,9 @@ function ModeSelector({ onSelect, current }) {
         <button
           type="button"
           onClick={() => onSelect("seller")}
-          className="group relative flex flex-col items-start gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
+          className="group relative flex flex-col items-start gap-4 rounded-[10px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-teal-100 text-teal-700">
             <span className="material-symbols-outlined text-[26px]">storefront</span>
           </span>
           <div>
@@ -37,7 +38,7 @@ function ModeSelector({ onSelect, current }) {
               Kelola operasional marketplace: produk, stok, pesanan, voucher, promosi, keuangan, dan PPOB.
             </p>
           </div>
-          <span className="mt-auto inline-flex items-center gap-1 text-sm font-bold text-teal-700 group-hover:gap-2">
+          <span className="mt-auto inline-flex items-center gap-1 text-sm font-bold text-teal-700 group-hover:gap-[5px]">
             Masuk Panel Seller <span className="material-symbols-outlined text-base">arrow_forward</span>
           </span>
           {current === "seller" && <span className="absolute right-4 top-4 rounded-full bg-teal-600 px-2.5 py-1 text-[10px] font-black uppercase text-white">Mode aktif</span>}
@@ -46,9 +47,9 @@ function ModeSelector({ onSelect, current }) {
         <button
           type="button"
           onClick={() => onSelect("monitor")}
-          className="group relative flex flex-col items-start gap-4 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+          className="group relative flex flex-col items-start gap-4 rounded-[10px] border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-indigo-100 text-indigo-700">
             <span className="material-symbols-outlined text-[26px]">monitor_heart</span>
           </span>
           <div>
@@ -57,7 +58,7 @@ function ModeSelector({ onSelect, current }) {
               Supervisi satu toko: statistik, tren order, pesanan, produk, dan settlement secara terfokus.
             </p>
           </div>
-          <span className="mt-auto inline-flex items-center gap-1 text-sm font-bold text-indigo-700 group-hover:gap-2">
+          <span className="mt-auto inline-flex items-center gap-1 text-sm font-bold text-indigo-700 group-hover:gap-[5px]">
             Mulai Monitoring <span className="material-symbols-outlined text-base">arrow_forward</span>
           </span>
           {current === "monitor" && <span className="absolute right-4 top-4 rounded-full bg-indigo-600 px-2.5 py-1 text-[10px] font-black uppercase text-white">Mode aktif</span>}
@@ -80,18 +81,17 @@ export default function AdminHomePage() {
     <div className="min-w-0">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         {mode ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-[5px]">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
+              onClick={async () => {
                 const target = mode === "seller" ? "monitor" : "seller";
-                const confirmed = window.confirm(
-                  target === "seller"
-                    ? "Beralih ke Panel Seller? Anda akan mengelola toko sebagai seller."
-                    : "Beralih ke Monitoring Toko? Anda akan melihat perspektif monitoring.",
-                );
-                if (!confirmed) return;
+                const targetLabel = target === "seller" ? "Panel Seller" : "Monitoring Toko";
+                const description = target === "seller"
+                  ? "Anda akan mengelola toko sebagai seller."
+                  : "Anda akan melihat perspektif monitoring.";
+                if (!(await confirmPanelModeSwitch(targetLabel, description))) return;
                 setAdminMode(target);
               }}
             >

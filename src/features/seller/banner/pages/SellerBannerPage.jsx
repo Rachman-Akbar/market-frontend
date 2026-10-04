@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { AsyncState } from "@/shared/components/feedback/AsyncState";
 import { useEntityEditor } from "@/shared/hooks/useEntityEditor";
 import { useColumnVisibility, useTableSelection } from "@/shared/hooks";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { buildRawColumns, mergeColumns } from "@/shared/utils/tableData";
 import { useRefreshOnListActivation } from "@/shared/hooks/useRefreshOnListActivation";
 import { useTableSearch } from "@/core/hooks/useTableSearch";
@@ -20,11 +21,12 @@ export default function SellerBannerPage() {
   const bannersQuery = useSellerBanners();
   const deleteMutation = useDeleteSellerBanner();
   const quickUpdateMutation = useUpdateSellerBanner();
-  const editor = useEntityEditor({ createLabel: "Tambah Banner" });
+  const editor = useEntityEditor();
   const notifications = useNotificationCenter();
   const [deleteTarget, setDeleteTarget] = useState(null);
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: bannersQuery.refetch });
   const rows = bannersQuery.data || [];
+  const total = useListTotalCount(undefined, { fallbackTotal: rows.length, label: "Banner" });
   const { query, setQuery, filteredRows } = useTableSearch(rows, ["name"]);
   const columns = useMemo(() => mergeColumns(BANNER_TABLE_COLUMNS.filter((column) => column.key !== "store"), buildRawColumns(rows, ["id", "store_id", "name", "image_url", "sort_order", "is_active"])), [rows]);
   const selection = useTableSelection(filteredRows);
@@ -68,6 +70,9 @@ export default function SellerBannerPage() {
             refreshing={bannersQuery.isFetching}
             createLabel="Tambah Banner"
             placeholder="Cari nama banner"
+            totalCount={total.totalCount}
+            totalLabel={total.totalLabel}
+            totalTitle={total.totalTitle}
             selectionEnabled={selection.enabled}
             selectedCount={selection.selectedCount}
             onToggleSelection={selection.toggleEnabled}

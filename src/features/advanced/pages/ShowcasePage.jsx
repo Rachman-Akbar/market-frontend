@@ -5,12 +5,14 @@ import { advancedError, useDeleteShowcase, useManageableProducts, useSaveShowcas
 import { ModuleFrame } from "@/features/advanced/components/ModuleFrame";
 import { DataGrid } from "@/features/advanced/components/DataGrid";
 import { Field, FormModal } from "@/features/advanced/components/FormModal";
-import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
+import { inputClassName } from "@/shared/components/form/FormField";
+import { cn } from "@/shared/utils/utils";
 import { ConfirmDialog } from "@/shared/components/crud/ConfirmDialog";
 import { useEntityEditor, useRefreshOnListActivation } from "@/shared/hooks";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { useListTotalCount } from "@/shared/hooks/useListTotalCount";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 const initialForm = { store_id: "", name: "", description: "", sort_order: 0, is_active: true, product_ids: [] };
@@ -75,7 +77,7 @@ function ProductOrderPicker({ products, existingProducts = [], value, onChange, 
         </div>
       </section>
       <section className="border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 bg-slate-50 p-2.5"><div className="relative"><span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span><input value={search} onChange={(event) => { setSearch(event.target.value); onSearchChange?.(event.target.value); }} placeholder="Cari produk toko..." className="h-10 w-full border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-emerald-500" /></div></div>
+        <div className="border-b border-slate-200 bg-slate-50 p-2.5"><div className="relative"><span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span><input value={search} onChange={(event) => { setSearch(event.target.value); onSearchChange?.(event.target.value); }} placeholder="Cari produk toko..." className={cn(inputClassName, "pl-10")} /></div></div>
         <div className="max-h-[360px] overflow-y-auto p-2">
           {!available.length ? <div className="p-6 text-center text-sm text-slate-400">Tidak ada produk lain yang cocok.</div> : null}
           {available.map((product) => <button key={product.id} type="button" onClick={() => add(product.id)} className="mb-1 flex w-full items-center gap-3 border border-transparent p-2 text-left hover:border-emerald-200 hover:bg-emerald-50/40"><div className="h-10 w-10 shrink-0 overflow-hidden bg-slate-100">{product.thumbnail ? <img src={product.thumbnail} alt={product.name} className="h-full w-full object-cover" loading="lazy" /> : null}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-800">{product.name}</p><p className="truncate text-[11px] text-slate-400">{product.sku || product.raw?.sku || `${product.stock ?? product.raw?.stock ?? 0} stok`}</p></div><span className="material-symbols-outlined text-[20px] text-emerald-600">add_circle</span></button>)}
@@ -95,13 +97,14 @@ export default function ShowcasePage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [productSearch, setProductSearch] = useState("");
   const deferredProductSearch = useDeferredValue(productSearch.trim());
-  const editor = useEntityEditor({ createLabel: "Data Baru Etalase", getEditLabel: (row) => row.name });
+  const editor = useEntityEditor({ getEditLabel: (row) => row.name });
   const listQuery = useShowcases({ per_page: 20, ...(query.trim() ? { search: query.trim() } : {}) });
   const productsQuery = useManageableProducts({ per_page: 100, ...(deferredProductSearch ? { search: deferredProductSearch } : {}), ...(admin && form.store_id ? { store_id: form.store_id } : {}) });
   const saveMutation = useSaveShowcase();
   const deleteMutation = useDeleteShowcase();
   const rows = listQuery.data?.rows || [];
   const products = productsQuery.data?.rows || [];
+  const total = useListTotalCount(listQuery.data?.meta, { fallbackTotal: rows.length, label: "Etalase" });
   useRefreshOnListActivation({ isListActive: editor.isListActive, listRevision: editor.listRevision, refetch: listQuery.refetch });
 
   useEffect(() => {
@@ -168,17 +171,17 @@ export default function ShowcasePage() {
   return (
     <>
       {editor.isListActive ? (
-        <ModuleFrame title="Etalase Toko" subtitle="Kelompokkan produk toko ke beberapa etalase dan atur urutan tampilnya di storefront." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={editor.create} createLabel="Tambah Etalase">
+        <ModuleFrame title="Etalase Toko" subtitle="Kelompokkan produk toko ke beberapa etalase dan atur urutan tampilnya di storefront." query={query} onQueryChange={setQuery} onRefresh={() => listQuery.refetch()} refreshing={listQuery.isFetching} onCreate={editor.create} createLabel="Tambah Etalase" totalCount={total.totalCount} totalLabel={total.totalLabel} totalTitle={total.totalTitle}>
           <div className="flex flex-wrap items-center justify-between gap-2 border border-slate-200 bg-white px-4 py-3"><div><p className="text-sm font-extrabold text-slate-800">Pengelompokan produk storefront</p><p className="mt-0.5 text-xs text-slate-500">Produk mengikuti urutan yang kamu susun di dalam masing-masing etalase.</p></div>{!admin ? <Link to="/seller/store-preview" className="inline-flex h-9 items-center gap-2 border border-emerald-200 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50"><span className="material-symbols-outlined text-[18px]">preview</span>Preview Toko</Link> : null}</div>
-          <DataGrid storageKey={`${activeRole}.showcases`} columns={columns} rows={rows} onRowClick={editor.edit} emptyText={listQuery.isLoading ? "" : "Etalase belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} />
+          <DataGrid storageKey={`${activeRole}.showcases`} onFilterStateChange={total.onFilterStateChange} columns={columns} rows={rows} onRowClick={editor.edit} emptyText={listQuery.isLoading ? "" : "Etalase belum tersedia."} hasNextPage={listQuery.hasNextPage} isFetchingNextPage={listQuery.isFetchingNextPage} onLoadMore={() => listQuery.fetchNextPage()} />
         </ModuleFrame>
       ) : null}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Hapus Etalase" message={`Etalase “${deleteTarget?.name || ""}” akan dihapus. Produk tidak ikut terhapus.`} pending={deleteMutation.isPending} onClose={() => setDeleteTarget(null)} onConfirm={remove} />
-      <FormModal open={editor.open} title={editor.entity ? "Edit Etalase" : "Tambah Etalase"} subtitle="Atur nama, urutan etalase, lalu susun produk dengan drag and drop." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending || !dirty} dangerAction={editor.entity ? <Button type="button" variant="destructive" onClick={() => { setDeleteTarget(editor.entity); editor.close(); }}>Hapus</Button> : undefined}>
+      <FormModal open={editor.open} title={editor.entity ? "Edit Etalase" : "Tambah Etalase"} subtitle="Atur nama, urutan etalase, lalu susun produk dengan drag and drop." onClose={editor.close} onSubmit={submit} busy={saveMutation.isPending || !dirty} onDelete={editor.entity ? () => { setDeleteTarget(editor.entity); editor.close(); } : undefined}>
         {admin ? <Field label="ID Toko" required><Input type="number" min="1" value={form.store_id} onChange={(event) => { setProductSearch(""); setForm((current) => ({ ...current, store_id: event.target.value, product_ids: [] })); }} required /></Field> : null}
         <div className="grid gap-4 md:grid-cols-2"><Field label="Nama Etalase" required><Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} maxLength={120} required /></Field><Field label="Urutan Tampil"><Input type="number" min="0" value={form.sort_order} onChange={(event) => setForm((current) => ({ ...current, sort_order: event.target.value }))} /></Field></div>
         <Field label="Deskripsi"><textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={3000} className="min-h-20 w-full border border-slate-300 p-3 text-sm outline-none focus:border-emerald-500" placeholder="Contoh: Koleksi produk terbaru dan paling diminati." /></Field>
-        <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3"><span className="text-sm font-bold text-slate-700">Status aktif</span><InlineActiveSwitch checked={form.is_active} onChange={(checked) => setForm((current) => ({ ...current, is_active: checked }))} showLabel={false} /></div>
+        <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3"><span className="text-sm font-bold text-slate-700">Status aktif</span><InlineActiveSwitch checked={form.is_active} onChange={(checked) => setForm((current) => ({ ...current, is_active: checked }))} showLabel={false} /></div>
         <Field label="Susunan Produk" required><ProductOrderPicker products={products} existingProducts={editor.entity?.products || []} value={form.product_ids} onChange={(product_ids) => setForm((current) => ({ ...current, product_ids }))} onSearchChange={setProductSearch} /></Field>
       </FormModal>
     </>

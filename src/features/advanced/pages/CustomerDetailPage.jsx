@@ -6,7 +6,7 @@ import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
 import { ConfirmDialog } from "@/shared/components/crud";
 import { Input } from "@/shared/components/ui/Input";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
-import { OrderFormActionButton, OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
+import { FormActionDock, FormEditorLayout } from "@/shared/components/crud";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
 import { toastError } from "@/shared/utils/userFeedback";
 
@@ -72,15 +72,16 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
 
   return (
     <>
-      <OrderFormLayout
-        aside={
-          admin ? null : (
-            <>
-              <OrderFormActionButton tone="emerald" variant="soft" icon={editing ? "save" : "person_add"} label={editing ? "Simpan" : "Simpan"} type="submit" disabled={busy || !dirty || !form.name.trim()} onClick={handleSave} />
-              {editing ? <OrderFormActionButton tone="rose" variant="soft" icon="delete" label="Hapus" onClick={() => setDeleteOpen(true)} /> : null}
-            </>
-          )
-        }
+      <FormEditorLayout
+        actions={admin ? undefined : (
+          <FormActionDock
+            tone="emerald"
+            save={{ icon: editing ? "save" : "person_add", label: "Simpan" }}
+            onSave={handleSave}
+            disabled={busy || !dirty || !form.name.trim()}
+            onDelete={editing ? () => setDeleteOpen(true) : undefined}
+          />
+        )}
       >
         <FormPageLayout
           title={editing ? "Detail Pelanggan" : "Tambah Pelanggan"}
@@ -148,7 +149,7 @@ function CustomerDetailForm({ customer, admin = false, onSaved, onDeleted }) {
             </div>
           </div>
         </FormPageLayout>
-      </OrderFormLayout>
+      </FormEditorLayout>
 
       <ConfirmDialog
         open={deleteOpen}

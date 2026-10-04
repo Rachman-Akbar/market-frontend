@@ -111,13 +111,13 @@ export default function AdminWithdrawalsPage() {
     <AdminShell title="Penarikan Dana Seller" subtitle="Tinjau dan proses permintaan penarikan dana dari seller.">
       <div className="space-y-4">
         {pendingCount > 0 && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
             {pendingCount} penarikan menunggu persetujuan.
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="grid w-full max-w-xs grid-cols-2 gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-[5px]">
+          <div className="grid w-full max-w-xs grid-cols-2 gap-[5px]">
             {FILTER_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -169,7 +169,7 @@ export default function AdminWithdrawalsPage() {
 
         {detailTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailTarget(null)}>
-            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md rounded-[10px] bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-slate-900">Detail Penarikan</h3>
               <p className="mt-1 text-sm text-slate-500">{detailTarget.withdrawalNumber} • {formatRupiah(detailTarget.amount)}</p>
               <div className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
@@ -195,7 +195,7 @@ export default function AdminWithdrawalsPage() {
                 </label>
               </div>
               {detailTarget.status === "pending" ? (
-                <div className="mt-5 flex justify-end gap-2">
+                <div className="mt-5 flex justify-end gap-[5px]">
                   <Button variant="outline" onClick={() => { setDetailTarget(null); openReject(detailTarget); }}>Tolak</Button>
                   <Button onClick={() => { approve(detailTarget); setDetailTarget(null); }} disabled={approveMut.isPending}>{approveMut.isPending ? "Memproses..." : "Setujui"}</Button>
                 </div>
@@ -210,7 +210,7 @@ export default function AdminWithdrawalsPage() {
 
         {rejectTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRejectTarget(null)}>
-            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md rounded-[10px] bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-slate-900">Tolak Penarikan</h3>
               <p className="mt-1 text-sm text-slate-500">
                 {rejectTarget.withdrawalNumber} • {formatRupiah(rejectTarget.amount)}
@@ -226,7 +226,7 @@ export default function AdminWithdrawalsPage() {
                   />
                 </label>
               </div>
-              <div className="mt-5 flex justify-end gap-2">
+              <div className="mt-5 flex justify-end gap-[5px]">
                 <Button variant="outline" onClick={() => setRejectTarget(null)}>Batal</Button>
                 <Button onClick={submitReject} disabled={rejectMut.isPending} className="bg-red-600 hover:bg-red-700">
                   {rejectMut.isPending ? "Memproses..." : "Tolak Penarikan"}

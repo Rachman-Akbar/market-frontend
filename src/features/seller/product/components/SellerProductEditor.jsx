@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FormPageLayout } from "@/shared/components/crud/FormPageLayout";
-import { OrderFormLayout } from "@/features/seller/order/components/OrderFormLayout";
-import { ProductFormActionButton } from "@/features/seller/product/components/ProductFormActionButton";
+import { FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
 import { FormField, inputClassName, textAreaClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
@@ -16,6 +15,7 @@ import { createClientId } from "@/core/utils/clientId";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 import { useNotificationCenter } from "@/shared/notifications/NotificationCenterContext";
 import { useRelationCreateTab } from "@/shared/hooks/useRelationCreateTab";
+import { useTabDirtyGuard } from "@/shared/hooks/useTabDirtyGuard";
 import { getRelationQuickCreateError, useQuickCreateCategory, useQuickCreateProductAttribute } from "@/shared/services/relationQuickCreateService";
 import {
   getSellerProductError,
@@ -26,7 +26,7 @@ import {
 } from "@/features/seller/product/services/sellerProductService";
 import { advancedError, useSaveProductCosting } from "@/features/advanced/services/advancedMarketplaceService";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
-import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
+import { toastError } from "@/shared/utils/userFeedback";
 
 function createInitialValues(product) {
   if (!product) {
@@ -138,6 +138,7 @@ export function SellerProductEditor({
   const [costingDirty, setCostingDirty] = useState(false);
   const dirty = useFormDirty(pristine, values, { volatileKeys: ["clientId"], numericKeys: NUMERIC_FIELD_KEYS });
   const formDirty = dirty || costingDirty;
+  useTabDirtyGuard(formDirty);
   const [activeSection, setActiveSection] = useState("general");
   const notifications = useNotificationCenter();
   const openRelationCreateTab = useRelationCreateTab();
@@ -286,8 +287,8 @@ export function SellerProductEditor({
     if (values.mode === "variant") {
       if (!values.variants.length) nextErrors.variants = "Minimal satu variant wajib dibuat.";
 
-      if (values.variants.some((variant) => !variant.name.trim() || !variant.sku.trim())) {
-        nextErrors.variants = "Nama dan SKU setiap variant wajib diisi.";
+      if (values.variants.some((variant) => !variant.name.trim())) {
+        nextErrors.variants = "Nama setiap variant wajib diisi.";
       }
 
       const normalizedSkus = values.variants.map((variant) => variant.sku.trim().toLowerCase()).filter(Boolean);
@@ -351,8 +352,7 @@ export function SellerProductEditor({
       }
 
       onSaved?.(saved);
-      toastSuccess(product ? "Produk berhasil diperbarui." : "Produk berhasil ditambahkan.");
-      window.setTimeout(() => onClose?.(), 350);
+            window.setTimeout(() => onClose?.(), 350);
     } catch (error) {
       toastError("Gagal menyimpan produk", getError(error));
     }
@@ -369,21 +369,14 @@ export function SellerProductEditor({
   return (
     <>
       <form onSubmit={submit}>
-        <OrderFormLayout
-          compact
-          aside={
-            <>
-              <ProductFormActionButton
-                tone={isAdmin ? "teal" : "emerald"}
-                icon={product ? "save" : "add"}
-                label={product ? "Simpan" : "Tambah"}
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !formDirty}
-              />
-              {product && onDelete ? (
-                <ProductFormActionButton tone="rose" icon="delete" label="Hapus" onClick={() => onDelete(product)} />
-              ) : null}
-            </>
+        <FormEditorLayout
+          actions={
+            <FormActionDock
+              tone={isAdmin ? "teal" : "emerald"}
+              save={{ icon: product ? "save" : "add", label: product ? "Simpan" : "Tambah" }}
+              disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !formDirty}
+              onDelete={product && onDelete ? () => onDelete(product) : undefined}
+            />
           }
         >
           <FormPageLayout
@@ -398,8 +391,8 @@ export function SellerProductEditor({
             <div className="space-y-6">
               {activeSection === "general" ? (
                 <div className="space-y-5">
-                  <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-                    <div className="flex items-center gap-2">
+                  <section className="rounded-[10px] bg-white p-5 ring-1 ring-slate-200">
+                    <div className="flex items-center gap-[5px]">
                       <span className="material-symbols-outlined text-slate-400">description</span>
                       <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Informasi Umum</h2>
                     </div>
@@ -470,7 +463,7 @@ export function SellerProductEditor({
 
                   {selectedCategory ? (
                     <div className="md:col-span-2 rounded-lg bg-slate-50 px-3 py-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-[5px]">
                         <span className="rounded-md bg-white px-2 py-1 text-[11px] font-extrabold text-teal-700 ring-1 ring-inset ring-slate-200">Level {getCategoryDepth(selectedCategory) + 1}</span>
                         <p className="text-xs font-bold text-slate-600">{getCategoryPath(selectedCategory)}</p>
                       </div>
@@ -506,8 +499,8 @@ export function SellerProductEditor({
 
           {activeSection === "variant" ? (
             <div className="space-y-5">
-              <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-                <div className="flex items-center gap-2">
+              <section className="rounded-[10px] bg-white p-5 ring-1 ring-slate-200">
+                <div className="flex items-center gap-[5px]">
                   <span className="material-symbols-outlined text-slate-400">tune</span>
                   <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Mode Produk</h2>
                 </div>
@@ -519,7 +512,7 @@ export function SellerProductEditor({
                   ].map(([mode, label, description]) => (
                     <label key={mode} className={`cursor-pointer rounded-lg border p-4 transition-colors ${values.mode === mode ? "border-emerald-400 bg-emerald-50" : "border-slate-200 hover:bg-slate-50"}`}>
                       <input type="radio" className="sr-only" checked={values.mode === mode} onChange={() => changeMode(mode)} />
-                      <span className="flex items-center gap-2 text-sm font-extrabold text-slate-800">
+                      <span className="flex items-center gap-[5px] text-sm font-extrabold text-slate-800">
                         <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${values.mode === mode ? "border-emerald-600" : "border-slate-300"}`}>
                           {values.mode === mode ? <span className="h-2 w-2 rounded-full bg-emerald-600" /> : null}
                         </span>
@@ -537,7 +530,7 @@ export function SellerProductEditor({
                   {errors.variants ? <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{errors.variants}</p> : null}
                 </div>
               ) : (
-                <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                <div className="flex min-h-40 items-center justify-center rounded-[10px] border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
                   <div>
                     <span className="material-symbols-outlined text-3xl text-slate-400">inventory_2</span>
                     <p className="mt-2 text-sm font-extrabold text-slate-700">Produk tanpa variant</p>
@@ -581,16 +574,15 @@ export function SellerProductEditor({
 
         </div>
         </FormPageLayout>
-      </OrderFormLayout>
+      </FormEditorLayout>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/50 px-5 py-4 sm:px-6 lg:hidden">
-          {product && onDelete ? (
-            <button type="button" onClick={() => onDelete(product)} className="h-10 bg-red-50 px-4 text-sm font-extrabold text-red-600 hover:bg-red-100">Hapus</button>
-          ) : null}
-          <button type="submit" disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !formDirty} className={`h-10 px-5 text-sm font-extrabold ${formDirty ? `${isAdmin ? "bg-teal-600 hover:bg-teal-700" : "bg-emerald-600 hover:bg-emerald-700"} text-white` : "bg-slate-100 text-slate-400"}`}>
-            {product ? "Simpan Perubahan" : "Tambah Produk"}
-          </button>
-        </div>
+        <FormEditorFooter
+          submitLabel={product ? "Simpan Perubahan" : "Tambah Produk"}
+          submitIcon={product ? "save" : "add"}
+          disabled={createMutation.isPending || updateMutation.isPending || saveProductCosting.isPending || !formDirty}
+          tone={isAdmin ? "teal" : "emerald"}
+          onDelete={product && onDelete ? () => onDelete(product) : undefined}
+        />
       </form>
     </>
   );

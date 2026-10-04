@@ -52,7 +52,7 @@ export const StoreModerationDialog = memo(function StoreModerationDialog({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-xl rounded-[10px] bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-extrabold text-slate-950">Moderasi Toko</h2>
@@ -71,7 +71,7 @@ export const StoreModerationDialog = memo(function StoreModerationDialog({
           </span>
         </div>
 
-        <label className="mt-5 flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-700">
+        <label className="mt-5 flex items-center gap-3 rounded-[10px] border border-slate-200 p-3 text-sm font-semibold text-slate-700">
           <input
             type="checkbox"
             checked={!useCustom}
@@ -90,13 +90,13 @@ export const StoreModerationDialog = memo(function StoreModerationDialog({
               value={customMessage}
               onChange={(event) => setCustomMessage(event.target.value)}
               rows={5}
-              className="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+              className="mt-1 block w-full rounded-[10px] border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
               placeholder="Ketik pesan manual. Gunakan {store_name}, {owner_name} jika perlu."
             />
           </div>
         )}
 
-        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+        <div className="mt-3 rounded-[10px] border border-slate-100 bg-slate-50 p-3">
           <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">Preview pesan yang dikirim</p>
           <p className="mt-1 whitespace-pre-line text-xs leading-5 text-slate-600 max-h-40 overflow-y-auto">{preview}</p>
         </div>
@@ -106,7 +106,7 @@ export const StoreModerationDialog = memo(function StoreModerationDialog({
             type="button"
             disabled={pending}
             onClick={onClose}
-            className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:border-slate-300 disabled:opacity-60"
+            className="h-10 rounded-[10px] border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:border-slate-300 disabled:opacity-60"
           >
             Batal
           </button>
@@ -114,7 +114,7 @@ export const StoreModerationDialog = memo(function StoreModerationDialog({
             type="button"
             disabled={pending}
             onClick={() => onConfirm(useCustom ? customMessage : null)}
-            className={`h-10 rounded-xl px-4 text-sm font-bold text-white disabled:opacity-60 ${
+            className={`h-10 rounded-[10px] px-4 text-sm font-bold text-white disabled:opacity-60 ${
               dangerStyle
                 ? "bg-red-600 hover:bg-red-700"
                 : "bg-teal-600 hover:bg-teal-700"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CrudDialog, FormActionDock, FormEditorLayout } from "@/shared/components/crud";
+import { CrudDialog, FormActionDock, FormEditorFooter, FormEditorLayout } from "@/shared/components/crud";
 import { FormField, inputClassName } from "@/shared/components/form/FormField";
 import { SearchableSelect } from "@/shared/components/form/SearchableSelect";
 import { InlineActiveSwitch } from "@/shared/components/form/InlineActiveSwitch";
@@ -7,6 +7,7 @@ import { required, validateFields } from "@/core/utils/formValidation";
 import { getAdminStoreError, useUpdateAdminStore } from "@/features/admin/store/services/adminStoreService";
 import { toTitleCase } from "@/shared/utils/textFormatter";
 import { useFormDirty } from "@/shared/hooks/useFormDirty";
+import { useTabDirtyGuard } from "@/shared/hooks/useTabDirtyGuard";
 import { toastError, toastSuccess } from "@/shared/utils/userFeedback";
 
 function initialValues(store) {
@@ -26,6 +27,7 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
   const [errors, setErrors] = useState({});
   const pristine = initialValues(store);
   const dirty = useFormDirty(pristine, values);
+  useTabDirtyGuard(dirty);
   const mutation = useUpdateAdminStore();
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
           <FormField label="Kota"><input value={values.city} onChange={(event) => setField("city", event.target.value)} className={inputClassName} /></FormField>
           <FormField label="Provinsi"><input value={values.province} onChange={(event) => setField("province", event.target.value)} className={inputClassName} /></FormField>
           <div className="md:col-span-2">
-            <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3">
+            <div className="flex h-11 items-center justify-between rounded-[10px] border border-slate-200 bg-white px-3">
               <div>
                 <span className="block text-sm font-bold text-slate-700">Status operasional</span>
                 <span className="block text-[11px] text-slate-400">{values.status === "suspended" ? "Toko suspended otomatis non-active." : "Active/Non-Active mengatur ketersediaan toko tanpa mengubah status approval."}</span>
@@ -92,10 +94,7 @@ export function AdminStoreEditor({ open, store, onClose, onSaved }) {
           </div>
         </div>
         </FormEditorLayout>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 lg:hidden">
-          <button type="button" onClick={onClose} className="h-10 border border-slate-200 px-4 text-sm font-bold text-slate-600">Batal</button>
-          <button type="submit" disabled={mutation.isPending || !dirty} className={`h-10 px-5 text-sm font-extrabold ${dirty ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-400"}`}>Simpan Perubahan</button>
-        </div>
+        <FormEditorFooter onCancel={onClose} submitLabel="Simpan Perubahan" submitIcon="save" disabled={mutation.isPending || !dirty} tone="teal" />
       </form>
     </CrudDialog>
   );

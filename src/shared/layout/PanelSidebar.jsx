@@ -76,6 +76,7 @@ export const PanelSidebar = memo(function PanelSidebar({
   }, [items]);
 
   const pinnedItems = useMemo(() => items.filter((item) => !item.hiddenInSidebar && item.bottom), [items]);
+  const topItems = useMemo(() => items.filter((item) => item.pinTop), [items]);
 
   useEffect(() => {
     setOpenGroup(null);
@@ -146,7 +147,7 @@ export const PanelSidebar = memo(function PanelSidebar({
   }, [tooltip, tooltipFromAnchor]);
 
   const railButtonClassName = (active) => cn(
-    "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
+    "relative flex h-11 w-11 items-center justify-center rounded-[10px] transition-all",
     active ? "text-white" : "text-slate-400 hover:bg-white/10 hover:text-white",
   );
 
@@ -175,7 +176,27 @@ export const PanelSidebar = memo(function PanelSidebar({
           }}
         />
 
-        <div aria-hidden className="h-[77px] shrink-0 border-b border-white/10" />
+        {topItems.length ? (
+          <div className="relative flex h-[77px] shrink-0 items-center justify-center border-b border-white/10">
+            {topItems.map((item) => (
+              <button
+                key={item.href}
+                type="button"
+                onMouseEnter={(event) => showTip(event, item.label, item.iconColor)}
+                onMouseLeave={clearTip}
+                onClick={(event) => openMenu(event, item)}
+                className={cn(railButtonClassName(activeParentId === item.href), "text-base")}
+                style={activeParentId === item.href ? { backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22)" } : undefined}
+                aria-label={item.label}
+                aria-current={activeParentId === item.href ? "page" : undefined}
+              >
+                <span className="material-symbols-outlined text-[22px]">{item.icon || "settings"}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div aria-hidden className="h-[77px] shrink-0 border-b border-white/10" />
+        )}
 
         <nav className="relative flex-1 space-y-1.5 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
           {showHomeLink && dashboard ? (
@@ -233,7 +254,7 @@ export const PanelSidebar = memo(function PanelSidebar({
                     onMouseLeave={clearTip}
                     onClick={(event) => openMenu(event, item)}
                     className={cn(
-                      "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all",
+                      "relative flex h-11 w-11 items-center justify-center rounded-[10px] transition-all",
                       activeParentId === item.href
                         ? item.iconColor
                           ? "text-white"
@@ -263,7 +284,7 @@ export const PanelSidebar = memo(function PanelSidebar({
               to="/"
               onMouseEnter={(event) => showTip(event, "Kembali ke Marketplace")}
               onMouseLeave={clearTip}
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-[10px] text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <span className="material-symbols-outlined text-[22px]">storefront</span>
             </Link>
@@ -286,13 +307,13 @@ export const PanelSidebar = memo(function PanelSidebar({
 
             return (
               <div
-                className="w-[340px] max-h-[calc(100vh-3rem)] overflow-y-auto rounded-2xl border bg-white p-2 shadow-2xl ring-1 ring-slate-900/5"
+                className="w-[340px] max-h-[calc(100vh-3rem)] overflow-y-auto rounded-[10px] border bg-white p-2 shadow-2xl ring-1 ring-slate-900/5"
                 style={{
                   borderColor: rgba(theme.color, 0.3),
                   boxShadow: `0 24px 56px -12px ${rgba(theme.color, 0.28)}, 0 8px 24px -12px rgba(15, 23, 42, 0.45)`,
                 }}
               >
-                <div className="flex items-center gap-2 px-2 pb-2 pt-1.5">
+                <div className="flex items-center gap-[5px] px-2 pb-2 pt-1.5">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: softBackground }}>
                     <span className="material-symbols-outlined text-[15px]" style={{ color: theme.color }}>{icon}</span>
                   </span>
@@ -313,7 +334,7 @@ export const PanelSidebar = memo(function PanelSidebar({
                         onMouseEnter={() => setHoveredHref(item.href)}
                         onMouseLeave={() => setHoveredHref(null)}
                         className={cn(
-                          "relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 py-3 text-center transition-shadow",
+                          "relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[10px] px-1.5 py-3 text-center transition-shadow",
                           active ? "text-white" : "text-slate-600",
                         )}
                         style={
@@ -326,7 +347,7 @@ export const PanelSidebar = memo(function PanelSidebar({
                         aria-current={active ? "page" : undefined}
                       >
                         <span
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
                           style={active ? { backgroundColor: "rgba(255,255,255,0.22)" } : { backgroundColor: softBackground }}
                         >
                           <span
